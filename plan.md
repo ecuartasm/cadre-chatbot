@@ -477,22 +477,47 @@ So this is **restyling, not construction**, and three things constrain it:
    which `CLAUDE.md` explicitly rules out in favour of plain CSS with custom properties. The current
    state violates a stated convention, so extracting it is required work, not polish.
 
-2. ⚠️ **The design-token step needs a real browser, which I do not have.** The plan correctly says
-   computed styles via DevTools, *not* an AI page fetch — and that rules me out too, not just a naive
-   fetch. `content/raw/` is markdown text with no computed CSS in it. This is a genuine dependency to
-   settle **before** the phase starts, not mid-way:
-   - **(a)** the requester pastes computed values from DevTools on cadreai.com (fonts, brand colours,
-     radii, spacing scale) — best fidelity;
-   - **(b)** I build a neutral, defensible token set and label it as *not* brand-matched;
-   - **(c)** tokens are approximated from the brand colours visible in the scraped pages, with the
-     approximation stated in the report.
-   Any of these is fine. Silently shipping (b) while implying (a) is not.
+2. ✅ **The design-token dependency is RESOLVED — no longer a blocker.** It was real: the step needs a
+   real browser, which rules me out as much as a naive page fetch. It was settled from two sources
+   rather than the approximation originally planned:
+   - The site is **Webflow**, which declares its tokens as CSS custom properties in the served
+     stylesheet rather than only computing them. Fetching it yielded the real declared values —
+     colours, fonts, weights, spacing, radii — saved to `analysis/brand-tokens-extracted.txt`.
+   - The requester supplied a full-page screenshot, which corrected how those tokens are actually
+     *used* (see the table below). Declared values alone would have produced a red-headed, blue-buttoned
+     widget that matched no page on the site.
 
 3. **Phase 4 added a functional requirement this phase must not break.** `App.jsx` accumulates only
    visible `delta` text into the assistant turn and posts the whole array back. Multi-turn correctness
    depends on both halves. A restyling pass that touches the accumulation logic — or "tidies" it into
    storing raw frames — would put the refusal marker into history and undo Phase 4. Treat
    `sendMessage` as behaviour under test, not layout.
+
+4. ⚠️ **The fonts are not loaded, and nothing in this plan said so.** `Inter` and `Inter Tight` appear
+   nowhere in `web/` — not in `index.html`, not in `package.json`, no `@font-face`. Writing
+   `font-family: 'Inter Tight'` would **silently fall back to Arial**: no error, no warning, and a
+   widget that looks approximately right to whoever wrote it. That is this project's signature failure
+   mode, so it gets a decision rather than a default.
+
+   **Self-host the woff2 files** (~4 files, ~160KB) rather than linking Google Fonts. Two reasons, and
+   the second is the real one: the project is deliberately *one deployable* with no runtime external
+   dependency — the corpus is committed, the app never fetches the web — and a CDN font would be the
+   only third-party request on the page. This bot answers questions about Cadre's data-security
+   posture; a widget that phones a third party while doing so is the same kind of inconsistency as
+   logging raw user messages. Fallback stack stays `Inter, Arial, sans-serif`, matching the site's own
+   declaration.
+
+   *Good outcome:* the fallback is honest either way. *Bad outcome to avoid:* declaring Inter, shipping
+   Arial, and reporting it as brand-matched.
+
+5. **There is no CSS entry point at all.** `main.jsx` imports only React and `App.jsx`; no stylesheet is
+   wired in. `tokens.css` needs an explicit import, or it will build cleanly and apply nothing.
+
+6. **Both conventions need a durable guard, not a review-time glance.** "No inline styles" and "text is
+   black" are exactly the rules that decay the first time someone adds a quick `style={{ color: '#666' }}`.
+   A cheap source-level test — assert `web/src/App.jsx` contains no `style={{` and no non-black hex
+   literal outside `tokens.css` — makes both permanent. `CLAUDE.md`'s verification section covers the
+   knowledge layer and the API but says nothing about the UI, which is why this has to be stated here.
 
 #### What the site actually looks like — corrected from a screenshot
 
@@ -545,11 +570,17 @@ black: `#666` twice, `#999` twice, and `#b00` for errors. Grey-on-white body tex
   `--cadre-red` is the brand's own error-ish colour; and the **`/contact` link**, where an
   undifferentiated black link stops reading as clickable. Everything else is black.
 
-**Exit:** no inline `style={{…}}` left in `App.jsx` · `tokens.css` exists and components consume
-variables, never literals · **all message and interface text renders black — no grey body text** ·
-shell in `dvh`/`svh` and input font ≥16px (both iOS-specific: `vh` sits under the keyboard, and <16px
-triggers focus auto-zoom) · usable at 375px wide · streaming still visible · CTA present · **the
-multi-turn probes still pass unchanged**. Then the checklist.
+**Exit:** no inline `style={{…}}` left in `App.jsx`, **guarded by a test** · `tokens.css` exists, is
+imported, and components consume variables never literals · **all message and interface text renders
+black — no grey body text**, also guarded · Inter/Inter Tight **self-hosted and actually loading**
+(verified in the browser, not assumed from the CSS) · shell in `dvh`/`svh` and input font ≥16px (both
+iOS-specific: `vh` sits under the keyboard, <16px triggers focus auto-zoom) · usable at 375px wide ·
+streaming still visible · CTA present · **the multi-turn probes still pass unchanged**. Then the
+checklist.
+
+**Not in scope, so it does not creep in:** no component library, no CSS framework, no dark mode, no
+animation beyond what streaming already implies, no redesign of the conversation model. This is a
+styling pass over a working UI.
 
 ### Phase 6 — Eval + P2 + polish · 60–75 min
 The 13-case golden set (properties, not strings) · split the JSONL streams · build `/api/stats` · test
