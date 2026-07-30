@@ -159,6 +159,12 @@ streams. Both are silent. That is now this project's recurring theme — the cac
 
 #### 2.1 🔴 First: the volume, and the permission collision
 
+**Decided 2026-07-29: attach the volume and build P0+P1 as specified.** The paid-infrastructure
+deferral from earlier is lifted for this specifically — log storage is a few MB, and deferring it would
+push the permission collision below to the end of the build, which is the late-discovery pattern this
+project keeps getting caught by. `USER root` fallback is a judgement call to be made on first deploy and
+recorded, not escalated.
+
 `railway volume add -m /data` — the mount path is ours to choose, so `LOG_DIR=/data/logs` is fine.
 **But a volume mounts at runtime and shadows whatever the image had at that path, and a fresh mount is
 `root:root`.** The container runs as `appuser` (uid 10001, chosen deliberately in Phase 0c), so it
