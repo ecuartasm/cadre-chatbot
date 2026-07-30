@@ -266,17 +266,47 @@ a redeploy · `/health` reports `log_sink_writable: true` · an abandoned stream
 cached and uncached turns cost what the table predicts · a 429 arrives as a readable SSE error frame.
 Then the checklist.
 
-### Phase 3 — System prompt refinement · 15–25 min  *(shrunk — Phase 0c absorbed most of it)*
+### Phase 3 — System prompt refinement · 45–70 min  *(re-estimated after Phase 2 — see below)*
 Phase 0c already shipped `app/llm/prompt.py` versioned, frozen, and sectioned: persona · grounding ·
 refusal boundary · format rules, with the `cache_control` breakpoint attached. **What is left is only
 what 0c did not need:**
 
-- **`disclosure`-driven escalation** — the boundary is currently prose in the prompt; wire it to the
-  `disclosure` / `refusal_reason` fields the Phase 1 corpus carries, so refusals are structural.
+- **Make refusals structural, not just prose.** *Decision taken before the phase: the model emits a
+  machine-readable marker; the server parses it.* Three mechanisms were weighed — a marker, a second
+  classification call, and a heuristic over the answer text. The marker wins: ~10 extra output tokens
+  against a second billed call (+13%/turn) or a substring match over prose, which CLAUDE.md's own
+  verification rule already rules out as untrustworthy.
+
+  Concretely:
+  - The prompt instructs: open a refusal with `[[refusal:<slug>]]` and nothing before it.
+  - `stream_reply` buffers the leading bytes until the marker either matches or provably cannot,
+    sets `status="refused"` and `refusal_reason`, and **strips the marker before the first delta
+    reaches the client.** The marker must never appear in the UI — assert this in a test, because it
+    is the one failure a user would actually see.
+  - **A missing marker must not be read as "not a refusal."** The model will sometimes forget. When
+    the marker is absent the turn logs `status="ok"` and `refusal_reason=null` as it does today, so
+    the metric under-reports rather than mislabels — and the gap is greppable via the `/contact`
+    link. Stated here so the number is read correctly rather than trusted blindly.
+  - Cost of the buffer: a few tens of bytes of first-chunk delay. Measure the TTFT effect and record
+    it in the table below; if it is visible, that is a real trade to name, not to hide.
+
+- **Validate the reason vocabulary against the corpus — do not author a new list.** The corpus's
+  NEGATIVE KNOWLEDGE table is already the authoritative set of **15** slugs, plus `off-topic`
+  documented separately in "How to refuse" = **16**. `loader.py` currently asserts only 3 of them in
+  `REQUIRED_MARKERS`. Parse the table's `refusal_reason` column at load time and treat it as the
+  closed enum, so a slug the model invents is rejected rather than silently written to the log. This
+  is the ordinary case of the project's rule that the corpus is the source of truth: a hand-copied
+  list in Python would be a second place for the vocabulary to drift.
+
 - **Conversion behavior** — guide toward booking a strategy call where it is natural, without being
   pushy. Deliberately absent from 0c so the slice couldn't be accused of being a lead-gen funnel before
   it could answer anything.
 - Re-verify byte-stability and re-measure after the edits.
+
+**Why the estimate tripled from 15–25 min.** The original figure covered prompt prose only. It now
+includes marker parsing in the streaming path, the leak test, the enum validation in the loader, and
+the conversion section. On the Phase 2 precedent (45–60 estimated, ~95 actual) the honest range is
+45–70.
 
 **Measurements — the open question here was answered in Phase 1:**
 
@@ -298,18 +328,26 @@ verification pass.
 
 1. **Prompt edits are now measurable instead of eyeballed.** `interactions.jsonl` records token counts,
    cache write/read split, cost, latency, and `stop_reason` per turn. So the working loop for this
-   phase is *edit → run the golden questions → read the log*, not *edit → read the answers and form an
-   impression*. Concretely: a boundary that got looser should show up as fewer refusals, and a prompt
-   that grew should show up as a larger `total_prompt_tokens` — both readable, neither guessed.
+   phase is *edit → send the probes → read the log*, not *edit → read the answers and form an
+   impression*. A boundary that got looser shows up as fewer refusals; a prompt that grew shows up as a
+   larger `total_prompt_tokens` — both readable, neither guessed.
+
+   **To be exact about what "the probes" means: there is no runner yet.** `eval/` does not exist, and
+   the 13-case golden set is Phase 6 (see step 1 of the checklist, and the Phase 6 scope line). Phase 3
+   sends the six scenarios plus the three required refusals **by hand** against a local server and reads
+   `interactions.jsonl`. That is enough to tune a prompt and is honest about what it is; it is not a
+   regression suite, and Phase 3 must not be recorded as if it had one.
 
 2. **`refusal_reason` is emitted on every interaction line and never set — it is always `null`.**
-   `_guard_frame` sets it on the separate `turn_rejected` line, but that covers rate-limit and spend-cap
-   rejections, not a knowledge-boundary refusal. So the one metric this phase most needs in order to
-   tune the boundary — *how often does the bot refuse, and for which reason* — is not measurable yet.
-   Wiring it is now part of this phase's first bullet rather than an afterthought: when the model
-   declines, classify against the corpus's `refusal_reason` values (`no-public-pricing`,
-   `no-public-portal-access`, `no-episode-content`, …) and set the field. Without this, "refusals are
-   structural" is a claim about the prompt with no evidence behind it.
+   Verified in the production log: `refusal_reason=null` on a real turn. `_guard_frame` sets it on the
+   separate `turn_rejected` line, but that covers rate-limit and spend-cap rejections, not a
+   knowledge-boundary refusal. `status` has the same hole: `'refused'` is listed as a valid value in
+   `cost.py` but is only ever set to `ok`/`error`/`abandoned`.
+
+   So the one metric this phase most needs in order to tune the boundary — *how often does the bot
+   refuse, and for which reason* — is not measurable yet, which is why the marker decision moved into
+   this phase's first bullet rather than staying an afterthought. Without it, "refusals are structural"
+   is a claim about the prompt with no evidence behind it.
 
 3. **Two hard constraints inherited from Phase 2, both silent if violated:**
    - The system prefix must stay **≥ 4,096 tokens**. Trimming prose during refinement is exactly the
@@ -320,9 +358,21 @@ verification pass.
      Any change to the prompt also invalidates the cached prefix, so expect the first turn after a
      deploy to bill a cache **write** ($0.00627, not $0.00120) — that is normal, not a regression.
 
-**Exit:** `refusal_reason` populated and visible in `interactions.jsonl` · conversion behaviour present
-without being pushy · prefix re-measured ≥ 4,096 and `cache_read > 0` still true · `SYSTEM_PROMPT_VERSION`
-bumped · the TTFT cell filled. Then the checklist.
+**Exit:**
+
+- `status="refused"` and a `refusal_reason` from the closed 16-slug enum appear in `interactions.jsonl`
+  for each of the three required refusals.
+- **The `[[refusal:…]]` marker appears nowhere in the streamed output** — asserted by a test, since this
+  is the only failure in the phase a user would see directly.
+- A slug outside the enum is rejected rather than logged.
+- **Off-topic behaves as the documented exception:** a one-line decline, naming what the bot *can* help
+  with, **no `/contact` link**, logged as `refusal_reason: off-topic`. It is the only refusal that does
+  not route, so it is the one most likely to be got wrong by a prompt edit aimed at the other fifteen.
+- Conversion behaviour present without being pushy.
+- Prefix re-measured **≥ 4,096** and `cache_read > 0` still true after every edit.
+- `SYSTEM_PROMPT_VERSION` bumped; the TTFT cell filled, including any cost of the marker buffer.
+
+Then the checklist.
 
 ### Phase 4 — Chat API + LLM client · 60–75 min
 SSE endpoint · provider behind the one-file interface · prompt assembly with `cache_control` on the last
