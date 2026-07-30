@@ -1,0 +1,24 @@
+# Never let a secret into the build context
+.env
+.env.*
+!.env.example
+
+.git
+.gitignore
+.venv
+__pycache__
+**/__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+
+web/node_modules
+web/dist
+
+analysis
+docs
+logs
+tests
+CLAUDE.md
+plan.md
+README.md

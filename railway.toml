@@ -1,11 +1,14 @@
-# Railway service configuration. Explicit beats relying on auto-detection.
+# Railway service configuration.
 [build]
-builder = "NIXPACKS"
+# Dockerfile, not Nixpacks: this repo has two toolchains (Node for the bundle, Python for
+# the API) and Nixpacks only auto-detects one of them.
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-# $PORT is injected by Railway at runtime — never hardcode it.
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
+# startCommand omitted on purpose — the Dockerfile CMD owns it, so $PORT handling
+# lives in exactly one place.

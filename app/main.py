@@ -1,8 +1,11 @@
 """FastAPI entrypoint.
 
-Phase 0a scope: a deployable skeleton and nothing more. The chat endpoint, the
-knowledge layer, and the observability module arrive in later phases (see plan.md).
-Keeping this file honest about what exists matters more than making it look finished.
+Phase 0c: an end-to-end slice — three hardcoded facts, a streaming chat endpoint, and the
+built React bundle served from this same process (one deployable, see CLAUDE.md). The
+knowledge layer and observability module still belong to later phases.
+
+Route order matters: /health and /api/* are registered BEFORE the static mount at "/", so
+the mount cannot shadow them.
 """
 
 from __future__ import annotations
@@ -13,15 +16,18 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI
 
+from app.api.chat import router as chat_router
+
 load_dotenv()
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
 MODEL = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5")
+WEB_DIST = Path(__file__).parent.parent / "web" / "dist"
 
 app = FastAPI(
     title="Cadre AI Support Chatbot",
-    version="0.1.0",
-    # Docs stay on in development only — a public URL doesn't need to advertise its schema.
+    version="0.2.0",
+    # A public URL does not need to advertise its schema.
     docs_url="/docs" if ENVIRONMENT == "development" else None,
     redoc_url=None,
 )
@@ -29,43 +35,36 @@ app = FastAPI(
 
 @app.get("/health")
 def health() -> dict[str, object]:
-    """Liveness probe. Railway's healthcheckPath points here.
+    """Liveness probe — Railway's healthcheckPath.
 
-    Reports whether the API key is *present* — never its value, and never whether
-    it is valid (that would mean a billed call on every healthcheck).
+    Reports whether the key is CONFIGURED, never whether it is valid: validating would mean
+    a billed API call on every healthcheck.
     """
     return {
         "status": "ok",
         "environment": ENVIRONMENT,
         "model": MODEL,
         "anthropic_key_configured": bool(os.getenv("ANTHROPIC_API_KEY")),
+        "web_bundle_present": WEB_DIST.is_dir(),
     }
 
 
-@app.get("/")
-def root() -> dict[str, object]:
-    """Placeholder root.
-
-    Phase 0c replaces this with the built React bundle served from static files
-    (one deployable — see CLAUDE.md). Until then it states what is and isn't built,
-    so a visitor to the public URL is never misled about how finished this is.
-    """
-    return {
-        "service": "Cadre AI Support Chatbot",
-        "phase": "0a — deploy skeleton",
-        "built": ["GET /health", "GET /"],
-        "not_yet_built": [
-            "POST /api/chat (streaming)  — Phase 0c",
-            "curated knowledge base      — Phase 1",
-            "observability + cost caps   — Phase 2",
-            "GET /api/stats              — Phase 6",
-        ],
-    }
+app.include_router(chat_router)
 
 
-# Serve the React bundle if it has been built. Absent in Phase 0a, present from 0c on.
-_dist = Path(__file__).parent.parent / "web" / "dist"
-if _dist.is_dir():
+# Serve the React bundle if it was built; otherwise expose an honest JSON placeholder so a
+# visitor is never misled about how finished this is.
+if WEB_DIST.is_dir():
     from fastapi.staticfiles import StaticFiles
 
-    app.mount("/", StaticFiles(directory=_dist, html=True), name="web")
+    app.mount("/", StaticFiles(directory=WEB_DIST, html=True), name="web")
+else:
+
+    @app.get("/")
+    def root() -> dict[str, object]:
+        return {
+            "service": "Cadre AI Support Chatbot",
+            "phase": "0c — vertical slice (frontend bundle not built)",
+            "built": ["GET /health", "POST /api/chat", "GET /api/config"],
+            "hint": "run `npm ci && npm run build` in web/ to serve the UI from this process",
+        }
