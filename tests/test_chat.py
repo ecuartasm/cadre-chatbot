@@ -8,6 +8,7 @@ belongs to the golden-set eval in Phase 6, which asserts properties rather than 
 
 from __future__ import annotations
 
+import json
 from collections.abc import AsyncIterator
 
 import pytest
@@ -191,3 +192,15 @@ def test_a_stream_that_dies_mid_marker_shows_an_error_not_a_fragment(monkeypatch
     assert '"type":"error"' in r.text
     assert "[[refusal" not in r.text
     assert '"type":"delta"' not in r.text
+
+
+def test_done_frame_carries_status_and_refusal_reason(fake_stream):
+    """Phase 6 blocker. The golden set runs against the DEPLOYED url, where interactions.jsonl sits
+    on a volume it cannot read — so without these on the wire the eval could only match substrings
+    in prose, which is what the refusal marker exists to avoid."""
+    r = client.post("/api/chat", json={"messages": [{"role": "user", "content": "hi"}]})
+    done = [f for f in r.text.split("\n\n") if '"type":"done"' in f][-1]
+    payload = json.loads(done[len("data: "):])
+    assert payload["status"] == "ok"
+    assert payload["refusal_reason"] is None
+    assert "usage" in payload and "request_id" in payload

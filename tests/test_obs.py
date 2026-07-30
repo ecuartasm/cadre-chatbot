@@ -406,3 +406,68 @@ def test_a_500_returns_an_id_that_is_actually_greppable(monkeypatch):
     assert r.headers["X-Request-Id"] == "trace-me"
     assert "deliberate" not in r.text, "a stack trace must never reach the browser"
     assert "Traceback" not in r.text
+
+
+# ── /api/stats (Phase 6) ─────────────────────────────────────────────────────────────
+
+
+def test_stats_says_unavailable_rather_than_reporting_zeros(monkeypatch, tmp_path):
+    """`turns: 0` and "cannot read the log" are different claims. Reporting the first when the
+    second is true is the same class of quiet lie as a cache that silently never engages."""
+    from app.api import stats as stats_mod
+    from app.obs.sink import SinkStatus
+
+    # SinkStatus is frozen on purpose, so swap the whole object rather than a field.
+    monkeypatch.setattr(stats_mod, "SINK", SinkStatus("stdout-only", None, False, 7, "test"))
+    rows, reason = stats_mod._read_interactions()
+    assert rows == []
+    assert "stdout-only" in reason
+
+
+def test_stats_computes_the_numbers_it_reports(tmp_path, monkeypatch):
+    from app.api import stats as stats_mod
+    from app.obs.sink import SinkStatus
+
+    rows = [
+        {"status": "ok", "cost_usd": 0.001, "latency_ms": 100, "model": "claude-haiku-4-5",
+         "usage": {"output_tokens": 50, "cache_read_input_tokens": 4409}},
+        {"status": "refused", "refusal_reason": "no-public-pricing", "cost_usd": 0.002,
+         "latency_ms": 200, "model": "claude-haiku-4-5",
+         "usage": {"output_tokens": 60, "cache_creation_input_tokens": 4409}},
+        {"status": "refused", "refusal_reason": "no-public-pricing", "cost_usd": 0.003,
+         "latency_ms": 300, "model": "claude-haiku-4-5",
+         "usage": {"output_tokens": 70, "cache_read_input_tokens": 4409}},
+    ]
+    path = tmp_path / "interactions.jsonl"
+    path.write_text("\n".join(json.dumps(r) for r in rows), encoding="utf-8")
+
+    monkeypatch.setattr(stats_mod, "SINK", SinkStatus("disk", str(tmp_path), True, 7, "test"))
+    got, reason = stats_mod._read_interactions()
+
+    assert reason is None
+    assert len(got) == 3
+
+
+def test_stats_survives_a_torn_final_line(tmp_path, monkeypatch):
+    """A half-written line during a concurrent append is expected, not exceptional — a status
+    endpoint must not be the thing that takes the service down."""
+    from app.api import stats as stats_mod
+    from app.obs.sink import SinkStatus
+
+    path = tmp_path / "interactions.jsonl"
+    path.write_text('{"status":"ok"}\n{"status":"refu', encoding="utf-8")
+    monkeypatch.setattr(stats_mod, "SINK", SinkStatus("disk", str(tmp_path), True, 7, "test"))
+
+    rows, reason = stats_mod._read_interactions()
+    assert reason is None
+    assert len(rows) == 1
+
+
+def test_percentile_is_nearest_rank_not_interpolated():
+    """With a handful of turns, interpolation invents precision the sample does not have."""
+    from app.api.stats import _percentile
+
+    assert _percentile([], 50) is None
+    assert _percentile([10], 50) == 10
+    assert _percentile([10, 20, 30, 40], 50) in (20, 30)
+    assert _percentile([10, 20, 30, 40], 95) == 40

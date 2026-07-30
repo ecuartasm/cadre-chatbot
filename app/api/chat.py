@@ -124,6 +124,13 @@ async def _event_stream(messages: list[dict], request_id: str) -> AsyncIterator[
                     {
                         "type": "done",
                         "stop_reason": chunk.stop_reason,
+                        # On the wire, not only in the log. The golden set runs against the
+                        # DEPLOYED url, where interactions.jsonl sits on a volume it cannot read —
+                        # so without these the eval could only match substrings in prose, which is
+                        # exactly what the refusal marker was built to avoid. Both are facts about
+                        # the caller's own turn, and the slugs come from the public corpus.
+                        "status": status,
+                        "refusal_reason": refusal_reason,
                         "usage": usage.as_dict(),
                         "request_id": request_id,
                     }

@@ -20,6 +20,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.api.chat import router as chat_router
+from app.api.stats import router as stats_router
 from app.obs import spend
 from app.obs.log import get_logger, new_request_id, request_id_var
 from app.obs.sink import SINK
@@ -134,6 +135,7 @@ def health() -> dict[str, object]:
 
 
 app.include_router(chat_router)
+app.include_router(stats_router)
 
 
 # Serve the React bundle if it was built; otherwise expose an honest JSON placeholder so a
