@@ -336,3 +336,39 @@ against the deployed URL.
 **Verified:** 133 tests · ruff clean · 14/14 locally before the fixes, 12/14 against production which
 is what found them · `/api/stats` reports refusal rate by reason, cache hit rate and cost from real
 traffic · the corpus-size question answered from evidence (see the report).
+
+---
+
+## Phase 7 — MCP over the observability layer
+
+**Asked for:** an MCP integration. The audit changed what that should mean before any code was
+written.
+
+**Produced:** `mcp_server/server.py` (4 read-only tools, stdio), `mcp_server/README.md`, 9 tests, and
+the `mcp` SDK in the dev group only.
+
+**Changed:**
+1. **Re-aimed the phase rather than building what the plan said.** MCP appears nowhere in the brief —
+   zero mentions — and the brief's own tips say "cut scope aggressively" and "we're watching those
+   decisions closely". The planned shape (`bot as MCP client` with `search_cadre_knowledge`) would
+   have turned every turn into two API calls: **$0.001024 → $0.002629, 2.6x**, plus roughly double
+   the 2,398 ms p50, to retrieve a corpus already fully in the prompt. Priced it, put three options
+   to the requester, and built the one that sits *beside* the request path.
+2. **Transport decided before any code, and for a boundary reason not a convenience one.** stdio,
+   not an ASGI sub-app: an HTTP MCP endpoint on Railway would be a new unauthenticated public
+   surface exposing interaction data, and auth is out of scope, so nothing could go in front of it.
+3. **The server reads aggregates only and cannot read the raw log** — asserted by a test, not
+   promised in a comment. That limitation is what makes a no-auth read-only tool defensible.
+4. **Did not guess the SDK.** My prior was `mcp.server.fastmcp.FastMCP`; the installed SDK has no
+   such module. Inspected `mcp.server.mcpserver.MCPServer` and its real `.tool()` signature before
+   writing anything.
+5. **A test asserted a substring where it meant a property — again.** `"open(" not in src` matched
+   `urlopen(`. Same mistake as the `grey` comment check in Phase 5 and the `/contact` URL check in
+   Phase 6: three times now, always narrower or broader than the property actually cared about.
+   Fixed with word boundaries, and the comment names the pattern so the next one is spotted faster.
+
+**Verified:** 142 tests · ruff clean · all four tools called successfully against the **deployed**
+instance (prompt 1.3, corpus sha `96cd2fffaf6d`, 102 turns, 45.1% refusal rate, `unexpected_reasons:
+[]`) · `uv export --no-dev` contains no `mcp` and the Dockerfile never copies `mcp_server/`, so the
+runtime image is unchanged · **the golden set still passes 14/14 against production**, confirming the
+request path was untouched.

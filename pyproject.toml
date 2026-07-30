@@ -49,4 +49,5 @@ dev = [
     "pytest-asyncio>=1.4",  # the SSE handler and the spend ledger are async; see tests/test_obs.py
     "httpx2>=0.1",          # FastAPI/Starlette TestClient transport (starlette>=1.3 deprecates httpx)
     "ruff>=0.8",
+    "mcp>=1.0",
 ]

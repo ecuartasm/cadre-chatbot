@@ -799,6 +799,32 @@ The public URL sits unattended with a live billed key for ≥24h after submissio
 `/api/stats` for error rate and spend-to-date, confirm the Railway service and volume are still
 attached, confirm the daily cap has headroom.
 
+**Forward review after Phase 7 — this is now cheaper and more thorough than when it was written.**
+
+- **The MCP server is the tool for this.** `bot_health()`, `bot_stats()`, `refusal_breakdown()` and
+  `spend_today()` are exactly the four questions this phase asks, and they can be asked
+  conversationally rather than by curling and reading JSON. That is the phase's method now; the curl
+  path remains the fallback if the MCP client is not to hand.
+- **Add one check the original wording missed: the log rotation.** Retention is 7 days enforced by
+  `backupCount`, and the first rotation happens at the first UTC midnight after deploy — which will
+  have passed by the time this runs. Confirm `interactions.jsonl` rolled and that
+  `/api/stats` still reports (it reads today's file, so a broken rotation would show as a sudden,
+  unexplained drop to zero turns). This is the one piece of Phase 2 that **has never actually
+  executed**, only been configured.
+- **Re-run the golden set once against the deployed URL.** ~$0.03 and it is the difference between
+  "it was working when I left it" and "it is working now".
+
+**Two items carried in rather than dropped:**
+
+1. **Phase 5's visual sign-off.** Hierarchy, spacing, and the 375px layout still need a human's eyes
+   on the rendered page. Recorded in `reports/phase-5-report.md` §7 as explicitly unverified.
+2. **Deploy times degraded during Phases 6–7** — ~20 minutes, and one deployment sat in `DEPLOYING`
+   behind a 502 before recovering on its own. Not acted on, because nothing is broken and the cause
+   is on Railway's side, but worth a look if it persists.
+
+**Exit:** the four MCP tools answer against the live URL · the log rotated and `/api/stats` still
+reports · the golden set is green · spend has headroom against the cap · anything found is recorded.
+
 ---
 
 ## ✅ Gate RESOLVED — 2026-07-29, Phase 1
