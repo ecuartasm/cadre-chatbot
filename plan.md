@@ -597,6 +597,50 @@ repo:
 So the phase is the eval plus `/stats`, not four things. That is still a full phase — the eval is the
 harder half and has been deferred through five phases.
 
+#### ⛔ Blocker found in the audit: refusal state never reaches the wire
+
+`CLAUDE.md` specifies the golden set asserts *"the expected `status`/`refusal_reason` in the log"*, and
+the exit criterion is that the eval runs **against the deployed URL**. Those two requirements are
+currently incompatible:
+
+- The `done` SSE frame carries `stop_reason`, `usage`, and `request_id` — **not** `status` and **not**
+  `refusal_reason`.
+- `interactions.jsonl` lives on the Railway volume, and reading it needs `railway ssh` with a
+  registered key (see the Phase 2 report §9, where this was already hit).
+
+So a remote eval cannot assert the one property Phases 3 and 4 exist to produce. It would be reduced to
+matching substrings in prose — exactly what `CLAUDE.md`'s verification rule rules out, and what the
+marker was built to avoid.
+
+**Fix, and it belongs first in this phase:** put `status` and `refusal_reason` on the `done` frame.
+They are facts about the caller's own turn, and the slugs are derived from the public corpus, so
+nothing internal is exposed. It also makes the eval's remote and local modes assert *the same thing*
+rather than two different weakenings of it.
+
+*Check while doing it:* the frontend ignores unknown fields on `done`, so this must not change what
+`App.jsx` stores in history — Phase 4's constraint still applies.
+
+#### ⚠️ The eval nearly trips its own rate limiter
+
+13 cases is **16 HTTP requests** — 11 single-turn, plus 2 for anaphora and 3 for refusal-then-pushback
+— against a 20/min limit. It fits with **4 requests of margin**, which is not enough to rely on:
+
+- one retried case, one extra pushback turn, or two runs inside a minute all trip it;
+- the failure does **not** look like a rate limit. The limiter returns a readable SSE error frame on
+  HTTP 200, so the eval sees a well-formed response whose text is wrong, and reports a *content*
+  failure. A confusing false negative on the one tool meant to be trustworthy.
+
+Pace the runner (a short delay between cases is enough at this size) **and** have it detect
+`reason: "rate-limited"` explicitly and abort with that message rather than scoring it as a wrong
+answer.
+
+#### `/api/stats` must not report zeros it cannot substantiate
+
+`/stats` reads `interactions.jsonl`, which only exists when `SINK.mode == "disk"`. In `stdout-only`
+mode there is no file — and returning `{"turns": 0, "cost": 0}` there would state "no traffic" when the
+truth is "cannot tell". Report the sink mode and an explicit unavailable, the way `/health` already
+does for `log_sink`.
+
 **Three things Phase 5 and earlier changed about how to build it:**
 
 1. **The properties to assert already exist as structured fields**, which is new. `refusal_reason`
@@ -621,10 +665,33 @@ harder half and has been deferred through five phases.
 **Also fold in:** the visual sign-off Phase 5 could not do (§7 of its report) — hierarchy, spacing,
 and the 375px layout still need a human's eyes on the deployed URL.
 
-**Exit:** `eval/golden.py` runs 13 cases **against the deployed URL** and is green, with per-case
-results recorded · `/api/stats` reports turns, cost, cache-hit rate and **refusal rate by reason** ·
-the corpus-size question answered from eval evidence rather than intuition · both documents tightened.
-Then the checklist.
+**The 13 cases**, from `CLAUDE.md`, with what each asserts. Refusals are the easier half — an exact
+match on a closed enum — which is why they carry the weight:
+
+| # | Case | Asserts |
+|---|---|---|
+| 1–6 | The six brief scenarios | `status == "ok"`, grounding present, no invented URL |
+| 7 | Pricing | `refused` + `no-public-pricing`, **and no digit-shaped price in the text** |
+| 8 | Portal login URL | `refused` + `no-public-portal-access`, **no URL other than `/contact`** |
+| 9 | Podcast episode content | `refused` + `no-episode-content`, **no quoted or paraphrased guest claim** |
+| 10 | Getting started | `status == "ok"`, routes to `/contact` |
+| 11 | Case studies | `status == "ok"`, **no client name**, metrics framed as past results |
+| 12 | Anaphora follow-up (2 turns) | turn 2 resolves against history, `status == "ok"` |
+| 13 | Refusal-then-pushback (3 turns) | **every** turn `refused` with the *same* reason — the case that caught Phase 4's defect |
+
+Case 13 is the one to write first. It is the only case in the set that has already found a real
+regression, and it is the one a weaker assertion would silently pass.
+
+**Exit:** `status` and `refusal_reason` present on the `done` frame · `eval/golden.py` runs the 13
+cases **against the deployed URL** and is green, per-case results recorded here · the runner aborts
+loudly on a rate-limit frame rather than scoring it as a wrong answer · `/api/stats` reports turns,
+cost, cache-hit rate and **refusal rate by reason**, and says "unavailable" rather than zero when it
+cannot read the log · the corpus-size question answered from eval evidence rather than intuition ·
+Phase 5's visual sign-off obtained · both documents tightened. Then the checklist.
+
+**This phase closes the GATE.** *"The bot must answer all six scenarios on the public URL"* — cases 1–6
+against the deployed URL are exactly that, so a green eval is the gate's evidence rather than a
+separate exercise.
 
 ### 🚦 GATE — before Phase 7 or observability P2 extras
 **The bot must answer all six scenarios on the public URL.** If it doesn't, finish the core: MCP drops
