@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 
 /**
- * Phase 0c: deliberately unstyled. The point of this phase is to prove tokens stream
- * end-to-end through the proxy — brand tokens and real CSS land in Phase 5.
+ * Reads the SSE body with fetch + ReadableStream rather than EventSource, because EventSource
+ * cannot issue a POST and the conversation has to go in the request body.
  *
- * Reads the SSE body with fetch + ReadableStream rather than EventSource, because
- * EventSource cannot issue a POST and the conversation has to go in the request body.
+ * ⚠️ `send` is behaviour under test, not layout. It accumulates only the visible delta text into
+ * the assistant turn and posts the whole array back, and multi-turn correctness depends on both
+ * halves — the refusal marker is stripped server-side, so storing raw frames instead would put it
+ * into history and undo Phase 4. Style this component freely; leave that loop alone.
+ *
+ * No inline styles: every rule lives in app.css and every value in tokens.css. Guarded by
+ * tests/test_ui.py so it stays that way.
  */
 export default function App() {
   const [messages, setMessages] = useState([])
@@ -15,7 +20,8 @@ export default function App() {
   const endRef = useRef(null)
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    endRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' })
   }, [messages, streaming])
 
   async function send(e) {
@@ -102,50 +108,52 @@ export default function App() {
   }
 
   return (
-    <main style={{ maxWidth: 680, margin: '0 auto', padding: 16, fontFamily: 'system-ui, sans-serif' }}>
-      <h1 style={{ fontSize: 18 }}>Cadre AI — Support</h1>
-      <p style={{ fontSize: 13, color: '#666' }}>
-        Phase 0c vertical slice: three hardcoded facts, unstyled. Try “what does Cadre do?”,
-        “how do I book a call?”, or “how much does it cost?” — the last one should refuse.
-      </p>
+    <main className="shell">
+      <header className="header">
+        <h1 className="title">Cadre AI — Support</h1>
+        <p className="subtitle">
+          Ask about Cadre&rsquo;s services, industries, the AI Maturity Index, or how to book a call.
+          For anything that isn&rsquo;t public — pricing, portal access, engagement specifics — you
+          will be pointed to the team rather than given a guess.
+        </p>
+      </header>
 
-      <div style={{ border: '1px solid #ddd', padding: 12, minHeight: 260, marginBottom: 12 }}>
-        {messages.length === 0 && <p style={{ color: '#999' }}>No messages yet.</p>}
+      <div className="transcript" role="log" aria-live="polite" aria-label="Conversation">
+        {messages.length === 0 && <p className="empty">No messages yet.</p>}
         {messages.map((m, i) => (
-          <p key={i} style={{ margin: '0 0 12px' }}>
-            <strong>{m.role === 'user' ? 'You' : 'Cadre AI'}:</strong>{' '}
-            <span style={{ color: m.isError ? '#b00' : 'inherit', whiteSpace: 'pre-wrap' }}>
+          <p className="turn" key={i}>
+            <span className="speaker">{m.role === 'user' ? 'You' : 'Cadre AI'}</span>
+            <span className={m.isError ? 'message message--error' : 'message'}>
               {m.content}
-              {streaming && i === messages.length - 1 && m.role === 'assistant' && ' ▍'}
+              {streaming && i === messages.length - 1 && m.role === 'assistant' && (
+                <span className="caret">▍</span>
+              )}
             </span>
           </p>
         ))}
         <div ref={endRef} />
       </div>
 
-      <form onSubmit={send} style={{ display: 'flex', gap: 8 }}>
+      <form className="composer" onSubmit={send}>
         <input
+          className="input"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask about Cadre AI…"
           disabled={streaming}
-          /* 16px minimum prevents iOS Safari zooming on focus (CLAUDE.md) */
-          style={{ flex: 1, padding: 8, fontSize: 16 }}
+          aria-label="Your question"
         />
-        <button type="submit" disabled={streaming || !input.trim()} style={{ padding: '8px 16px' }}>
+        <button className="send" type="submit" disabled={streaming || !input.trim()}>
           {streaming ? '…' : 'Send'}
         </button>
       </form>
 
       {firstTokenMs !== null && (
-        <p style={{ fontSize: 12, color: '#666', marginTop: 8 }}>
-          time to first token: {firstTokenMs}ms — if this is near the full response time, a proxy
-          buffered the stream.
-        </p>
+        <p className="diagnostic">time to first token: {firstTokenMs}ms</p>
       )}
 
-      <p style={{ fontSize: 12, color: '#999', marginTop: 16 }}>
-        Knowledge is limited to three facts in this phase. Anything else is routed to{' '}
+      <p className="footer">
+        Answers come only from Cadre&rsquo;s public site. Anything else routes to{' '}
         <a href="https://www.cadreai.com/contact">cadreai.com/contact</a>.
       </p>
     </main>

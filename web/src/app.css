@@ -1,0 +1,212 @@
+/*
+ * Component styles. No literal colours, sizes, or font names — every value comes from tokens.css.
+ * If a value is needed that no token provides, the token is missing; add it there rather than
+ * inlining it here.
+ *
+ * Layout follows the site's FAQ section ("Common questions, straight answers"), which is the
+ * closest analogue on cadreai.com to what this is: black text, hairline rules, generous spacing,
+ * no decoration competing with the words.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: var(--size-base);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* `dvh` tracks the viewport as iOS Safari's toolbars and keyboard move; `vh` does not, so the
+   composer ends up under the keyboard. `svh` is the fallback for browsers without `dvh`. */
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+  min-height: 100dvh;
+  max-width: var(--wrapper);
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-4);
+  gap: var(--space-4);
+}
+
+/* --- Header ------------------------------------------------------------------- */
+
+.header {
+  flex: 0 0 auto;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--size-xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.02em; /* Inter Tight is set tight on the site; loose tracking reads as a different brand */
+}
+
+.subtitle {
+  margin: var(--space-2) 0 0;
+  font-size: var(--size-sm);
+  /* Deliberately NOT a lighter colour. De-emphasis here is size only. */
+  max-width: 38rem;
+}
+
+/* --- Transcript --------------------------------------------------------------- */
+
+.transcript {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5);
+  min-height: 16rem;
+}
+
+.empty {
+  margin: 0;
+  font-size: var(--size-sm);
+}
+
+.turn {
+  margin: 0 0 var(--space-5);
+}
+
+.turn:last-of-type {
+  margin-bottom: 0;
+}
+
+.speaker {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-size: var(--size-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.message {
+  white-space: pre-wrap;
+}
+
+/* The one place colour carries meaning rather than decoration: an error must not read as an
+   answer. Everything else on this page is black. */
+.message--error {
+  color: var(--text-error);
+}
+
+.caret {
+  /* A block rather than an animated cursor: streaming is already visible motion, and a blinking
+     caret next to arriving text reads as two things loading. */
+  opacity: 0.4;
+}
+
+/* --- Composer ----------------------------------------------------------------- */
+
+.composer {
+  flex: 0 0 auto;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-body);
+  font-size: var(--size-input);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+}
+
+.input::placeholder {
+  color: var(--text);
+  opacity: 0.45; /* opacity, not a grey token — the colour stays black */
+}
+
+.input:focus-visible,
+.send:focus-visible {
+  outline: 2px solid var(--black);
+  outline-offset: 2px;
+}
+
+/* Black pill with a white label, matching "Talk to an AI Strategist →" on the site. */
+.send {
+  flex: 0 0 auto;
+  padding: var(--space-3) var(--space-5);
+  font-family: var(--font-body);
+  font-size: var(--size-base);
+  font-weight: var(--weight-semibold);
+  color: var(--text-on-dark);
+  background: var(--black);
+  border: 1px solid var(--black);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.send:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* --- Footer ------------------------------------------------------------------- */
+
+.footer {
+  flex: 0 0 auto;
+  margin: 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--hairline);
+  font-size: var(--size-xs);
+}
+
+/* A black link stops reading as clickable, so the underline carries the affordance the colour
+   would normally carry. */
+.footer a {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.diagnostic {
+  margin: 0;
+  font-size: var(--size-xs);
+}
+
+/* --- Narrow viewports --------------------------------------------------------- */
+
+@media (max-width: 30rem) {
+  .shell {
+    padding: var(--space-4) var(--space-3);
+  }
+
+  .transcript {
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+  }
+
+  .title {
+    font-size: var(--size-lg);
+  }
+
+  /* Tighter horizontal padding so the label still fits beside the input at 375px without the
+     button wrapping to its own line. */
+  .send {
+    padding: var(--space-3) var(--space-4);
+  }
+}

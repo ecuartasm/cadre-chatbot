@@ -583,9 +583,48 @@ animation beyond what streaming already implies, no redesign of the conversation
 styling pass over a working UI.
 
 ### Phase 6 — Eval + P2 + polish · 60–75 min
-The 13-case golden set (properties, not strings) · split the JSONL streams · build `/api/stats` · test
-**on the deployed URL** · confirm logs land on the volume · tighten both documents.
-**Exit:** eval green against the deployed URL, per-case results recorded below. Then the checklist.
+
+**Forward review after Phase 5.** Two of the four listed items are already done, verified against the
+repo:
+
+| Listed item | State |
+|---|---|
+| Split the JSONL streams | **Done in Phase 2** — `log.py` routes to `app`/`interactions`/`errors` by a `stream` extra |
+| Confirm logs land on the volume | **Done in Phase 2** — `/health` probes by writing a file; state survived a confirmed container replacement |
+| `/api/stats` | **Not built.** No `stats` route exists |
+| 13-case golden set | **Not built.** `eval/` does not exist |
+
+So the phase is the eval plus `/stats`, not four things. That is still a full phase — the eval is the
+harder half and has been deferred through five phases.
+
+**Three things Phase 5 and earlier changed about how to build it:**
+
+1. **The properties to assert already exist as structured fields**, which is new. `refusal_reason`
+   (Phase 3) and `status="refused"` (Phase 4) mean a refusal case asserts
+   `status == "refused" and refusal_reason == "no-public-pricing"` — an exact match on a closed enum,
+   not a substring search over prose. `CLAUDE.md`'s "assert properties, not strings" is now cheap
+   rather than aspirational. Assert the *absence* checks on the answer text (no digit-shaped price, no
+   URL that is not `/contact`, no quoted guest claim) and everything else on the log line.
+
+2. **The two multi-turn cases already have a working harness.** Phase 4's probe script drives real
+   conversations while storing only the visible (marker-stripped) assistant text, exactly as the
+   browser does. Rewrite it into `eval/golden.py` rather than starting over — and keep that fidelity,
+   because storing raw frames instead is what would mask the very regression the pushback case exists
+   to catch.
+
+3. **`/stats` should read the refusal fields, not just count turns.** The interesting number this bot
+   can now report is *refusal rate by reason* — which is also the evidence for the corpus-size
+   question raised earlier: if real questions are being refused with `no-public-*` reasons that the
+   site does in fact answer, the corpus has a gap. That turns "should the KB be bigger?" from an
+   intuition into a measurement.
+
+**Also fold in:** the visual sign-off Phase 5 could not do (§7 of its report) — hierarchy, spacing,
+and the 375px layout still need a human's eyes on the deployed URL.
+
+**Exit:** `eval/golden.py` runs 13 cases **against the deployed URL** and is green, with per-case
+results recorded · `/api/stats` reports turns, cost, cache-hit rate and **refusal rate by reason** ·
+the corpus-size question answered from eval evidence rather than intuition · both documents tightened.
+Then the checklist.
 
 ### 🚦 GATE — before Phase 7 or observability P2 extras
 **The bot must answer all six scenarios on the public URL.** If it doesn't, finish the core: MCP drops

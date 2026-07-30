@@ -248,3 +248,47 @@ edge cases, and confirm `cache_read` is unaffected by growing history.
 number, no range, and no invented URL · all three logged `refused` with the same reason · anaphora
 resolved "that" to construction correctly and stayed `ok` · no marker leaked in any turn · prefix
 4,870 → 4,954, margin over the floor now 858.
+
+---
+
+## Phase 5 — React chat UI
+
+**Asked for:** replace inline styles with plain CSS custom properties carrying Cadre's brand, make all
+text black, self-host the fonts, and make it work on a phone — without breaking Phase 4.
+
+**Produced:** `web/src/tokens.css`, `web/src/app.css`, two self-hosted woff2 files, a rewritten
+`App.jsx` with no inline styles, CSS wired into `main.jsx`, and 12 tests in `tests/test_ui.py`.
+
+**Changed:**
+1. **Tokens are Cadre's real declared values, not approximations.** The site is Webflow, which emits
+   its design tokens as CSS custom properties in the served stylesheet, so fetching it gave the actual
+   palette, fonts, weights, spacing and radii. The requester's screenshot then corrected how those
+   tokens are *used* — which mattered, because reading the CSS alone I had concluded headings were red
+   and buttons blue. They are black. A widget built from the declared values alone would have matched
+   no page on the site.
+2. **Fonts are self-hosted, and that was a decision rather than a default.** Inter and Inter Tight
+   appeared nowhere in `web/` — writing `font-family: 'Inter Tight'` would have fallen back to Arial
+   silently and looked approximately right. Chose the two variable woff2 files (71KB, latin subset)
+   over a Google Fonts link because the project is deliberately one deployable with no runtime
+   external dependency, and a bot that answers questions about Cadre's data-security posture should
+   not be the page making a third-party request.
+3. **One text colour, and de-emphasis by size and weight only.** The old UI had five inline colours
+   and none of them was black. `--text` is now `--black` (#0b0707, Cadre's own primary black) with a
+   single documented exception: the error state keeps `--cadre-red`, because there colour carries
+   meaning that black would erase.
+4. **Both conventions are guarded by tests rather than review.** "No inline styles" and "text is
+   black" decay the first time someone adds a quick `style={{ color: '#666' }}`. The tests scan
+   comment-stripped source — the first version failed on its own rationale, since a comment explaining
+   why grey is banned necessarily contains the word.
+5. **Kept `send` verbatim.** Phase 4 established that the client must accumulate only visible delta
+   text and post the whole array back; a restyle that tidied that into storing raw frames would put
+   the refusal marker into history. A test now asserts both halves survive.
+6. **Fixed stale copy while there.** The header still said "Phase 0c vertical slice: three hardcoded
+   facts, unstyled" and the footer "knowledge is limited to three facts in this phase" — both untrue
+   since Phase 1 and both visible to any visitor.
+
+**Verified:** 127 tests · ruff clean · both woff2 served at HTTP 200 with `font/woff2` · the built
+CSS retains the whole token layer (checked after a loose grep reported zeros — Vite keeps a space
+after the colon, so the first check was a formatting artefact, not a break) · no grey hex survives
+anywhere in `web/src` · **the multi-turn probes reproduce exactly** — three pushback turns still
+`refused/no-public-pricing`, anaphora still `ok`, no marker leaked.
