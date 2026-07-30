@@ -11,7 +11,7 @@ and the open items**.
 
 ## Phase exit checklist — every phase, no exceptions
 
-A phase is not done until all seven are true. This is the loop, not a formality.
+A phase is not done until all eight are true. This is the loop, not a formality.
 
 1. **Tests green** — `pytest`, plus `python eval/golden.py` once the eval exists (Phase 6 onward).
 2. **The phase's own exit criterion met** (stated per phase below).
@@ -21,12 +21,18 @@ A phase is not done until all seven are true. This is the loop, not a formality.
    decisions and their reasoning, problems hit and how they were resolved, verification evidence with
    real numbers, what was deliberately deferred, and what comes next. The workflow log is a terse
    four-field entry; the report is the narrative a reader can reconstruct the phase from.
-5. **Commit** with a descriptive message naming the phase. Small and specific beats one big commit.
-6. **Push to `origin main`.** Work that only exists locally isn't safe, and the repo is the deliverable.
-7. **Redeploy and verify the live URL** (every phase from 0c onward, since that's when a deployable bot
+5. **Review the *next* phase against what this one just taught, and edit it in this file.** Not a
+   formality — Phase 0's review found a missing `COPY content/` that would have shipped a bot with no
+   knowledge base, and turned a vague "~2–4k token" target into a measured floor of 3,702. Ask: does
+   anything I just learned change the next phase's scope, ordering, or numbers? Did this phase absorb
+   work the next one still claims? Did it invalidate an assumption downstream? Write the adjustment
+   into the phase itself, and record the reasoning in the report.
+6. **Commit** with a descriptive message naming the phase. Small and specific beats one big commit.
+7. **Push to `origin main`.** Work that only exists locally isn't safe, and the repo is the deliverable.
+8. **Redeploy and verify the live URL** (every phase from 0c onward, since that's when a deployable bot
    first exists). A green local build that's broken in production is not a finished phase.
 
-⚠️ **Do this deliberately, not automatically.** It's tempting to wire steps 5–6 into a Claude Code
+⚠️ **Do this deliberately, not automatically.** It's tempting to wire steps 6–7 into a Claude Code
 `Stop` hook, but there is no "phase finished" event to hook — `Stop` fires after *every* assistant
 turn, so it would produce dozens of commits per phase with generated messages, which is the opposite of
 "small, frequent commits with descriptive messages." Worse, an auto-push can publish a broken
@@ -105,19 +111,44 @@ Railway to a React client** — at hour two instead of hour five, and from here 
 leaves something that works.
 **Exit:** you can type a question into the deployed URL and watch tokens stream back. Then the checklist.
 
-### Phase 1 — Knowledge base · 60–75 min
+### Phase 1 — Knowledge base · 75–95 min  *(revised after Phase 0 — see §"Phase 1 revisions")*
 0. **Resolve the open gate below, first.**
-1. Write + run `scripts/scrape.py` → `content/raw/*.md` with `url`/`title`/`date`/**`content_sha256`**
+1. **⚠️ Add `COPY content/ ./content/` to the Dockerfile — before anything else.** The runtime image
+   currently copies only `app/` and `web/dist`. Without this line the corpus works locally and the
+   deployed bot has **no knowledge base at all**: a production-only failure, invisible in every local
+   test. (`scripts/` stays uncopied on purpose — the scraper is build-time tooling and has no business
+   in the runtime image.)
+2. Write + run `scripts/scrape.py` → `content/raw/*.md` with `url`/`title`/`date`/**`content_sha256`**
    frontmatter. Check `robots.txt` and `/terms-of-service`; polite delay; real user-agent. Podcasts:
    **landing pages only, metadata only, no transcription.**
-2. Hand-curate `content/knowledge-base.md` around the six scenarios. **Count the tokens.**
-3. Encode negative knowledge via `disclosure` / `refusal_reason` — not prose.
-4. Ship `.claude/agents/kb-updater.md` + `.claude/commands/update-kb.md`.
+3. Hand-curate `content/knowledge-base.md` around the six scenarios.
+   **⚠️ Target 3,700–4,300 tokens — not the old "~2–4k".** Measured in Phase 0: the fixed prompt
+   scaffolding (persona + grounding + boundary + format) is **394 tokens**, and Haiku 4.5's cache floor
+   is **4,096**, so the KB must supply **≥3,702 tokens** or prompt caching silently never engages. A 2k
+   KB would land at ~2.4k and quietly cost ~10× more per turn forever. Aim ~4,000 for margin without
+   padding for its own sake — if the honest corpus comes in short, that is a finding to record, not a
+   reason to pad.
+4. Encode negative knowledge via `disclosure` / `refusal_reason` — not prose.
+5. **Add `app/knowledge/loader.py`** — the knowledge-layer seam `CLAUDE.md` already names. Reads and
+   validates the curated file **once at import/startup, never per request.** Re-reading per request
+   would risk a byte-different prefix and silently kill the cache.
+6. Ship `.claude/agents/kb-updater.md` + `.claude/commands/update-kb.md`.
+7. **Update the Phase 0c tests that assert on the hardcoded facts** — `test_boundary_rules_are_present_in_the_prompt`
+   and the byte-stability test. Byte-stability matters *more* now that the prompt is file-backed.
+8. **Smoke-check the three required refusals against the deployed bot** (pricing, portal login, podcast
+   content) — pulled forward from Phase 6. Phase 0 verified three behaviors by hand in one command; a
+   real corpus multiplies what can regress, and these three assert *absence*, which is the cheapest
+   thing to check reliably. The full 13-case golden set stays in Phase 6.
+9. **Record the measured numbers** in the table under Phase 3 — the cache measurement now happens here,
+   for free, because this is where the KB lands.
 
-Scrape and curate are separable → **run the scrape as a subagent** while curating. It's context-heavy
-input with a small output, which is exactly what subagents are for. Same agent becomes `kb-updater`.
-**Exit:** the slice's hardcoded facts are replaced by the real KB and `/update-kb` proposes a diff
-without writing it. Then the checklist.
+Scrape and curate are separable → **run the scrape as a subagent** while curating. Phase 0 confirmed the
+shape of the argument: ~35+ pages of HTML in, a small curated file out — context-heavy input with a
+small output is exactly what subagents are for. Same agent becomes `kb-updater`.
+
+**Exit:** the slice's hardcoded facts are replaced by the real corpus, the deployed bot answers from it,
+`cache_read_input_tokens > 0` on a second identical-prefix request, the three refusals hold, and
+`/update-kb` proposes a diff without writing it. Then the checklist.
 
 ### Phase 2 — Observability P0+P1 · 45–60 min
 `request_id` middleware · JSON logger dual-sunk to stdout + rotating JSONL (redaction on, **7-day**
@@ -132,19 +163,33 @@ a forwarded header is spoofable, which is why the **daily cap is the real money 
 **Exit:** write a log line, redeploy, confirm it survived — the volume-persistence check lives here, not
 in Phase 0, because only now is there something real to write. Then the checklist.
 
-### Phase 3 — System prompt · 30–45 min
-Persona · grounding rule · escalation policy driven by `disclosure` · conversion behavior · format
-rules · anti-hallucination guardrails. Own versioned module. **Frozen** — no timestamps or ids.
+### Phase 3 — System prompt refinement · 15–25 min  *(shrunk — Phase 0c absorbed most of it)*
+Phase 0c already shipped `app/llm/prompt.py` versioned, frozen, and sectioned: persona · grounding ·
+refusal boundary · format rules, with the `cache_control` breakpoint attached. **What is left is only
+what 0c did not need:**
 
-⚠️ **Then measure the cache prefix and decide.** Run `count_tokens` over the assembled system block
-and record the number here in `plan.md`:
+- **`disclosure`-driven escalation** — the boundary is currently prose in the prompt; wire it to the
+  `disclosure` / `refusal_reason` fields the Phase 1 corpus carries, so refusals are structural.
+- **Conversion behavior** — guide toward booking a strategy call where it is natural, without being
+  pushy. Deliberately absent from 0c so the slice couldn't be accused of being a lead-gen funnel before
+  it could answer anything.
+- Re-verify byte-stability and re-measure after the edits.
 
-> **Measured system-prompt + KB tokens: `___`** (fill in during Phase 3)
-> - **≥ 4,096** → caching engages on Haiku 4.5. Assert it and move on.
-> - **< 4,096** → either grow the curated KB to ~4.5k so the prefix clears the floor, **or** accept no
->   caching as a stated decision with the number attached. Both defensible; assuming is not.
+**Measurements — record here as they are taken:**
 
-**Exit:** the number is written down here and the branch is taken deliberately. Then the checklist.
+| Metric | Phase 0c (3 hardcoded facts) | After Phase 1 corpus | Floor / target |
+|---|---|---|---|
+| Fixed scaffolding | 394 tokens | — | — |
+| Curated KB | 124 tokens | `___` | ≥3,702 |
+| **Full system block** | **511 tokens** | `___` | **≥4,096** |
+| `cache_read_input_tokens` (2nd call) | **0** ❌ | `___` | `>0` |
+| Time to first token (prod) | 0.74s | `___` | — |
+
+- **≥ 4,096** → caching engages. Assert `cache_read_input_tokens > 0` and move on.
+- **< 4,096** → either grow the corpus past the floor **or** accept no caching as a stated decision with
+  the number attached. Both are defensible; assuming is not.
+
+**Exit:** the table is filled in and the branch taken deliberately. Then the checklist.
 
 ### Phase 4 — Chat API + LLM client · 60–75 min
 SSE endpoint · provider behind the one-file interface · prompt assembly with `cache_control` on the last

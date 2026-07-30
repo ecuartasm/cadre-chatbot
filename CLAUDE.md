@@ -199,8 +199,14 @@ client before the gate in `plan.md` closes.
 
 **Follow `plan.md` phase by phase, and run its phase-exit checklist every time.** In short: tests green
 → phase exit criterion met → `docs/ai-workflow-log.md` appended → **`reports/phase-<n>-report.md`
-written** → **commit** → **push to `origin main`** → redeploy and verify the live URL. All seven, every
-phase. `plan.md` has the full version.
+written** → **commit** → **push to `origin main`** → **review the next phase against what this one taught** →
+**commit** → **push** → redeploy and verify the live URL. All eight, every phase. `plan.md` has the
+full version.
+
+- **The forward-review step earns its place.** Phase 0's review caught that the Dockerfile never copied
+  `content/`, which would have deployed a bot with an empty knowledge base while every local test
+  passed. Treat it as a real check: what did this phase teach that changes the next one's scope,
+  ordering, or numbers?
 
 - **Two records per phase, and they are not the same thing.** `docs/ai-workflow-log.md` is a terse
   four-field entry (asked for / produced / changed / verified). `reports/phase-<n>-report.md` is the
