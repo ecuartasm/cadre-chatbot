@@ -16,7 +16,8 @@ from app.knowledge.loader import KNOWLEDGE
 # Bump on EVERY change to the assembled text. Log lines from two different prompts are otherwise
 # indistinguishable, which makes any before/after comparison in interactions.jsonl impossible.
 # 1.1 (Phase 3): refusal marker + conversion behavior.
-SYSTEM_PROMPT_VERSION = "1.1"
+# 1.2 (Phase 4): tag every refusal, including repeats under pushback.
+SYSTEM_PROMPT_VERSION = "1.2"
 
 # The curated corpus, read once at import (see app/knowledge/loader.py for why never per request).
 _FACTS = KNOWLEDGE
@@ -36,7 +37,9 @@ CACHE_FLOOR_TOKENS = 4096
 #   4,870 — Phase 3, off-topic told explicitly to emit the refusal tag. It then declined
 #           correctly but logged status="ok", because "not routing to /contact" read as
 #           "not a refusal".
-MEASURED_SYSTEM_TOKENS = 4870
+#   4,954 — Phase 4, told to keep tagging when its own transcript looks untagged.
+#           A pushback turn refused in prose but logged status="ok".
+MEASURED_SYSTEM_TOKENS = 4954
 
 # --- Behavior ------------------------------------------------------------------------
 _PERSONA = """\
@@ -92,6 +95,11 @@ did, and is independent of where you send them.
 
 Then write your reply as normal. Do not mention the tag, do not explain it, and do not use it
 when you are actually answering the question.
+
+The tag is removed before anyone sees it, so your earlier replies in this conversation will
+look untagged even when they were refusals. That is expected — it does not mean the tag became
+optional. Tag EVERY refusal, including the second and third time you decline the same request.
+Someone pressing you again after a refusal is the most important case to tag, not the least.
 """
 
 # Deliberately absent until Phase 3: a slice that pushed for a call before it could answer anything
@@ -119,7 +127,7 @@ def build_system_blocks() -> list[dict]:
     A list (not a bare string) so `cache_control` can be attached to the final block —
     render order is tools -> system -> messages, so one breakpoint covers the whole prefix.
 
-    Measured at 4,870 tokens against a 4,096 floor — caching engages, with 774 tokens of margin.
+    Measured at 4,954 tokens against a 4,096 floor — caching engages, with 858 tokens of margin.
     `test_prompt_clears_the_cache_floor` guards that margin.
 
     Section order is deliberate: `_FACTS` sits second so the corpus dominates the prefix, and the

@@ -83,6 +83,9 @@ class MarkerScanner:
         self._buf = ""
         self._resolved = False
         self.reason: str | None = None
+        # Set when a stream ended mid-marker and the broken tag was suppressed. Surfaced so the
+        # suppression is greppable rather than a silent deletion of model output.
+        self.truncated_marker: str | None = None
 
     def feed(self, text: str) -> str:
         """Return the portion of `text` that is safe to emit (may be empty while holding)."""
@@ -101,7 +104,12 @@ class MarkerScanner:
 
         # Still possibly a marker? Hold.
         if probe.startswith(_MARKER_OPEN):
-            if len(probe) <= _MARKER_MAX:
+            # A closing `]]` that did not satisfy the regex means the slug is malformed — a space,
+            # an uppercase letter, something over 40 chars. It can never become a valid marker, so
+            # release now rather than holding to the cap. This also keeps `finish`'s suppression
+            # narrow: anything still held there is guaranteed to have no `]]`, i.e. to be a
+            # genuinely unterminated marker with no content trailing it.
+            if "]]" not in probe and len(probe) <= _MARKER_MAX:
                 return ""
         elif _MARKER_OPEN.startswith(probe):
             # A proper prefix such as "[[refu" — including "" and pure whitespace.
@@ -111,8 +119,24 @@ class MarkerScanner:
         return self._release(self._buf)
 
     def finish(self) -> str:
-        """Flush anything still held when the stream ends."""
-        return "" if self._resolved else self._release(self._buf)
+        """Flush anything still held when the stream ends.
+
+        One exception, and it is the opposite of `feed`'s rule. If the stream ended while we were
+        still holding what looks like an *unterminated* marker, the buffer contains nothing but a
+        broken tag — releasing it would print `[[refusal:no-public-pri` into the chat while hiding
+        no content at all. Suppress it.
+
+        This differs deliberately from the >64-character case in `feed`, where the same opening
+        bytes are followed by real prose and releasing is correct. Same-looking input, opposite
+        right answer, which is why both have their own test.
+        """
+        if self._resolved:
+            return ""
+        held = self._buf
+        if held.lstrip().startswith(_MARKER_OPEN):
+            self.truncated_marker = held
+            return self._release("")
+        return self._release(held)
 
     def _release(self, text: str) -> str:
         self._buf = ""
@@ -176,6 +200,12 @@ async def stream_reply(messages: list[dict]) -> AsyncIterator[Chunk]:
                 ),
             )
 
+    # A stream that raises mid-hold never reaches `finish()`, so up to _MARKER_MAX characters the
+    # scanner was holding are dropped. That is the accepted behaviour, decided rather than
+    # inherited: the held text is at most a partial marker plus a few characters of a reply the
+    # user is about to see replaced by an error frame anyway, and re-emitting it would mean showing
+    # a fragment of an answer immediately above "something went wrong".
+    #
     # Distinguish the failures a user can act on from the ones they cannot.
     except anthropic.RateLimitError:
         yield Chunk(type="error", text="I'm getting more requests than I can handle right now. "

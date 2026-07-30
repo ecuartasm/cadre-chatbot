@@ -159,6 +159,50 @@ def test_scanner_never_drops_characters():
         assert stripped + out == text.lstrip() or stripped + out == text
 
 
+# ── the two ways a stream can end mid-marker ─────────────────────────────────────────
+#
+# These fail in OPPOSITE directions and are easy to conflate, which is why each has its own test.
+# `test_an_unterminated_marker_does_not_swallow_the_reply` above covers a *long* buffer, where the
+# opening bytes are followed by real prose and releasing is correct. Below is a *short* buffer at
+# end-of-stream, where the buffer is nothing but a broken tag and releasing would print it.
+
+
+def test_a_stream_ending_mid_marker_suppresses_the_broken_tag():
+    """Found in the Phase 4 audit: `finish()` used to release unconditionally, so a truncated
+    marker rendered as `[[refusal:no-public-pri` in the chat window."""
+    s = MarkerScanner()
+    assert s.feed("[[refusal:no-public-pri") == ""
+    assert s.finish() == "", "a partial marker must never reach the user"
+    assert s.truncated_marker == "[[refusal:no-public-pri", "and the suppression must be greppable"
+    assert s.reason is None, "an unterminated marker classifies nothing"
+
+
+def test_suppression_only_applies_to_marker_shaped_buffers():
+    """A stream ending on ordinary held text must still release it — the suppression is narrow."""
+    s = MarkerScanner()
+    s.feed("[")  # a viable marker prefix, so it is held
+    assert s.finish() == "["
+    assert s.truncated_marker is None
+
+
+def test_a_malformed_but_closed_marker_releases_the_whole_reply():
+    """The regression the invariant test caught: suppressing everything that merely *starts* with
+    the opening bytes threw away a real reply. A `]]` that failed the slug pattern can never become
+    a valid marker, so it is released immediately rather than held — which is also what keeps the
+    end-of-stream suppression narrow enough to be safe."""
+    s = MarkerScanner()
+    text = "[[refusal:bad slug]]body"
+    assert _run(s, text) == text
+    assert s.reason is None
+    assert s.truncated_marker is None
+
+
+def test_truncated_marker_is_not_set_on_a_normal_reply():
+    s = MarkerScanner()
+    _run(s, "[[refusal:off-topic]]a complete reply")
+    assert s.truncated_marker is None
+
+
 @pytest.mark.parametrize("slug", sorted(REFUSAL_REASONS))
 def test_every_corpus_slug_round_trips_through_the_scanner(slug: str):
     """Guards the regex against a slug the corpus adds later — a 41-char reason or one with an
@@ -188,6 +232,16 @@ def test_prompt_still_clears_the_cache_floor_after_phase_3():
 def test_prompt_version_was_bumped_for_phase_3():
     """Log lines from two different prompts are otherwise indistinguishable."""
     assert SYSTEM_PROMPT_VERSION != "1.0"
+
+
+def test_prompt_tells_the_model_to_keep_tagging_across_turns():
+    """The Phase 4 finding. The marker is stripped before display, so the model's own transcript
+    shows its earlier refusals untagged — and it then stopped tagging on the pushback turn, which
+    is exactly where the refusal metric matters most. Measured: pushback turns 2 and 3 logged
+    status="ok" while refusing in prose; with this instruction all three log "refused"."""
+    text = build_system_blocks()[0]["text"]
+    assert "look untagged" in text
+    assert "Tag EVERY refusal" in text
 
 
 def test_conversion_guidance_is_present_and_bounded():

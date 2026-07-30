@@ -459,11 +459,45 @@ least two rounds of pushback, **with the pushback turn logging `status="refused"
 multi-turn conversation and unchanged. Then the checklist.
 
 ### Phase 5 — React chat UI · 60–75 min
-Message list · streaming render · input · error states · single booking CTA. Extract real design tokens
-from cadreai.com via DevTools (**computed styles — not an AI page fetch**, which can't see them) into
-`tokens.css` custom properties; components consume the variables, never literals. `dvh`/`svh` for the
-shell, 16px minimum input font.
-**Exit:** usable on a phone, streaming visible, CTA present. Then the checklist.
+
+**Forward review after Phase 4.** Unlike Phase 4, this phase has real work left — but a different
+split than the original line implied. Checked against `web/`:
+
+| Item | State |
+|---|---|
+| Message list · streaming render · input | **Built** — `App.jsx`, 153 lines, working |
+| Error states | **Built** — `isError` on the turn, red text, covers both the SSE error frame and a fetch throw |
+| Single booking CTA | **Built** — footer link to `/contact` |
+| `tokens.css` custom properties | **Absent** — there is no `.css` file anywhere in `web/` |
+| `dvh`/`svh` shell, 16px input font | **Absent** |
+
+So this is **restyling, not construction**, and three things constrain it:
+
+1. **All styling is currently inline `style={{…}}` — 12 of them.** That is CSS-in-JS by another name,
+   which `CLAUDE.md` explicitly rules out in favour of plain CSS with custom properties. The current
+   state violates a stated convention, so extracting it is required work, not polish.
+
+2. ⚠️ **The design-token step needs a real browser, which I do not have.** The plan correctly says
+   computed styles via DevTools, *not* an AI page fetch — and that rules me out too, not just a naive
+   fetch. `content/raw/` is markdown text with no computed CSS in it. This is a genuine dependency to
+   settle **before** the phase starts, not mid-way:
+   - **(a)** the requester pastes computed values from DevTools on cadreai.com (fonts, brand colours,
+     radii, spacing scale) — best fidelity;
+   - **(b)** I build a neutral, defensible token set and label it as *not* brand-matched;
+   - **(c)** tokens are approximated from the brand colours visible in the scraped pages, with the
+     approximation stated in the report.
+   Any of these is fine. Silently shipping (b) while implying (a) is not.
+
+3. **Phase 4 added a functional requirement this phase must not break.** `App.jsx` accumulates only
+   visible `delta` text into the assistant turn and posts the whole array back. Multi-turn correctness
+   depends on both halves. A restyling pass that touches the accumulation logic — or "tidies" it into
+   storing raw frames — would put the refusal marker into history and undo Phase 4. Treat
+   `sendMessage` as behaviour under test, not layout.
+
+**Exit:** no inline `style={{…}}` left in `App.jsx` · `tokens.css` exists and components consume
+variables, never literals · shell in `dvh`/`svh` and input font ≥16px (both iOS-specific: `vh` sits
+under the keyboard, and <16px triggers focus auto-zoom) · usable at 375px wide · streaming still
+visible · CTA present · **the multi-turn probes still pass unchanged**. Then the checklist.
 
 ### Phase 6 — Eval + P2 + polish · 60–75 min
 The 13-case golden set (properties, not strings) · split the JSONL streams · build `/api/stats` · test

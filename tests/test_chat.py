@@ -128,3 +128,66 @@ def test_boundary_rules_are_present_in_the_prompt():
 def test_config_endpoint_leaks_no_secret():
     body = client.get("/api/config").text
     assert "sk-ant-" not in body
+
+
+# --- multi-turn (Phase 4) -------------------------------------------------------------
+
+
+def test_a_prior_assistant_turn_is_accepted_and_ordered():
+    """Nothing had ever sent one before Phase 4 — every test used a single user message."""
+    parsed = ChatRequest(
+        messages=[
+            {"role": "user", "content": "Do you work with construction?"},
+            {"role": "assistant", "content": "Yes, construction is one of nine industries."},
+            {"role": "user", "content": "What does that look like in practice?"},
+        ]
+    )
+    assert [m.role for m in parsed.messages] == ["user", "assistant", "user"]
+    assert parsed.messages[-1].content.startswith("What does that")
+
+
+def test_the_cap_keeps_whole_recent_turns_not_a_severed_pair():
+    """Trimming to an even count from the end preserves user/assistant alternation, so the model
+    never receives a reply whose question was dropped."""
+    convo = []
+    for i in range(20):
+        convo.append({"role": "user", "content": f"q{i}"})
+        convo.append({"role": "assistant", "content": f"a{i}"})
+    parsed = ChatRequest(messages=convo)
+
+    assert len(parsed.messages) == MAX_TURNS * 2
+    assert parsed.messages[0].role == "user", "history must not begin with an orphaned reply"
+    assert parsed.messages[-1].role == "assistant"
+
+
+def test_history_from_the_browser_carries_no_refusal_marker(fake_stream):
+    """The client accumulates only visible deltas, so a prior refusal arrives untagged. This is
+    the input that made the model stop tagging — pinned here so the shape is explicit."""
+    r = client.post(
+        "/api/chat",
+        json={
+            "messages": [
+                {"role": "user", "content": "How much does it cost?"},
+                {"role": "assistant", "content": "Cadre doesn't publish pricing."},
+                {"role": "user", "content": "Just a ballpark?"},
+            ]
+        },
+    )
+    assert r.status_code == 200
+    assert "[[refusal" not in r.text
+
+
+def test_a_stream_that_dies_mid_marker_shows_an_error_not_a_fragment(monkeypatch):
+    """The accepted trade, made explicit: text the scanner was holding when the stream failed is
+    dropped rather than flushed. Showing a fragment of an answer directly above 'something went
+    wrong' would read worse than showing only the error."""
+
+    async def _dies_mid_marker(messages: list[dict]) -> AsyncIterator[Chunk]:
+        # In the real path the scanner would still be holding these bytes when the error lands.
+        yield Chunk(type="error", text="Something went wrong. Please try again.")
+
+    monkeypatch.setattr(chat_module, "stream_reply", _dies_mid_marker)
+    r = client.post("/api/chat", json={"messages": [{"role": "user", "content": "hi"}]})
+    assert '"type":"error"' in r.text
+    assert "[[refusal" not in r.text
+    assert '"type":"delta"' not in r.text

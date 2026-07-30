@@ -206,3 +206,45 @@ conversion behaviour, and re-verify the cache floor.
 and `off-topic` all recorded from real turns · **the `[[refusal:` marker appears in none of the ten
 answers** · off-topic declines with no `/contact` link · no invented slug reached the log ·
 `cache_read=4807` on the second turn, so the larger prefix still caches.
+
+---
+
+## Phase 4 — Multi-turn behaviour
+
+**Asked for:** verify anaphora and refusal-then-pushback across turns, decide the two `MarkerScanner`
+edge cases, and confirm `cache_read` is unaffected by growing history.
+
+**Produced:** a `_MARKER` instruction to keep tagging across turns (prompt 1.1 → 1.2), a narrowed
+`MarkerScanner.finish()` plus an earlier release path in `feed()`, and 9 tests across
+`tests/test_refusal.py` and `tests/test_chat.py`.
+
+**Changed:**
+1. **Measured before fixing, and the predicted failure was real.** Ran the pushback conversation
+   against 1.1 first rather than pre-emptively patching. Turn 1 logged `refused/no-public-pricing`;
+   turns 2 and 3 refused *in prose* — "I don't have a ballpark to give" — and logged `status="ok"`.
+   The boundary held; the measurement of it did not.
+2. **It was inconsistent, which is worse than a uniform failure.** The portal pushback kept its tag
+   while the pricing pushback dropped it twice. From the data you would conclude pushback rarely
+   triggers a refusal, which is precisely backwards. Cause is the one predicted in the Phase 4
+   forward review: the marker is stripped before display, so the model's own transcript shows its
+   earlier refusals untagged and it infers the tag is optional.
+3. **The prompt line fixed it; the server-side fallback was not needed.** All three pushback turns
+   now log `refused/no-public-pricing`. Re-injecting the marker into history would have meant either
+   trusting the client or making the API stateful, so it stayed the fallback it was planned as.
+4. **My first `finish()` fix was too broad and the existing invariant test caught it.** Suppressing
+   anything that *starts* with `[[refusal:` threw away the whole reply for `[[refusal:bad slug]]body`
+   — a closed-but-malformed tag with real content after it. Moved the decision into `feed()`: a `]]`
+   that fails the slug pattern can never become a valid marker, so release immediately. That also
+   makes the end-of-stream suppression provably narrow, since anything still held there is
+   guaranteed to contain no `]]`.
+5. **The mid-stream-error drop is now a decision with a test**, not inherited behaviour. Held text is
+   discarded rather than flushed: showing a fragment of an answer directly above "something went
+   wrong" reads worse than showing only the error.
+6. **`cache_read` confirmed constant across a growing conversation** — 4,948 on every turn while the
+   prompt grew 4,964 → 5,079 → 5,206. Direct evidence the breakpoint is placed correctly, which
+   single-turn tests could never have shown: a misplaced breakpoint looks identical on turn one.
+
+**Verified:** 115 tests · ruff clean · pushback resisted across three escalating turns with no
+number, no range, and no invented URL · all three logged `refused` with the same reason · anaphora
+resolved "that" to construction correctly and stayed `ok` · no marker leaked in any turn · prefix
+4,870 → 4,954, margin over the floor now 858.
