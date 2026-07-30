@@ -700,13 +700,56 @@ file-split → **`/stats` last** (it's the only part that makes the layer usable
 JSONL, and it's what Phase 8 reads).
 
 ### Phase 7 — MCP integration · 60–90 min
-One pattern, one tool: **bot as MCP client**, exposing `search_cadre_knowledge(query)`. Decide the
-transport (ASGI sub-app vs. second process) **before starting**, not mid-build. Wire tool calls into
-observability so the logs capture agentic steps.
 
-Be honest about what this is: for a 2–4k-token corpus, tool-based retrieval is **a demonstration of the
-mechanism, not a performance need** — prompt-stuffing stays simpler and more deterministic. It's the
-same design fork as the RAG cut, reached from the other side.
+**Audit before starting — three facts that change what this phase should be.**
+
+**1. MCP appears nowhere in the brief.** Zero mentions of "MCP" or "Model Context Protocol" in
+`analysis/Cadre-chatbot-insturctions.md`. What the brief asks for is a chatbot handling six scenarios,
+a deployed URL, a repo, `CLAUDE.md` and `plan.md` — all delivered and verified as of Phase 6. This
+phase is self-imposed scope.
+
+**2. The brief's most emphatic tips point the other way.** Two entries in the Tips table:
+
+> **Cut scope aggressively. 3 working features > 8 broken ones.**
+> **Make your scope decisions explicit in plan.md.**
+
+and in "What to Build": *"You decide what's in scope. **We're watching those decisions closely.**"*
+So the scope decision here is itself part of what is being evaluated — which means an unjustified
+eighth feature costs more than it adds, and a well-argued cut is a positive rather than a gap.
+
+**3. The originally planned shape would make the product measurably worse.** `bot as MCP client`
+calling `search_cadre_knowledge(query)` turns every turn into an agentic loop: call 1 stops at
+`tool_use`, call 2 continues with the `tool_result`. Measured against the current numbers:
+
+| | Today | With a tool round trip |
+|---|---|---|
+| Cost / turn | $0.001024 | **$0.002629** (2.6×) |
+| Latency (p50) | 2,398 ms | **roughly double** |
+| What retrieval finds | — | text that was already fully in context |
+
+The corpus is ~4k tokens and is *already in the prompt*. Retrieval over material the model has
+already read is ceremony, and here it is ceremony that costs 2.6× and halves the responsiveness of
+the thing the brief actually asked for.
+
+**Therefore the question is not "how do we build this" but "where does MCP belong, if anywhere".**
+Three defensible answers, and the decision is recorded below rather than settled mid-build:
+
+- **(a) MCP over the observability layer** — expose `/api/stats` and the interaction log as an MCP
+  server, so Cadre's team could point an MCP client at it and ask *"what did the bot refuse today, and
+  why?"*. Additive: it sits beside the request path rather than inside it, so it cannot slow or break
+  the chatbot. Uses the Phase 2 and Phase 6 work rather than duplicating it. Demonstrates the same
+  protocol fluency without paying 2.6× on every user turn.
+- **(b) Cut it, and record the reasoning** — the brief rewards exactly this, and the reasoning above
+  is the artifact. Cheapest, and leaves the verified system untouched.
+- **(c) Build it as originally planned** — accepted cost: 2.6× per turn, ~2× latency, and a new
+  failure mode on the request path of a system that currently passes 14/14 in production.
+
+**Decision:** _pending — see the top of this section once made._
+
+**Whatever is chosen, these hold:** the gate is closed (Phase 6 proved all six scenarios on the public
+URL), so nothing here is blocking. Decide the transport (ASGI sub-app vs. second process) **before**
+starting, not mid-build. And if anything touches the request path, the golden set must still be 14/14
+against the deployed URL afterwards — that is now a cheap, real regression check rather than a hope.
 
 ### Phase 8 — Post-submission health check · 15 min
 The public URL sits unattended with a live billed key for ≥24h after submission. Re-hit it, read
