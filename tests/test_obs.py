@@ -137,16 +137,24 @@ def test_interaction_log_carries_no_raw_user_message_field():
 
 def test_client_key_prefers_forwarded_for_over_the_tcp_peer():
     """Behind Railway's router the peer is the router — using it buckets every visitor together."""
-    key = limits.client_key({"x-forwarded-for": "203.0.113.9, 10.0.0.1"}, "10.0.0.1")
-    assert key == "203.0.113.9"
+    client = limits.client_key({"x-forwarded-for": "203.0.113.9, 10.0.0.1"}, "10.0.0.1")
+    assert client.key == "203.0.113.9"
+    assert client.source == "x-forwarded-for"
 
 
 def test_client_key_falls_back_to_peer_when_no_header():
-    assert limits.client_key({}, "198.51.100.7") == "198.51.100.7"
+    assert limits.client_key({}, "198.51.100.7") == ("198.51.100.7", "peer")
 
 
 def test_client_key_never_returns_empty():
-    assert limits.client_key({"x-forwarded-for": "  "}, None) == "unknown"
+    assert limits.client_key({"x-forwarded-for": "  "}, None) == ("unknown", "none")
+
+
+def test_client_key_source_is_reported_so_a_silent_degradation_is_visible():
+    """The point of `source`: "peer" in production means one shared bucket for every visitor, which
+    from outside looks identical to a limiter that is working correctly."""
+    assert limits.client_key({}, "10.0.0.1").source == "peer"
+    assert limits.client_key({"x-forwarded-for": "1.2.3.4"}, "10.0.0.1").source == "x-forwarded-for"
 
 
 def test_limiter_allows_up_to_the_limit_then_blocks():

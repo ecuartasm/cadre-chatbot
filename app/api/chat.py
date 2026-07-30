@@ -164,8 +164,11 @@ async def chat(req: ChatRequest, request: Request) -> StreamingResponse:
 
     # --- Guards, both checked BEFORE the model call -----------------------------------------
     peer = request.client.host if request.client else None
-    key = limits.client_key(dict(request.headers), peer)
-    allowed, retry_after = limits.check(key)
+    client = limits.client_key(dict(request.headers), peer)
+    # Logged on every turn, not only on a rejection: `source="peer"` in production means the limiter
+    # has silently degraded to one shared bucket for all visitors, and that is only visible here.
+    log.info("rate_limit_check", extra={"stream": "app", "client_key_source": client.source})
+    allowed, retry_after = limits.check(client.key)
     if not allowed:
         return StreamingResponse(
             _guard_frame(

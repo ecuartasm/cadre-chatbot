@@ -25,6 +25,7 @@ from __future__ import annotations
 import os
 import time
 from collections import defaultdict, deque
+from typing import NamedTuple
 
 # 20/min is generous for a human exploring and still bounds a runaway client. Deliberately not
 # tight:
@@ -39,14 +40,32 @@ MAX_TRACKED_CLIENTS = 10_000
 _hits: defaultdict[str, deque[float]] = defaultdict(deque)
 
 
-def client_key(headers: dict[str, str], peer: str | None) -> str:
+class ClientKey(NamedTuple):
+    """The bucket a request counts against, plus **where the key came from**.
+
+    `source` exists because the difference between the two cases is invisible from outside and has
+    opposite consequences. If the key is a per-visitor address, the limiter protects the service. If
+    it silently degraded to the router's address, every visitor shares one bucket and the first
+    scraper to trip it locks out everyone — while the endpoint looks perfectly healthy.
+
+    Only the source is logged, never the address: an IP in a 7-day log is data this app has no
+    reason to keep, and the source alone answers the operational question.
+    """
+
+    key: str
+    source: str  # 'x-forwarded-for' | 'peer' | 'none'
+
+
+def client_key(headers: dict[str, str], peer: str | None) -> ClientKey:
     """Left-most X-Forwarded-For entry, falling back to the TCP peer."""
     xff = headers.get("x-forwarded-for") or headers.get("X-Forwarded-For") or ""
     if xff:
         first = xff.split(",")[0].strip()
         if first:
-            return first
-    return peer or "unknown"
+            return ClientKey(first, "x-forwarded-for")
+    if peer:
+        return ClientKey(peer, "peer")
+    return ClientKey("unknown", "none")
 
 
 def check(key: str, *, now: float | None = None) -> tuple[bool, int]:
