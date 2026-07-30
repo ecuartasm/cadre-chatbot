@@ -10,6 +10,7 @@ the mount cannot shadow them.
 
 from __future__ import annotations
 
+import mimetypes
 import os
 import time
 from pathlib import Path
@@ -26,6 +27,13 @@ from app.obs.sink import SINK
 log = get_logger("app")
 
 load_dotenv()
+
+# `StaticFiles` derives Content-Type from the stdlib `mimetypes` database, which is seeded from the
+# host OS. macOS knows `.woff2`; the slim Debian image does not — so the self-hosted fonts served as
+# `font/woff2` locally and `application/octet-stream` in production. Browsers honour the
+# `format('woff2')` hint either way, so nothing was visibly broken, which is exactly why it would
+# have gone unnoticed. Registered explicitly so local and deployed agree.
+mimetypes.add_type("font/woff2", ".woff2")
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
 MODEL = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5")

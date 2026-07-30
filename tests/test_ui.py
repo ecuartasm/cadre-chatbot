@@ -118,3 +118,15 @@ def test_the_multi_turn_loop_was_not_refactored():
     app = code(APP)
     assert "JSON.stringify({ messages: next })" in app, "history must still be sent whole"
     assert "copy[copy.length - 1].content + evt.text" in app, "deltas must still accumulate"
+
+
+def test_woff2_mimetype_is_registered_explicitly():
+    """Found on the deployed URL, not locally: `StaticFiles` reads the stdlib mimetypes database,
+    which is seeded from the host OS. macOS knows `.woff2`, the slim Debian image does not — so the
+    same code served `font/woff2` locally and `application/octet-stream` in production. Browsers
+    honour the `format('woff2')` hint regardless, so nothing looked broken."""
+    import mimetypes
+
+    import app.main  # noqa: F401 — importing registers the type
+
+    assert mimetypes.guess_type("x.woff2")[0] == "font/woff2"
