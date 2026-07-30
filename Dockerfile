@@ -46,13 +46,21 @@ COPY --from=web /web/dist ./web/dist
 # `scripts/` is deliberately NOT copied: the scraper is build-time tooling, re-run by a
 # developer via /update-kb, and has no business in the runtime image.
 
-# Run as a non-root user. Nothing here needs write access to the image.
+# The app runs as uid 10001. The container *starts* as root only so the entrypoint can fix
+# ownership on the runtime-mounted volume, then drops privileges before exec'ing uvicorn.
 RUN useradd --create-home --uid 10001 appuser && chown -R appuser:appuser /srv
-USER appuser
+
+# Assert the privilege-drop tool exists NOW, not on the first deploy. `setpriv` ships with
+# util-linux; if a future base image drops it, this breaks the build instead of silently
+# leaving the app running as root.
+RUN command -v setpriv >/dev/null 2>&1 \
+ || { echo 'FATAL: setpriv not found — cannot drop privileges after fixing volume ownership'; exit 1; }
+
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 8000
 
-# Railway injects $PORT at runtime; default only for local `docker run`.
-# One worker is deliberate: the Phase 2 rate limiter and daily spend counter are in-process,
-# so a second worker would silently double both budgets (CLAUDE.md).
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]
+# The entrypoint owns $PORT and the single-worker choice. One worker is deliberate: the rate
+# limiter and daily spend counter are in-process, so a second worker would silently double both.
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

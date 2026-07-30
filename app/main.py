@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 
 from app.api.chat import router as chat_router
+from app.obs.sink import SINK
 
 load_dotenv()
 
@@ -46,6 +47,8 @@ def health() -> dict[str, object]:
         "model": MODEL,
         "anthropic_key_configured": bool(os.getenv("ANTHROPIC_API_KEY")),
         "web_bundle_present": WEB_DIST.is_dir(),
+        # Answers "are my logs actually persisting?" without needing a shell on the container.
+        "log_sink": SINK.as_dict(),
     }
 
 
