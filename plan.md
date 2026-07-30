@@ -494,10 +494,29 @@ So this is **restyling, not construction**, and three things constrain it:
    storing raw frames — would put the refusal marker into history and undo Phase 4. Treat
    `sendMessage` as behaviour under test, not layout.
 
+#### Requester decision — text is black
+
+**Stated directly, and it is a requirement rather than a preference: text in the chatbot must be
+black.** The current UI is the counter-example that prompted it — five inline colours, none of them
+black: `#666` twice, `#999` twice, and `#b00` for errors. Grey-on-white body text is exactly the
+"looks designed, reads worse" default this replaces.
+
+- **Black is `--colors--primary-black: #0b0707`**, Cadre's own declared primary black, so the widget
+  matches the site rather than merely being dark. Use literal `#000` instead only if the requester
+  wants it.
+- **No grey body text anywhere.** That includes the placeholder line, the footer, and the latency
+  readout — the things currently at `#666`/`#999`. If something needs de-emphasis, use size or
+  weight, not a lighter colour.
+- **Two deliberate exceptions**, both functional rather than decorative, to confirm rather than
+  assume: the **error state** (currently `#b00`) carries meaning that black would erase, and
+  `--cadre-red` is the brand's own error-ish colour; and the **`/contact` link**, where an
+  undifferentiated black link stops reading as clickable. Everything else is black.
+
 **Exit:** no inline `style={{…}}` left in `App.jsx` · `tokens.css` exists and components consume
-variables, never literals · shell in `dvh`/`svh` and input font ≥16px (both iOS-specific: `vh` sits
-under the keyboard, and <16px triggers focus auto-zoom) · usable at 375px wide · streaming still
-visible · CTA present · **the multi-turn probes still pass unchanged**. Then the checklist.
+variables, never literals · **all message and interface text renders black — no grey body text** ·
+shell in `dvh`/`svh` and input font ≥16px (both iOS-specific: `vh` sits under the keyboard, and <16px
+triggers focus auto-zoom) · usable at 375px wide · streaming still visible · CTA present · **the
+multi-turn probes still pass unchanged**. Then the checklist.
 
 ### Phase 6 — Eval + P2 + polish · 60–75 min
 The 13-case golden set (properties, not strings) · split the JSONL streams · build `/api/stats` · test
