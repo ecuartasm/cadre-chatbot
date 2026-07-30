@@ -699,7 +699,7 @@ and observability stops at P1, regardless of remaining time. Within P2 the cut o
 file-split → **`/stats` last** (it's the only part that makes the layer usable without SSHing in to grep
 JSONL, and it's what Phase 8 reads).
 
-### Phase 7 — MCP integration · 60–90 min
+### Phase 7 — MCP over the observability layer · 60–75 min  *(re-aimed — see the audit below)*
 
 **Audit before starting — three facts that change what this phase should be.**
 
@@ -744,12 +744,55 @@ Three defensible answers, and the decision is recorded below rather than settled
 - **(c) Build it as originally planned** — accepted cost: 2.6× per turn, ~2× latency, and a new
   failure mode on the request path of a system that currently passes 14/14 in production.
 
-**Decision:** _pending — see the top of this section once made._
+**DECISION: (a) — MCP over the observability layer.** The chatbot's request path is not touched, so
+cost stays at $0.001024/turn and p50 at 2,398 ms. What MCP gains us is a real capability rather than a
+demonstration: the observability built in Phases 2 and 6 becomes something Cadre's team can *ask
+questions of* — "what did the bot refuse today, and why?" — instead of something you read by curling
+a JSON endpoint.
 
-**Whatever is chosen, these hold:** the gate is closed (Phase 6 proved all six scenarios on the public
-URL), so nothing here is blocking. Decide the transport (ASGI sub-app vs. second process) **before**
-starting, not mid-build. And if anything touches the request path, the golden set must still be 14/14
-against the deployed URL afterwards — that is now a cheap, real regression check rather than a hope.
+#### Transport decision, made before starting
+
+**stdio, running locally, reading the deployed instance over HTTP.** Not an ASGI sub-app on the
+deployment, and the reason is a boundary rather than a convenience:
+
+- An HTTP MCP endpoint on the Railway app would be a **new unauthenticated public surface exposing
+  interaction data**. `CLAUDE.md` puts auth explicitly out of scope, so there would be nothing to put
+  in front of it. Shipping a public endpoint that serves redacted user messages, and calling it fine
+  because they are redacted, is precisely the reasoning this project rejects elsewhere.
+- stdio is also what an MCP client (Claude Desktop and similar) actually expects for an operator tool,
+  and it puts the server where the operator already is.
+
+**The server reads `/api/stats` and `/health` only — never the raw interaction log.** That is a real
+limitation and it is the right one: aggregates answer the operator's questions without republishing
+what people typed. The MCP layer therefore inherits the product's own discipline — it answers what it
+can substantiate and declines what is not safe to expose.
+
+#### Structure
+
+`mcp_server/` at the repo root, **not** copied into the runtime image, with the `mcp` SDK in the dev
+dependency group. The deployed chatbot's runtime dependency count stays at 4, and `uv export --no-dev`
+already excludes the group — same mechanism that keeps `scripts/scrape.py` out of the image.
+
+Tools, kept few and answerable:
+
+| Tool | Answers |
+|---|---|
+| `bot_health()` | Is it up, which prompt version, is the log sink writable |
+| `bot_stats()` | Turns, cost, cache hit rate, latency percentiles |
+| `refusal_breakdown()` | Refusal rate **by reason** — the number this bot is judged on |
+| `spend_today()` | Spend against the daily cap |
+
+#### Exit
+
+`mcp_server/` runs and a client can call all four tools against the **deployed** instance · the tools
+report "unavailable" rather than zeros when `/api/stats` says so, matching the endpoint's own honesty ·
+the runtime image is unchanged — verified by confirming the deployed dependency count and that
+`mcp_server/` is absent from the container · **the golden set still passes 14/14**, which should be
+trivially true since the request path is untouched, and is worth confirming precisely because it should
+be. Then the checklist.
+
+**Not in scope:** exposing the raw interaction log, any write/mutating tool, auth, or a hosted MCP
+endpoint. A read-only operator tool is the whole of it.
 
 ### Phase 8 — Post-submission health check · 15 min
 The public URL sits unattended with a live billed key for ≥24h after submission. Re-hit it, read
