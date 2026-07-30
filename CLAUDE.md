@@ -198,8 +198,15 @@ client before the gate in `plan.md` closes.
 **Repo:** `https://github.com/ecuartasm/cadre-chatbot` (private) · `origin` · `main`.
 
 **Follow `plan.md` phase by phase, and run its phase-exit checklist every time.** In short: tests green
-→ phase exit criterion met → `docs/ai-workflow-log.md` appended → **commit** → **push to `origin main`**
-→ redeploy and verify the live URL. All six, every phase. `plan.md` has the full version.
+→ phase exit criterion met → `docs/ai-workflow-log.md` appended → **`reports/phase-<n>-report.md`
+written** → **commit** → **push to `origin main`** → redeploy and verify the live URL. All seven, every
+phase. `plan.md` has the full version.
+
+- **Two records per phase, and they are not the same thing.** `docs/ai-workflow-log.md` is a terse
+  four-field entry (asked for / produced / changed / verified). `reports/phase-<n>-report.md` is the
+  detailed narrative: what shipped and why, problems and resolutions, verification evidence with actual
+  numbers, what was deferred, what's next. Write the report from the phase's own evidence — measured
+  values, real commit hashes, actual test counts — never from recollection.
 
 - **Push at the end of every phase, without exception.** Work that exists only locally isn't safe, and
   the repo *is* the deliverable. Don't batch several phases into one push.

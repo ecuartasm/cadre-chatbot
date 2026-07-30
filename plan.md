@@ -11,18 +11,22 @@ and the open items**.
 
 ## Phase exit checklist — every phase, no exceptions
 
-A phase is not done until all six are true. This is the loop, not a formality.
+A phase is not done until all seven are true. This is the loop, not a formality.
 
 1. **Tests green** — `pytest`, plus `python eval/golden.py` once the eval exists (Phase 6 onward).
 2. **The phase's own exit criterion met** (stated per phase below).
 3. **`docs/ai-workflow-log.md` appended** — one entry: *phase / what I asked for / what Claude produced
    / what I changed and why*. Write it now, not later.
-4. **Commit** with a descriptive message naming the phase. Small and specific beats one big commit.
-5. **Push to `origin main`.** Work that only exists locally isn't safe, and the repo is the deliverable.
-6. **Redeploy and verify the live URL** (every phase from 0c onward, since that's when a deployable bot
+4. **`reports/phase-<n>-report.md` written** — the detailed record of the phase: what shipped, the
+   decisions and their reasoning, problems hit and how they were resolved, verification evidence with
+   real numbers, what was deliberately deferred, and what comes next. The workflow log is a terse
+   four-field entry; the report is the narrative a reader can reconstruct the phase from.
+5. **Commit** with a descriptive message naming the phase. Small and specific beats one big commit.
+6. **Push to `origin main`.** Work that only exists locally isn't safe, and the repo is the deliverable.
+7. **Redeploy and verify the live URL** (every phase from 0c onward, since that's when a deployable bot
    first exists). A green local build that's broken in production is not a finished phase.
 
-⚠️ **Do this deliberately, not automatically.** It's tempting to wire steps 4–5 into a Claude Code
+⚠️ **Do this deliberately, not automatically.** It's tempting to wire steps 5–6 into a Claude Code
 `Stop` hook, but there is no "phase finished" event to hook — `Stop` fires after *every* assistant
 turn, so it would produce dozens of commits per phase with generated messages, which is the opposite of
 "small, frequent commits with descriptive messages." Worse, an auto-push can publish a broken
