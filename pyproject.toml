@@ -17,11 +17,11 @@ scrape = [
     "beautifulsoup4>=4.12",
     "markdownify>=0.14",
 ]
-dev = [
-    "pytest>=8.3",
-    "httpx2>=0.1",          # FastAPI/Starlette TestClient transport (starlette>=1.3 deprecates httpx)
-    "ruff>=0.8",
-]
+
+# Dev tooling lives in [dependency-groups] below, not here: `uv sync` installs groups by default
+# but skips extras, and CLAUDE.md documents plain `uv sync` followed by `pytest`. As an extra it
+# needed `--extra dev`, so a fresh clone would run the documented command and get no test deps.
+# The Dockerfile's `uv export --no-dev` excludes the group, so the runtime image stays clean.
 
 [tool.ruff]
 line-length = 100
@@ -36,3 +36,17 @@ addopts = "-q"
 # This is an app, not an installable library — put the repo root on sys.path
 # so `from app.main import app` resolves without a packaging step.
 pythonpath = ["."]
+# Explicit over "auto": an async test with no marker should fail loudly rather than be collected
+# and quietly not awaited. Phase 1's lesson — a test that does not run must not look like a pass.
+asyncio_mode = "strict"
+# Silences PytestUnknownMarkWarning and, more importantly, makes a typo'd marker an error.
+markers = ["asyncio: async test driven by pytest-asyncio"]
+filterwarnings = ["error::pytest.PytestUnknownMarkWarning"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=1.4",  # the SSE handler and the spend ledger are async; see tests/test_obs.py
+    "httpx2>=0.1",          # FastAPI/Starlette TestClient transport (starlette>=1.3 deprecates httpx)
+    "ruff>=0.8",
+]

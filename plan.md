@@ -278,21 +278,51 @@ what 0c did not need:**
   it could answer anything.
 - Re-verify byte-stability and re-measure after the edits.
 
-**Measurements — record here as they are taken:**
+**Measurements — the open question here was answered in Phase 1:**
 
 | Metric | Phase 0c (3 hardcoded facts) | After Phase 1 corpus | Floor / target |
 |---|---|---|---|
-| Fixed scaffolding | 394 tokens | — | — |
-| Curated KB | 124 tokens | `___` | ≥3,702 |
-| **Full system block** | **511 tokens** | `___` | **≥4,096** |
-| `cache_read_input_tokens` (2nd call) | **0** ❌ | `___` | `>0` |
+| Fixed scaffolding | 394 tokens | 387 tokens | — |
+| Curated KB | 124 tokens | **4,028** tokens | ≥3,702 |
+| **Full system block** | **511 tokens** | **4,415** tokens | **≥4,096** |
+| `cache_read_input_tokens` (2nd call) | **0** ❌ | **4,409** ✅ | `>0` |
 | Time to first token (prod) | 0.74s | `___` | — |
 
-- **≥ 4,096** → caching engages. Assert `cache_read_input_tokens > 0` and move on.
-- **< 4,096** → either grow the corpus past the floor **or** accept no caching as a stated decision with
-  the number attached. Both are defensible; assuming is not.
+The branch was taken in Phase 1: the corpus was grown past the floor with real content (nine
+per-industry value propositions scenario 1 needed and lacked), not padding, clearing 4,096 by 319
+tokens. Caching is live and verified in production. **Phase 3 therefore re-verifies rather than
+discovers** — the only cell left is time-to-first-token, which is cheap to fill during the phase's own
+verification pass.
 
-**Exit:** the table is filled in and the branch taken deliberately. Then the checklist.
+**Forward review after Phase 2 — three things changed:**
+
+1. **Prompt edits are now measurable instead of eyeballed.** `interactions.jsonl` records token counts,
+   cache write/read split, cost, latency, and `stop_reason` per turn. So the working loop for this
+   phase is *edit → run the golden questions → read the log*, not *edit → read the answers and form an
+   impression*. Concretely: a boundary that got looser should show up as fewer refusals, and a prompt
+   that grew should show up as a larger `total_prompt_tokens` — both readable, neither guessed.
+
+2. **`refusal_reason` is emitted on every interaction line and never set — it is always `null`.**
+   `_guard_frame` sets it on the separate `turn_rejected` line, but that covers rate-limit and spend-cap
+   rejections, not a knowledge-boundary refusal. So the one metric this phase most needs in order to
+   tune the boundary — *how often does the bot refuse, and for which reason* — is not measurable yet.
+   Wiring it is now part of this phase's first bullet rather than an afterthought: when the model
+   declines, classify against the corpus's `refusal_reason` values (`no-public-pricing`,
+   `no-public-portal-access`, `no-episode-content`, …) and set the field. Without this, "refusals are
+   structural" is a claim about the prompt with no evidence behind it.
+
+3. **Two hard constraints inherited from Phase 2, both silent if violated:**
+   - The system prefix must stay **≥ 4,096 tokens**. Trimming prose during refinement is exactly the
+     edit that would slip under it, and caching then stops with **no error** — cost quietly rises ~6×.
+     The Phase 1 floor test guards this; run it after *every* prompt edit, not once at the end.
+   - **`SYSTEM_PROMPT_VERSION` must be bumped on every change.** Log lines from two different prompts
+     are otherwise indistinguishable, which makes the before/after comparison in point 1 impossible.
+     Any change to the prompt also invalidates the cached prefix, so expect the first turn after a
+     deploy to bill a cache **write** ($0.00627, not $0.00120) — that is normal, not a regression.
+
+**Exit:** `refusal_reason` populated and visible in `interactions.jsonl` · conversion behaviour present
+without being pushy · prefix re-measured ≥ 4,096 and `cache_read > 0` still true · `SYSTEM_PROMPT_VERSION`
+bumped · the TTFT cell filled. Then the checklist.
 
 ### Phase 4 — Chat API + LLM client · 60–75 min
 SSE endpoint · provider behind the one-file interface · prompt assembly with `cache_control` on the last

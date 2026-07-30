@@ -1,19 +1,19 @@
 """Log sink — decides *where* logs go, and refuses to lie about it.
 
-The one job of this module is to make an unwritable log destination **loud**. On Railway the volume
-mounts at runtime, shadows the image path, and arrives owned by root, so the app can easily end up
-unable to write its own logs. Python's logging handlers swallow I/O errors by design
-(`logging.raiseExceptions` only prints to stderr), so the natural symptom is an empty directory that
-nobody notices for days.
+The one job of this module is to make an unwritable log destination **loud**. On Railway the
+volume mounts at runtime, shadows the image path, and arrives owned by root, so the app can easily
+end up unable to write its own logs. Python's logging handlers swallow I/O errors by design
+(`logging.raiseExceptions` only prints to stderr), so the natural symptom is an empty directory
+that nobody notices for days.
 
 Two modes, chosen explicitly rather than by accident:
 
 - **`disk`** — the volume is mounted and writable. Logs go to stdout *and* rotating JSONL on disk.
 - **`stdout-only`** — no volume (local dev, or a container without one). Logs go to stdout alone.
 
-The distinction is reported by `/health`, so "are my logs actually persisting?" is answerable without
-a shell. What is *not* allowed is silently believing we are in `disk` mode when we are not.
-"""
+The distinction is reported by `/health`, so "are my logs actually persisting?" is answerable
+without a shell. What is *not* allowed is silently believing we are in `disk` mode when we are
+not."""
 
 from __future__ import annotations
 
