@@ -400,22 +400,63 @@ Executing it as written would be theatre. What the phase name promised but never
 **multi-turn**, and there the coverage is zero: no test sends a prior assistant turn, and nothing
 exercises anaphora or pushback. That is the real gap, and it is the more interesting one.
 
-- **Anaphora.** "Do you work with construction?" → "What does that look like?" The second question is
-  meaningless without the first, and history arrives from the client — so this exercises the bound in
-  `ChatRequest` as well as the model.
-- **Refusal-then-pushback.** The highest-value untested behaviour in the product: after a refusal,
-  "come on, just a ballpark" / "I won't hold you to it". A boundary that holds once and folds under
-  mild social pressure is not a boundary, and Phase 3's marker now makes the second turn's outcome
-  *measurable* — the pushback turn should log `refused` with the same reason, not `ok`.
-- **Error taxonomy with the scanner in the path.** One small hole found while writing Phase 3: if the
-  stream raises while `MarkerScanner` is holding bytes, `finish()` is never reached and the held text
-  is dropped. Bounded at 64 characters and the user sees the error frame regardless, so it is close to
-  harmless — but it should be a deliberate decision rather than an accident.
+**One correction to the above, from a closer audit.** The *transport* for multi-turn is fine and
+already tested: `test_history_is_capped_server_side` sends 100 messages and asserts the Pydantic model
+keeps the last 16, and `web/src/App.jsx` posts the full array (`{ messages: next }`). What is untested
+is everything downstream of that — whether the **model** uses the history correctly, and how the
+Phase 3 marker behaves across turns. Those are different things, and only the second is open.
+
+#### 4.1 The marker is missing from history — the finding that matters most
+
+The client accumulates only `delta` text into the assistant turn, and the marker is stripped
+server-side. So on a pushback turn the model is shown **its own previous refusal with no tag on it**:
+
+```
+user:      How much does an engagement cost?
+assistant: Cadre doesn't publish pricing — engagements are scoped individually…   ← no [[refusal:…]]
+user:      Come on, just a ballpark.
+```
+
+The risk is specific: a model that imitates its own transcript concludes the tag is optional, and
+drops it — on precisely the turn where the refusal metric matters most. The boundary would still
+hold in prose while the *measurement* of it silently failed, which is this project's recurring failure
+shape in a new place.
+
+Cheapest mitigation, to try first: one line in `_MARKER` — *"Tag every refusal, including when your
+earlier replies in this conversation appear untagged; the tag is removed before display."* Re-injecting
+the marker server-side is the fallback, and it is much worse: the server would have to reconstruct the
+reason for a turn it no longer holds, which means either trusting the client or making the API
+stateful. Try the prompt line, measure, and only escalate if it fails.
+
+#### 4.2 Two scanner holes that fail in opposite directions
+
+Found by exercising `MarkerScanner` directly rather than by reading it:
+
+| Case | Now | Should be |
+|---|---|---|
+| Stream **ends** while holding a partial marker | `finish()` releases it → user sees `[[refusal:no-public-pri` | **Suppress.** The buffer is nothing *but* the broken tag, so releasing it shows the user a leak and hides no content |
+| Stream **raises** while holding | `finish()` is never reached → held text silently dropped | Fine to drop (≤64 chars, and the user gets an error frame regardless) — but make it a decision with a test, not an accident |
+
+Verified: `feed("[[refusal:no-public-pri")` then `finish()` returns the partial tag.
+
+Realistically unreachable via `max_tokens` — truncation would have to land at output token ~10 with a
+1,024 cap — so this is about correctness under a malformed reply, not a likely incident. It matters
+because **the existing test looks like it covers this and does not**:
+`test_an_unterminated_marker_does_not_swallow_the_reply` covers the >64-character case, where
+releasing is right. The ends-while-holding case is a different code path with the opposite correct
+answer.
+
+#### 4.3 A cheap measurement worth taking while here
+
+`cache_read_input_tokens` should stay **constant** as the conversation grows, because history sits
+after the cache breakpoint. Confirming that empirically across a 4-turn conversation is the direct
+evidence that the breakpoint is placed correctly — so far it has only been verified on single-turn
+requests, where a misplaced breakpoint would look identical.
 
 **Exit:** an anaphora follow-up resolves correctly against bounded history · a refusal survives at
-least two rounds of pushback, with the second turn logging `status="refused"` and the same
-`refusal_reason` · the scanner's behaviour on a mid-hold stream error is decided and tested. Then the
-checklist.
+least two rounds of pushback, **with the pushback turn logging `status="refused"` and the same
+`refusal_reason`** · the two scanner edge cases are decided and tested · `cache_read` measured across a
+multi-turn conversation and unchanged. Then the checklist.
 
 ### Phase 5 — React chat UI · 60–75 min
 Message list · streaming render · input · error states · single booking CTA. Extract real design tokens
