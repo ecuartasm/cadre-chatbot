@@ -494,6 +494,39 @@ So this is **restyling, not construction**, and three things constrain it:
    storing raw frames — would put the refusal marker into history and undo Phase 4. Treat
    `sendMessage` as behaviour under test, not layout.
 
+#### What the site actually looks like — corrected from a screenshot
+
+The declared tokens were right; **my reading of how they are used was wrong**, and only a screenshot
+showed it. Extracting `h1{color:var(--cadre-red)}` from a 470KB minified stylesheet, I concluded red
+was the heading colour and proposed blue for interactive elements. Both wrong:
+
+| | I inferred from CSS | What the page actually does |
+|---|---|---|
+| Headings | red | **Black.** Red appears as a *word-level* accent — "AI **Confidence**", "Find. Prepare. **Implement.**" |
+| Interactive elements | `--cadre-blue` | **Black pills, white text, `→` suffix** — "Talk to an AI Strategist →" |
+| `--cadre-blue` #08749b | primary interactive | **Essentially absent** from the homepage. Declared, barely used |
+| Background | white | **Warm sand `#faf9f6`**, not white. This is the dominant surface |
+
+So **black is the brand's own interactive and heading colour.** The requester's instruction below is
+not a divergence from Cadre's design — it is the closest match to it.
+
+Rest of the visual language, for the widget to sit inside rather than beside:
+
+- **Cards** — white fill on the sand background, large radii (~1–1.5rem, matching the CSS), a hairline
+  border and a very soft shadow. Airy, generous padding.
+- **Buttons** — fully-rounded black pills, white label, `→` suffix. One dark testimonial card inverts
+  this: black surface, white text.
+- **Type** — Inter Tight for headings, heavy weight and tight tracking; Inter for body.
+- **Spacing is generous.** The page breathes; sections are far apart. A cramped widget would read as
+  foreign even with the right colours.
+- **The FAQ section is the closest analogue on the site to what we are building** — "Common questions,
+  straight answers", a two-column list with hairline rules, black text, `+` affordances. When a layout
+  choice is ambiguous, match that section.
+
+One deliberate divergence, stated so it is not mistaken for an oversight: the site *does* use grey for
+supporting copy. Ours will not (below). Their grey sits under large marketing headlines; ours would be
+small functional reading text, where grey costs legibility for nothing.
+
 #### Requester decision — text is black
 
 **Stated directly, and it is a requirement rather than a preference: text in the chatbot must be

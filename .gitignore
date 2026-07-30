@@ -34,3 +34,9 @@ dist/
 analysis/prompt.md
 analysis/Cadre_AI_Chatbot_Take_Home_Candidate.docx.pdf
 analysis/Cadre_AI_Candidate_Interview_Guide.pdf
+
+# Page captures used as Phase 5 design reference. The 9.5MB PDF is a screenshot, and the saved
+# HTML duplicates what content/raw/ already records as the provenance trail. The values actually
+# needed are extracted into analysis/brand-tokens-extracted.txt, which IS committed.
+analysis/screencapture-*.pdf
+analysis/*.html
