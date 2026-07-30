@@ -57,3 +57,36 @@ this log, then deploy.
 curled `/health` and `/` · grepped both responses for `sk-ant-` (0 occurrences) · confirmed the key
 still authenticates after the `.env` rewrite using the free `/v1/models` endpoint, so the check cost no
 tokens.
+
+---
+
+## Phase 1 — Knowledge base
+
+**Asked for:** resolve the case-study gate from literal page text; write a byte-faithful scraper;
+curate a corpus clearing Haiku 4.5's 4,096-token cache floor; add a read-once loader and the
+`kb-updater` subagent.
+
+**Produced:** `scripts/scrape.py` (36 pages, `content_sha256` frontmatter), `content/raw/*.md`,
+`content/knowledge-base.md` (4,028 tokens), `app/knowledge/loader.py`, `.claude/agents/kb-updater.md`,
+`/update-kb`, `/log-decision`, 14 corpus tests.
+
+**Changed:**
+1. **The gate overturned the analysis, not the other way round.** The literal page shows clients ARE
+   anonymised (8× "Non-Disclosed Company") AND individuals ARE named — both at once, so the research
+   note's original line was correct and the adversarial review's "correction" was the error.
+   "Griffin Funding" appears nowhere; the company name was fabricated. Count is 8, not 9.
+2. **Rejected the first curated draft at 3,517 tokens** — 192 below the floor. Rejected the second at
+   +31 margin too: clearing by one paragraph means any later edit breaks caching silently. Added the
+   nine per-industry value propositions (real content scenario 1 needed and lacked) rather than padding.
+3. **`tests/conftest.py` added after finding the live `count_tokens` test was silently skipping** — no
+   `.env` load in the test process meant the assertion guarding this phase's central number never ran,
+   while the suite reported green.
+4. Dropped an unused `KNOWLEDGE_SHA256` import and rewrapped 8 long docstring lines rather than
+   suppressing the lint.
+5. Switched content extraction from shell `grep` to Python after two regexes failed on complexity and
+   one hung for 120s.
+
+**Verified:** 34 tests · ruff clean · 36/36 pages scraped · prefix 4,415 vs 4,096 floor confirmed by
+live `count_tokens` · **corpus sha identical local ↔ deployed** (proves `COPY content/` worked) ·
+**`cache_read=4409` on the second production call** · all three refusals hold on the live bot with no
+number, no invented URL, and no guest characterisation.
