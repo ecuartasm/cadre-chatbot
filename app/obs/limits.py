@@ -15,9 +15,17 @@ Second, it would be a 5th runtime dependency for a sliding window over a dict.
 router*, so every visitor shares one bucket and the first scraper to trip it locks out everyone.
 The left-most `X-Forwarded-For` entry is the originating client.
 
-That header is **client-spoofable**. This limiter is a courtesy control against ordinary abuse
-and accidental loops, *not* a security boundary. The real money backstop is the daily spend cap
-in `spend.py`, which no header can influence.
+That header is **client-spoofable in principle**, so this limiter is a courtesy control against
+ordinary abuse and accidental loops, *not* a security boundary. The real money backstop is the
+daily spend cap in `spend.py`, which no header can influence.
+
+Measured on Railway rather than assumed: sending an invented `X-Forwarded-For` did **not** create a
+fresh bucket, so the edge router does not let a client control the left-most entry. Two things
+follow. The code's trust model is unchanged — it would honour a spoofed header if some future proxy
+passed one through, which is why the caveat above stands. But on this deployment the bucketing is
+genuinely per-visitor, confirmed by `client_key_source="x-forwarded-for"` in the production log
+rather than inferred from the limit tripping at 21 requests (which a single shared bucket would also
+have produced).
 """
 
 from __future__ import annotations

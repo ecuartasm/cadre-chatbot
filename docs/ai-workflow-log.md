@@ -152,3 +152,16 @@ logged costs match the rate table to the cent by hand ($0.00596425 write, $0.000
 log directory · a client disconnect at 2s produced `status="abandoned"`, `error="CancelledError"`,
 333 streamed chars and a real request id · a rate-limited call returned HTTP 200,
 `content-type: text/event-stream`, `Retry-After: 60` and a readable error frame.
+
+**Found during the production verification, after the phase commit:** the rate limiter tripped at
+request 21 as designed, but that observation could not distinguish per-visitor bucketing from a single
+shared bucket keyed on Railway's router — one client would trip either at 21. The discriminating test
+came back ambiguous too, and the two readings have opposite consequences (a shared bucket means the
+first scraper locks out every visitor while `/health` stays green). Nothing in Phase 2's own logging
+told them apart, which is a gap in the deliverable found only by trying to use it. `client_key()` now
+returns `(key, source)` and logs the **source** — not the address, since an IP in a 7-day log is data
+this app has no reason to keep. Production then answered it in one line:
+`client_key_source="x-forwarded-for"`. Bucketing is per-visitor; the earlier ambiguity was Railway's
+edge refusing to let a client control the left-most entry, which also makes `limits.py`'s
+"client-spoofable" caveat stricter than this deployment's reality. Both facts are now recorded in the
+module docstring as measured rather than assumed.
