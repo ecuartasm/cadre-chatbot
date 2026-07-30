@@ -794,7 +794,7 @@ be. Then the checklist.
 **Not in scope:** exposing the raw interaction log, any write/mutating tool, auth, or a hosted MCP
 endpoint. A read-only operator tool is the whole of it.
 
-### Phase 8 — Post-submission health check · 15 min
+### Phase 8 — Post-submission health check · 20–25 min  *(re-estimated — see below)*
 The public URL sits unattended with a live billed key for ≥24h after submission. Re-hit it, read
 `/api/stats` for error rate and spend-to-date, confirm the Railway service and volume are still
 attached, confirm the daily cap has headroom.
@@ -805,14 +805,45 @@ attached, confirm the daily cap has headroom.
   `spend_today()` are exactly the four questions this phase asks, and they can be asked
   conversationally rather than by curling and reading JSON. That is the phase's method now; the curl
   path remains the fallback if the MCP client is not to hand.
-- **Add one check the original wording missed: the log rotation.** Retention is 7 days enforced by
-  `backupCount`, and the first rotation happens at the first UTC midnight after deploy — which will
-  have passed by the time this runs. Confirm `interactions.jsonl` rolled and that
-  `/api/stats` still reports (it reads today's file, so a broken rotation would show as a sudden,
-  unexplained drop to zero turns). This is the one piece of Phase 2 that **has never actually
-  executed**, only been configured.
-- **Re-run the golden set once against the deployed URL.** ~$0.03 and it is the difference between
-  "it was working when I left it" and "it is working now".
+#### The real reason this phase matters: two code paths have never executed
+
+Everything else in the system has run in production many times. **Two have not, and both fire only at
+UTC midnight** — so a check run ≥24h after submission is the first and only opportunity to see either
+work:
+
+| Path | Where | What it does |
+|---|---|---|
+| Log rotation | `log.py` — `when="midnight", backupCount=7` | Rolls `interactions.jsonl`, deletes the 8th-oldest. **The retention policy *is* this config**, so until it fires, retention is a claim rather than a behaviour |
+| Daily spend rollover | `spend.py` — `_roll_if_new_day()` | Resets the ledger to 0 for the new UTC day. Until it fires, the cap has only ever counted upward |
+
+Neither can be checked early: they are date-triggered, not traffic-triggered.
+
+**Both are observable from outside — no SSH needed.** This was the open question, and the answer is
+clean:
+
+- `/api/stats` reads **today's** `interactions.jsonl`. As of writing it reports **119 turns**. If
+  rotation fires, tomorrow it reports **~0** (only the new day's traffic). **If it still reports 119,
+  rotation did not fire** and retention is silently not being enforced.
+- `/health` reports `spend.date` and `spend_today_usd`, currently **2026-07-30 / $0.161139**. After
+  rollover it should read the new date with spend near **0**. A stale date means `_roll_if_new_day()`
+  did not run and the cap is counting a second day against the first day's total.
+
+Record both numbers **before** finishing today, so tomorrow's reading has something to compare
+against. Baseline captured: **119 turns, $0.161139, date 2026-07-30.**
+
+*Checked while auditing, so it is not a worry:* rotation is **restart-safe**. `TimedRotatingFileHandler`
+computes `rolloverAt` from the existing file's `st_mtime`, not from process start, so a Railway
+redeploy before midnight does not skip a rollover — the first write after the missed time triggers it.
+Frequent redeploys therefore cannot defeat retention.
+
+**Stated honestly, because it would be easy to overclaim:** this verifies rotation *happens*. It does
+**not** verify 7-day deletion, which needs the 8th day. Retention beyond "the mechanism runs" stays
+unverified, and should be reported that way rather than as "retention confirmed".
+
+- **Re-run the golden set once against the deployed URL.** ~$0.03, and it is the difference between
+  "it was working when I left it" and "it is working now". Note the first turn will pay a cache
+  **write** ($0.00627) rather than a read, since the TTL will have long expired — expected, not a
+  regression.
 
 **Two items carried in rather than dropped:**
 
@@ -822,8 +853,14 @@ attached, confirm the daily cap has headroom.
    behind a 502 before recovering on its own. Not acted on, because nothing is broken and the cause
    is on Railway's side, but worth a look if it persists.
 
-**Exit:** the four MCP tools answer against the live URL · the log rotated and `/api/stats` still
-reports · the golden set is green · spend has headroom against the cap · anything found is recorded.
+**Exit:** the four MCP tools answer against the live URL · **rotation fired** (`/api/stats` turns
+dropped from the 119 baseline) · **the spend ledger rolled over** (`/health` shows the new UTC date
+with spend near 0) · the golden set is green · spend has headroom against the cap · the volume is
+still attached · anything found is recorded, including "nothing changed", which is itself the result.
+
+**If a check fails, that is the phase's output, not a reason to extend it.** A 15-minute health check
+that finds a broken rotation has done its job; fixing it is a new piece of work with its own
+verification, not something to fold in silently.
 
 ---
 
