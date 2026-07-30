@@ -1,10 +1,34 @@
 # plan.md — Cadre AI Support Chatbot
 
-Execution plan. Phases run in order; each ends with tests green, a commit, a redeploy, and an appended
-entry in `docs/ai-workflow-log.md`.
+Execution plan. Phases run in order and every phase ends with the same checklist — see below.
 
 Conventions and non-negotiable rules live in `CLAUDE.md`. This file holds **sequence, scope decisions,
 and the open items**.
+
+**Repo:** `https://github.com/ecuartasm/cadre-chatbot` (private) · remote `origin` · branch `main`.
+
+---
+
+## Phase exit checklist — every phase, no exceptions
+
+A phase is not done until all six are true. This is the loop, not a formality.
+
+1. **Tests green** — `pytest`, plus `python eval/golden.py` once the eval exists (Phase 6 onward).
+2. **The phase's own exit criterion met** (stated per phase below).
+3. **`docs/ai-workflow-log.md` appended** — one entry: *phase / what I asked for / what Claude produced
+   / what I changed and why*. Write it now, not later.
+4. **Commit** with a descriptive message naming the phase. Small and specific beats one big commit.
+5. **Push to `origin main`.** Work that only exists locally isn't safe, and the repo is the deliverable.
+6. **Redeploy and verify the live URL** (every phase from 0c onward, since that's when a deployable bot
+   first exists). A green local build that's broken in production is not a finished phase.
+
+⚠️ **Do this deliberately, not automatically.** It's tempting to wire steps 4–5 into a Claude Code
+`Stop` hook, but there is no "phase finished" event to hook — `Stop` fires after *every* assistant
+turn, so it would produce dozens of commits per phase with generated messages, which is the opposite of
+"small, frequent commits with descriptive messages." Worse, an auto-push can publish a broken
+intermediate state or a secret before `.gitignore` is right. **A `/ship-phase` command that runs this
+checklist on demand is the correct mechanism; a hook is not.** Hooks are for guardrails (block writes to
+`.env`, block `git push --force`), not for taking outward-facing actions on your behalf.
 
 ---
 
@@ -55,16 +79,18 @@ and the open items**.
 Estimates are for **sequencing and risk-ordering, not rationing** — build time is not a constraint
 here. Total ≈9–11.5h before debugging and deploy retries.
 
-### Phase 0a — Repo + deploy skeleton · 30 min
-`git init`, `.gitignore` (**`.env` first, before any commit**), `uv`/requirements, hello-world FastAPI,
-push to a fresh GitHub repo, deploy to Railway, attach the Volume, run `/init` and rewrite what it
-generates, commit `.claude/settings.json`, create `docs/ai-workflow-log.md`.
-**Exit:** a public URL returns 200.
+### Phase 0a — Deploy skeleton · 30 min
+✅ **Already done:** `git init`, `.gitignore` (`.env` excluded before the first commit), private repo
+`ecuartasm/cadre-chatbot` created and pushed.
+
+Remaining: `uv`/requirements, hello-world FastAPI, deploy to Railway, attach the Volume, run `/init` and
+rewrite what it generates, commit `.claude/settings.json`, create `docs/ai-workflow-log.md`.
+**Exit:** the public Railway URL returns 200, and the exit checklist above passes.
 
 ### Phase 0b — `CLAUDE.md` + `plan.md` · 60 min, protected
-Write both properly. **Deliberately separated from the deploy** so a Railway snag can't eat the time
-for the two documents the brief asks for by name.
-**Exit:** both committed; scope cut list complete with reasons.
+✅ **Done** — both written and pushed (commit `d86f9f6`). **Deliberately separated from the deploy** so a
+Railway snag couldn't eat the time for the two documents the brief asks for by name.
+Revisit at the end of Phase 6 to tighten, not to rewrite.
 
 ### Phase 0c — End-to-end vertical slice · 45–60 min ⭐
 Three hardcoded facts → minimal system prompt → streaming `POST /api/chat` → unstyled React chat box →
@@ -73,7 +99,7 @@ Three hardcoded facts → minimal system prompt → streaming `POST /api/chat` �
 This is the most important phase in the plan. It proves the riskiest unknown — **SSE streaming through
 Railway to a React client** — at hour two instead of hour five, and from here on a stop at any point
 leaves something that works.
-**Exit:** you can type a question into the deployed URL and watch tokens stream back.
+**Exit:** you can type a question into the deployed URL and watch tokens stream back. Then the checklist.
 
 ### Phase 1 — Knowledge base · 60–75 min
 0. **Resolve the open gate below, first.**
@@ -86,8 +112,8 @@ leaves something that works.
 
 Scrape and curate are separable → **run the scrape as a subagent** while curating. It's context-heavy
 input with a small output, which is exactly what subagents are for. Same agent becomes `kb-updater`.
-**Exit:** slice's hardcoded facts replaced by the real KB; redeploy; `/update-kb` proposes a diff
-without writing it.
+**Exit:** the slice's hardcoded facts are replaced by the real KB and `/update-kb` proposes a diff
+without writing it. Then the checklist.
 
 ### Phase 2 — Observability P0+P1 · 45–60 min
 `request_id` middleware · JSON logger dual-sunk to stdout + rotating JSONL (redaction on, **7-day**
@@ -99,8 +125,8 @@ safe fallback, never a stack trace.
 behind Railway's router is *the router* — so every visitor shares one bucket and the first scraper locks
 out everyone. Read the left-most `X-Forwarded-For` entry, fall back to `request.client.host`. Note that
 a forwarded header is spoofable, which is why the **daily cap is the real money backstop.**
-**Exit:** write a log line, redeploy, confirm it survived (the volume-persistence check lives here, not
-in Phase 0, because now there's something to write).
+**Exit:** write a log line, redeploy, confirm it survived — the volume-persistence check lives here, not
+in Phase 0, because only now is there something real to write. Then the checklist.
 
 ### Phase 3 — System prompt · 30–45 min
 Persona · grounding rule · escalation policy driven by `disclosure` · conversion behavior · format
@@ -114,25 +140,25 @@ and record the number here in `plan.md`:
 > - **< 4,096** → either grow the curated KB to ~4.5k so the prefix clears the floor, **or** accept no
 >   caching as a stated decision with the number attached. Both defensible; assuming is not.
 
-**Exit:** the number is written down and the branch is taken deliberately.
+**Exit:** the number is written down here and the branch is taken deliberately. Then the checklist.
 
 ### Phase 4 — Chat API + LLM client · 60–75 min
 SSE endpoint · provider behind the one-file interface · prompt assembly with `cache_control` on the last
 system block · server-side history cap in the Pydantic model · full error handling wired into
 observability (tokens, cost, latency, cache counters per turn). Read the generated code; add the tests.
-**Exit:** `cache_read_input_tokens > 0` on the second identical-prefix request.
+**Exit:** `cache_read_input_tokens > 0` on the second identical-prefix request. Then the checklist.
 
 ### Phase 5 — React chat UI · 60–75 min
 Message list · streaming render · input · error states · single booking CTA. Extract real design tokens
 from cadreai.com via DevTools (**computed styles — not an AI page fetch**, which can't see them) into
 `tokens.css` custom properties; components consume the variables, never literals. `dvh`/`svh` for the
 shell, 16px minimum input font.
-**Exit:** usable on a phone; streaming visible; CTA present.
+**Exit:** usable on a phone, streaming visible, CTA present. Then the checklist.
 
 ### Phase 6 — Eval + P2 + polish · 60–75 min
 The 13-case golden set (properties, not strings) · split the JSONL streams · build `/api/stats` · test
 **on the deployed URL** · confirm logs land on the volume · tighten both documents.
-**Exit:** eval green against the deployed URL; per-case results recorded below.
+**Exit:** eval green against the deployed URL, per-case results recorded below. Then the checklist.
 
 ### 🚦 GATE — before Phase 7 or observability P2 extras
 **The bot must answer all six scenarios on the public URL.** If it doesn't, finish the core: MCP drops

@@ -195,11 +195,20 @@ client before the gate in `plan.md` closes.
 
 ## Working agreement
 
-- **Follow `plan.md` phase by phase.** Each phase ends with: tests pass, a commit, a redeploy, and an
-  appended entry in `docs/ai-workflow-log.md` (*phase / what I asked for / what Claude produced / what
-  I changed and why*). Write that entry as you go — reconstructing it later defeats its purpose.
+**Repo:** `https://github.com/ecuartasm/cadre-chatbot` (private) · `origin` · `main`.
+
+**Follow `plan.md` phase by phase, and run its phase-exit checklist every time.** In short: tests green
+→ phase exit criterion met → `docs/ai-workflow-log.md` appended → **commit** → **push to `origin main`**
+→ redeploy and verify the live URL. All six, every phase. `plan.md` has the full version.
+
+- **Push at the end of every phase, without exception.** Work that exists only locally isn't safe, and
+  the repo *is* the deliverable. Don't batch several phases into one push.
+- **Write the workflow-log entry as you go**, not at the end — reconstructing "what I changed and why"
+  from memory defeats the entire purpose of keeping it.
 - **The gate:** the bot must answer all six scenarios on the deployed URL before MCP or observability
   P2 begins. Non-negotiable regardless of time available.
-- Small, descriptive commits. Never `git push --force`.
-- When something generated here looks wrong, say so and fix it rather than working around it — this
-  file and `plan.md` are the contract, and a wrong contract should be corrected, not tolerated.
+- Small, descriptive commit messages that name the phase. Never `git push --force`.
+- **Never commit a secret.** `.env` is gitignored; check `git status` before every commit. If a key is
+  ever pushed, rotate it — don't just remove the file in a later commit.
+- When something in this file or `plan.md` looks wrong, say so and fix it rather than working around it.
+  These two files are the contract, and a wrong contract should be corrected, not tolerated.
