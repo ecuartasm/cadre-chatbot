@@ -310,13 +310,21 @@ the conversion section. On the Phase 2 precedent (45–60 estimated, ~95 actual)
 
 **Measurements — the open question here was answered in Phase 1:**
 
-| Metric | Phase 0c (3 hardcoded facts) | After Phase 1 corpus | Floor / target |
-|---|---|---|---|
-| Fixed scaffolding | 394 tokens | 387 tokens | — |
-| Curated KB | 124 tokens | **4,028** tokens | ≥3,702 |
-| **Full system block** | **511 tokens** | **4,415** tokens | **≥4,096** |
-| `cache_read_input_tokens` (2nd call) | **0** ❌ | **4,409** ✅ | `>0` |
-| Time to first token (prod) | 0.74s | `___` | — |
+| Metric | Phase 0c (3 hardcoded facts) | After Phase 1 corpus | After Phase 3 | Floor / target |
+|---|---|---|---|---|
+| Fixed scaffolding | 394 tokens | 387 tokens | 842 tokens | — |
+| Curated KB | 124 tokens | **4,028** tokens | 4,028 tokens | ≥3,702 |
+| **Full system block** | **511 tokens** | **4,415** tokens | **4,870** tokens | **≥4,096** |
+| `cache_read_input_tokens` (2nd call) | **0** ❌ | **4,409** ✅ | **4,807** ✅ | `>0` |
+| Time to first token — answer | 0.74s | — | **0.85s** | — |
+| Time to first token — refusal | — | — | **1.11s** | — |
+
+The two TTFT rows are the marker's cost, measured rather than assumed. A refusal is ~0.26s slower
+to first visible character because the model emits ~10 marker tokens before any prose. That is
+inherent to a marker approach, not scanner overhead — the buffer only holds while those tokens are
+being produced, and an answer (no marker) releases on the first character. Accepted: a quarter of a
+second on the refusal path buys a refusal metric that does not depend on matching substrings in
+prose.
 
 The branch was taken in Phase 1: the corpus was grown past the floor with real content (nine
 per-industry value propositions scenario 1 needed and lacked), not padding, clearing 4,096 by 319
@@ -374,11 +382,40 @@ verification pass.
 
 Then the checklist.
 
-### Phase 4 — Chat API + LLM client · 60–75 min
-SSE endpoint · provider behind the one-file interface · prompt assembly with `cache_control` on the last
-system block · server-side history cap in the Pydantic model · full error handling wired into
-observability (tokens, cost, latency, cache counters per turn). Read the generated code; add the tests.
-**Exit:** `cache_read_input_tokens > 0` on the second identical-prefix request. Then the checklist.
+### Phase 4 — Multi-turn behaviour · 30–40 min  *(rewritten — original scope already shipped)*
+
+**Forward review after Phase 3: every line of this phase's original scope is already built and
+verified, and so is its exit criterion.** Checked against the repo rather than assumed:
+
+| Original scope | Where it actually shipped |
+|---|---|
+| SSE endpoint | Phase 0c, rewritten in Phase 2 |
+| Provider behind the one-file interface | `app/llm/client.py`, still the only `anthropic` importer |
+| `cache_control` on the last system block | Phase 0c; re-measured in 1 and 3 |
+| Server-side history cap in the Pydantic model | Phase 2 — `MAX_TURNS = 8` |
+| Error handling wired into observability | Phase 2 — tokens, cost, latency, cache counters per turn |
+| **Exit:** `cache_read > 0` on the 2nd identical-prefix request | Verified in Phases 1, 2 **and** 3 (`cache_read=4807`) |
+
+Executing it as written would be theatre. What the phase name promised but never covered is
+**multi-turn**, and there the coverage is zero: no test sends a prior assistant turn, and nothing
+exercises anaphora or pushback. That is the real gap, and it is the more interesting one.
+
+- **Anaphora.** "Do you work with construction?" → "What does that look like?" The second question is
+  meaningless without the first, and history arrives from the client — so this exercises the bound in
+  `ChatRequest` as well as the model.
+- **Refusal-then-pushback.** The highest-value untested behaviour in the product: after a refusal,
+  "come on, just a ballpark" / "I won't hold you to it". A boundary that holds once and folds under
+  mild social pressure is not a boundary, and Phase 3's marker now makes the second turn's outcome
+  *measurable* — the pushback turn should log `refused` with the same reason, not `ok`.
+- **Error taxonomy with the scanner in the path.** One small hole found while writing Phase 3: if the
+  stream raises while `MarkerScanner` is holding bytes, `finish()` is never reached and the held text
+  is dropped. Bounded at 64 characters and the user sees the error frame regardless, so it is close to
+  harmless — but it should be a deliberate decision rather than an accident.
+
+**Exit:** an anaphora follow-up resolves correctly against bounded history · a refusal survives at
+least two rounds of pushback, with the second turn logging `status="refused"` and the same
+`refusal_reason` · the scanner's behaviour on a mid-hold stream error is decided and tested. Then the
+checklist.
 
 ### Phase 5 — React chat UI · 60–75 min
 Message list · streaming render · input · error states · single booking CTA. Extract real design tokens

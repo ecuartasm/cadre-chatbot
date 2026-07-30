@@ -21,6 +21,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
+from app.knowledge.loader import REFUSAL_REASONS
 from app.knowledge.loader import info as corpus_info
 from app.llm.client import model_info, stream_reply
 from app.llm.prompt import SYSTEM_PROMPT_VERSION
@@ -90,6 +91,7 @@ async def _event_stream(messages: list[dict], request_id: str) -> AsyncIterator[
     chars = 0
     status = "error"
     stop_reason: str | None = None
+    refusal_reason: str | None = None
     err: str | None = None
 
     try:
@@ -100,6 +102,18 @@ async def _event_stream(messages: list[dict], request_id: str) -> AsyncIterator[
             elif chunk.type == "done":
                 status = "ok"
                 stop_reason = chunk.stop_reason
+                if chunk.refusal_reason:
+                    # The model refused. Validate against the corpus-derived enum rather than
+                    # trusting the slug: an invented value would pollute the one field the refusal
+                    # rate is computed from, and silently make the metric unaggregatable.
+                    status = "refused"
+                    if chunk.refusal_reason in REFUSAL_REASONS:
+                        refusal_reason = chunk.refusal_reason
+                    else:
+                        log.warning(
+                            "refusal_reason_not_in_corpus",
+                            extra={"stream": "app", "invented_slug": chunk.refusal_reason},
+                        )
                 usage = Usage(
                     input_tokens=chunk.usage.input_tokens,
                     output_tokens=chunk.usage.output_tokens,
@@ -136,6 +150,7 @@ async def _event_stream(messages: list[dict], request_id: str) -> AsyncIterator[
             usage=usage,
             assistant_chars=chars,
             stop_reason=stop_reason,
+            refusal_reason=refusal_reason,
             error=err,
             history_turns_sent=len(messages),
         )

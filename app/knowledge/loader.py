@@ -14,6 +14,7 @@ forgot `COPY content/`.
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
 from typing import Final
 
@@ -61,9 +62,58 @@ def _load() -> str:
     return text
 
 
+# Middle column of the NEGATIVE KNOWLEDGE table: | topic | `slug` | correct behavior |
+_TABLE_SLUG_RE: Final = re.compile(r"^\|[^|]+\|\s*`([a-z0-9-]+)`\s*\|", re.M)
+# Inline tags on individual entries, e.g. "Log as `refusal_reason: off-topic`."
+_INLINE_SLUG_RE: Final = re.compile(r"refusal_reason:\s*`?([a-z0-9-]+)`?")
+
+# Slugs that must survive any future curation. If one of these disappears the corpus has lost a
+# boundary rule, and the loader should refuse to serve rather than let the bot answer it.
+_LOAD_BEARING_REASONS: Final = frozenset(
+    {"no-public-pricing", "no-public-portal-access", "no-episode-content", "off-topic"}
+)
+
+
+def _parse_refusal_reasons(text: str) -> frozenset[str]:
+    """Derive the closed set of `refusal_reason` values **from the corpus**.
+
+    The corpus is the source of truth for what the bot refuses, so it is also the source of truth
+    for the vocabulary those refusals are logged under. A hand-maintained list in Python would be a
+    second place for it to live and therefore a place for it to drift — a slug renamed in the table
+    would keep validating against a stale copy here, and the logs would quietly disagree with the
+    corpus they came from.
+
+    Two sources, unioned: the NEGATIVE KNOWLEDGE table (15 rows) and the inline
+    `refusal_reason: <slug>` tags carried by individual entries, which is where `off-topic` lives —
+    it is not a knowledge gap, so it has no row in the table.
+    """
+    try:
+        table = text[text.index("NEGATIVE KNOWLEDGE") : text.index("## How to refuse")]
+    except ValueError as e:
+        raise CorpusError(
+            "Could not locate the NEGATIVE KNOWLEDGE table or the 'How to refuse' section. "
+            "The refusal vocabulary is parsed from between them; refusing to serve a corpus "
+            "whose boundary rules cannot be read."
+        ) from e
+
+    reasons = set(_TABLE_SLUG_RE.findall(table)) | set(_INLINE_SLUG_RE.findall(text))
+
+    missing = sorted(_LOAD_BEARING_REASONS - reasons)
+    if missing:
+        raise CorpusError(
+            f"Corpus no longer defines these refusal reasons: {missing}. "
+            "Each corresponds to a boundary the bot must not cross."
+        )
+    return frozenset(reasons)
+
+
 # Module-level, evaluated exactly once on import.
 KNOWLEDGE: Final[str] = _load()
 KNOWLEDGE_SHA256: Final[str] = hashlib.sha256(KNOWLEDGE.encode("utf-8")).hexdigest()
+
+# The closed enum a logged `refusal_reason` is validated against. A value outside it means the model
+# invented a slug, which is recorded as a warning rather than written to the interaction log.
+REFUSAL_REASONS: Final[frozenset[str]] = _parse_refusal_reasons(KNOWLEDGE)
 
 
 def raw_page_count() -> int:

@@ -165,3 +165,44 @@ this app has no reason to keep. Production then answered it in one line:
 edge refusing to let a client control the left-most entry, which also makes `limits.py`'s
 "client-spoofable" caveat stricter than this deployment's reality. Both facts are now recorded in the
 module docstring as measured rather than assumed.
+
+---
+
+## Phase 3 — System prompt refinement
+
+**Asked for:** make refusals structural rather than prose, populate `refusal_reason` in the logs, add
+conversion behaviour, and re-verify the cache floor.
+
+**Produced:** `MarkerScanner` in `app/llm/client.py`, `_MARKER` + `_CONVERSION` sections in
+`app/llm/prompt.py` (version 1.0 → 1.1), a corpus-derived `REFUSAL_REASONS` enum in
+`app/knowledge/loader.py`, validation in `app/api/chat.py`, and 39 tests in `tests/test_refusal.py`.
+
+**Changed:**
+1. **The vocabulary is parsed from the corpus, not written in Python.** The NEGATIVE KNOWLEDGE table
+   already defines 15 slugs and `off-topic` is documented separately — 16 total. A hand-copied list
+   would be a second source of truth for the same thing, so a slug renamed in the table would keep
+   validating against a stale copy and the logs would quietly disagree with the corpus they describe.
+2. **Two live probe failures on off-topic, found by running it, not by the tests.** First the bot
+   *answered* a Python question and appended a disclaimer: the off-topic rule was a sub-clause about
+   the contact link, so the model obeyed the "no link" half and answered anyway. Promoted it to a
+   hard rule — "do NOT answer it, even though you easily could". Second, it then declined correctly
+   but logged `status="ok"`, because "not routing to /contact" read as "not a refusal". Told it
+   explicitly that an off-topic decline takes the tag. Only then did all ten probes classify right.
+3. **Measured the marker's latency cost instead of assuming it.** TTFT is 0.85s for an answer and
+   1.11s for a refusal. The ~0.26s is the model emitting ~10 marker tokens before any prose — inherent
+   to the approach, not scanner overhead. Recorded in `plan.md` as an accepted trade.
+4. **The prefix grew 4,415 → 4,870**, so margin over the 4,096 floor improved from 319 to 774. Every
+   edit was re-measured with live `count_tokens`; the three-step history is in `prompt.py`.
+5. **`InteractionLog.refusal_reason` had been dead since Phase 2** — declared, emitted, never set.
+   Same for `status="refused"`. Both are now populated, which is what makes the refusal rate a real
+   number rather than a field that always reads `null`.
+6. **A procedural error of mine, recorded because the evidence looked like an app bug.** I deleted a
+   live `interactions.jsonl` while the server held it open, so writes went to the unlinked inode and
+   the file appeared never to be created. Standard Unix behaviour for any long-running writer; the
+   app was fine. Re-ran against a clean server rather than trusting the first read.
+
+**Verified:** 106 tests · ruff clean · all ten probes classify correctly (4 answers, 6 refusals) ·
+`no-public-pricing`, `no-public-portal-access`, `no-episode-content`, `security-specifics-not-public`
+and `off-topic` all recorded from real turns · **the `[[refusal:` marker appears in none of the ten
+answers** · off-topic declines with no `/contact` link · no invented slug reached the log ·
+`cache_read=4807` on the second turn, so the larger prefix still caches.
