@@ -150,18 +150,115 @@ small output is exactly what subagents are for. Same agent becomes `kb-updater`.
 `cache_read_input_tokens > 0` on a second identical-prefix request, the three refusals hold, and
 `/update-kb` proposes a diff without writing it. Then the checklist.
 
-### Phase 2 — Observability P0+P1 · 45–60 min
-`request_id` middleware · JSON logger dual-sunk to stdout + rotating JSONL (redaction on, **7-day**
-retention in the handler config) · **four-rate** price table + cost helper · per-IP rate limit with a
-real `key_func` · daily spend cap checked **before** the model call · exception handler returning a
-safe fallback, never a stack trace.
+### Phase 2 — Observability P0+P1 · 75–95 min  *(re-analysed after Phase 1 — was 45–60)*
 
-⚠️ **The rate limit needs a custom `key_func`.** `slowapi`'s default reads `request.client.host`, which
-behind Railway's router is *the router* — so every visitor shares one bucket and the first scraper locks
-out everyone. Read the left-most `X-Forwarded-For` entry, fall back to `request.client.host`. Note that
-a forwarded header is spoofable, which is why the **daily cap is the real money backstop.**
-**Exit:** write a log line, redeploy, confirm it survived — the volume-persistence check lives here, not
-in Phase 0, because only now is there something real to write. Then the checklist.
+The estimate grew because the analysis below found two failure modes the original three-line spec would
+have shipped: a container that cannot write to its own log volume, and a cost tracker blind to abandoned
+streams. Both are silent. That is now this project's recurring theme — the cache floor, the missing
+`COPY content/`, and a skipped test were all silent — so each item below names how it fails *loudly*.
+
+#### 2.1 🔴 First: the volume, and the permission collision
+
+`railway volume add -m /data` — the mount path is ours to choose, so `LOG_DIR=/data/logs` is fine.
+**But a volume mounts at runtime and shadows whatever the image had at that path, and a fresh mount is
+`root:root`.** The container runs as `appuser` (uid 10001, chosen deliberately in Phase 0c), so it
+**cannot write to `/data`**. Logging handlers routinely swallow I/O errors, so the likely symptom is not
+a crash — it is an empty log directory nobody notices.
+
+Resolution, in order of preference:
+1. **Root entrypoint that fixes ownership, then drops privileges.** `chown -R appuser /data/logs` as
+   root, then `exec` uvicorn as `appuser`. Verify which tool exists in `python:3.12-slim` —
+   `setpriv`/`runuser` (util-linux) are likely, `gosu` is not installed. **Verify on deploy; do not
+   assume.**
+2. If no privilege-drop tool is available, `USER root` with a one-line comment stating the trade-off is
+   better than a silently unwritable volume. Say which was chosen and why.
+
+**Fail loudly:** at startup, write-test `LOG_DIR` and **raise** if it fails — same pattern as the corpus
+loader. An observability layer that cannot observe must not boot quietly.
+
+#### 2.2 🔴 Abandoned streams are invisible to cost tracking
+
+`usage` only arrives at the **end** of a stream (`get_final_message()`). If the browser disconnects
+mid-answer — user closes the tab, navigates away, loses signal — that turn produces **no usage, no log
+line, and no cost counted** while Anthropic still bills the tokens generated. On a public URL that is
+both a cost leak and a hole in the numbers.
+
+**Required:** wrap the generator so a `GeneratorExit`/`CancelledError` writes an `InteractionLog` with
+`status: 'abandoned'`, the deltas counted so far, and `usage: partial`. Estimate output tokens from
+accumulated text via `count_tokens` rather than recording zero. Add a test that cancels a stream
+mid-flight and asserts a log line was still written.
+
+#### 2.3 Where the daily spend counter lives — a decision, not a default
+
+An in-memory counter resets on every container restart, and Railway restarts containers. A cap that
+resets silently is not a cap. **Persist it to the volume** as a small JSON file
+(`/data/logs/spend.json`: `{date, total_usd, turns}`), reloaded at startup, rewritten per turn. The
+volume exists for exactly this. State the single-worker assumption in a comment — concurrent writers
+would need a lock, and §2.1's single worker is what makes the simple version correct.
+
+#### 2.4 Four-rate price table, with real numbers to test against
+
+Phase 0 measured `cache_read=0`, so a two-rate table would have looked correct. Phase 1 production shows
+a **4,409-token cache write on call 1 and a 4,409-token read on call 2**:
+
+| Rate | Multiplier | Haiku 4.5 |
+|---|---|---|
+| input | 1× | $1.00 / MTok |
+| output | — | $5.00 / MTok |
+| cache **write** | 1.25× input | $1.25 / MTok |
+| cache **read** | 0.1× input | $0.10 / MTok |
+
+Measured: **$0.00119/turn cached · $0.00516 uncached · $0.00551 on a cache-write turn.**
+
+⚠️ **Budget against the *write* cost, not the read cost.** The cache TTL is 5 minutes, so on a
+low-traffic demo most turns are the first of a fresh window — i.e. writes, the *most* expensive case.
+The cheap $0.00119 figure only dominates under sustained traffic. Test: a cached turn must cost ~4×
+less than an uncached one, computed from the table with no API call.
+
+#### 2.5 Size the cap from the measurement, not a round number
+
+`DAILY_COST_CAP_USD=5.00` was set arbitrarily in Phase 0. At the worst-case $0.00551/turn that is
+**~900 turns/day**; at the cached rate, ~4,200. Keep $5 — generous for a demo, and a real ceiling
+against a scraper — but put that arithmetic in a comment so the number is a decision.
+
+#### 2.6 Errors must be SSE frames, not bare HTTP status codes
+
+The endpoint returns `text/event-stream`. A `429` or a cap-exceeded `503` returns JSON instead, and the
+Phase 0c frontend's `if (!res.ok) throw` turns that into *"Couldn't reach the server (HTTP 429)."*
+Technically correct, useless to a user.
+
+**Required:** rate-limit and cap rejections return **200 with a single SSE `{"type":"error"}` frame**
+naming which limit was hit ("I'm at capacity for today" vs "too many requests, try in a minute"). The
+frontend already renders error frames — no UI change needed, which is why this is cheap.
+
+#### 2.7 Keep blocking file I/O off the event loop
+
+`RotatingFileHandler` does synchronous writes; called from an async handler it blocks the loop on every
+line and on every rotation. Use stdlib **`QueueHandler` + `QueueListener`**: the request thread enqueues,
+a background thread writes. ~10 lines, no dependency.
+
+#### 2.8 Surface `request_id` and log health
+
+- Return `request_id` in the SSE `done` frame and as a response header, so a user reporting a bad answer
+  can quote something greppable.
+- Extend `/health` with `log_sink_writable` and `spend_today_usd`. A broken volume then shows up in the
+  probe instead of requiring a shell.
+
+#### 2.9 Implementation notes
+
+- **stdlib `logging` + a small JSON formatter, not `structlog`.** ~20 lines against a new dependency;
+  runtime deps stay at 4.
+- **Redaction is a tested pure function** — email and phone patterns — not an inline regex at the call site.
+- **All Phase 2 tests run offline.** Inject a fake clock and a fake counter; assert on the price table
+  arithmetic rather than a live call. Phase 1 found a key-dependent test skipping silently, and CI
+  without a key would repeat that.
+- Retention stays **7 days**, enforced by `TimedRotatingFileHandler(when="D", backupCount=7)` — the
+  config *is* the policy.
+
+**Exit:** volume attached and **write-verified from inside the running container** · a log line survives
+a redeploy · `/health` reports `log_sink_writable: true` · an abandoned stream still produces a log line ·
+cached and uncached turns cost what the table predicts · a 429 arrives as a readable SSE error frame.
+Then the checklist.
 
 ### Phase 3 — System prompt refinement · 15–25 min  *(shrunk — Phase 0c absorbed most of it)*
 Phase 0c already shipped `app/llm/prompt.py` versioned, frozen, and sectioned: persona · grounding ·
