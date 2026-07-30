@@ -231,28 +231,36 @@ attached, confirm the daily cap has headroom.
 
 ---
 
-## 🔴 Open gate — resolve at the top of Phase 1
+## ✅ Gate RESOLVED — 2026-07-29, Phase 1
 
-**Do not curate any case-study client or individual name until this is settled.**
+**Method:** `content/raw/case-studies.md`, fetched by the committed scraper. Literal on-page text,
+not an AI-mediated summary. Content hash `65b6b8ed31…`.
 
-The two research documents in `analysis/` disagree with each other. One states the rule *"clients are
-anonymized as 'Non-Disclosed Company'"*; the other names a specific client and CEO for the same case
-study. A live spot-check found the named person is real and the match is plausible — but **three
-captures of that page produced three different attribution strings**, and the page was never read
-byte-faithfully.
+**Findings — all three prior claims were wrong in some way:**
 
-**Action:** scrape `/case-studies` with the real scraper and read the literal text. Then:
-- Anonymized on the page → strip every name; present outcomes and metrics only.
-- Genuinely named → keep the exact on-page wording, nothing inferred.
+| Question | Answer from the page |
+|---|---|
+| Are clients anonymised? | **Yes — 8 occurrences of `Non-Disclosed Company`.** No client company is named anywhere. |
+| Are individuals named? | **Yes.** Zac Davis · Bridget Hirsch · Jennifer · Bryce Baker · Bill Lyons, each after a quote, with a role (e.g. "CEO & Founder"). |
+| Is it "Bill Lyons, CEO, Griffin Funding"? | **No. "Griffin Funding" appears zero times.** The company name was fabricated somewhere in the research chain. |
+| How many case studies? | **8**, not 9. |
 
-Metrics are always *reported past results*, never guarantees or projections. Note also that the case
-count itself is unconfirmed (one source says 8, another 9) — take it from the scrape.
+**Consequences for curation:**
 
-**Why this is a gate and not a nice-to-have:** every other refusal in this project is a *silence*.
-This one would be an *assertion* — a specific, checkable, false claim about a real company. That is the
-worst failure the bot can produce.
+1. **The corpus names no client company.** There is nothing to name — every one is "Non-Disclosed
+   Company". That is now a *fact about the page*, not a cautious assumption.
+2. **Individual names + roles may be quoted verbatim** if a testimonial is used, because they are
+   literally on a public page. Prefer omitting them: no scenario asks who said what, and a name is
+   the highest-cost thing to get wrong. **Never pair a name with a company** — that pairing is exactly
+   the fabrication found here.
+3. **Say 8 if asked.** Take metrics from the page, framed as reported past results.
 
----
+**The methodology lesson, worth more than the finding.** The chain was: research asserted a
+name+company → adversarial review noticed an apparent self-contradiction and "corrected" the *right*
+line → a web search confirmed Bill Lyons really is Griffin Funding's CEO, which made the fabricated
+pairing look *verified*. **The external corroboration succeeded while validating a claim the source
+never made.** Only reading the literal page settled it. This is the argument for the byte-faithful
+scraper, stated in a way no abstract reasoning about provenance could have produced.
 
 ## Verification log
 

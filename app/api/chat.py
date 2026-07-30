@@ -15,6 +15,7 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
+from app.knowledge.loader import info as corpus_info
 from app.llm.client import model_info, stream_reply
 
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -98,5 +99,13 @@ async def chat(req: ChatRequest) -> StreamingResponse:
 
 @router.get("/config")
 async def config() -> dict[str, object]:
-    """What the running instance is actually configured with. No secrets."""
-    return {**model_info(), "max_turns": MAX_TURNS, "max_message_chars": MAX_MESSAGE_CHARS}
+    """What the running instance is actually configured with. No secrets.
+
+    `corpus` proves *which* corpus this instance is serving — the sha lets you confirm a deploy
+    actually shipped the file you curated, rather than trusting that it did."""
+    return {
+        **model_info(),
+        "max_turns": MAX_TURNS,
+        "max_message_chars": MAX_MESSAGE_CHARS,
+        "corpus": corpus_info(),
+    }

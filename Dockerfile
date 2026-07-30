@@ -38,7 +38,13 @@ RUN uv export --no-dev --frozen --no-emit-project -o requirements.txt \
  && rm requirements.txt
 
 COPY app/ ./app/
+# The curated corpus is what the bot reasons over — without this the deployed container has
+# NO knowledge base while every local test still passes. Caught by the Phase 0 forward review.
+COPY content/ ./content/
 COPY --from=web /web/dist ./web/dist
+
+# `scripts/` is deliberately NOT copied: the scraper is build-time tooling, re-run by a
+# developer via /update-kb, and has no business in the runtime image.
 
 # Run as a non-root user. Nothing here needs write access to the image.
 RUN useradd --create-home --uid 10001 appuser && chown -R appuser:appuser /srv
