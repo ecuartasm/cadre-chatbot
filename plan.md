@@ -937,3 +937,37 @@ Written down deliberately rather than discovered later.
 - **In-memory state:** the daily spend counter and conversation history reset on redeploy. Acceptable
   for this deployment, and stated rather than hidden.
 - **Single worker** — the in-process rate limiter and spend counter assume it. Redis if that changes.
+
+---
+
+## Open items — as of 2026-07-30 17:30 UTC
+
+All eight phases are complete and deployed. Four things remain, none of them blocking a working
+system. Recorded here rather than left in a conversation, since this file is where the open items
+live.
+
+| # | Item | Blocked on | Est. |
+|---|---|---|---|
+| 1 | **Phase 8 part 2** — did log rotation and the spend rollover fire? | UTC midnight (2026-07-31 00:00) | 5 min |
+| 2 | **Phase 5 visual sign-off** — hierarchy, spacing, 375px on the live page | A human's eyes; I cannot see the rendered page | — |
+| 3 | **Tighten `CLAUDE.md`** | Nothing | ~15 min |
+| 4 | **Add a guardrail hook to `.claude/`** | Nothing | ~10 min |
+
+**On (1):** exact commands and the meaning of each outcome are in `reports/phase-8-report.md` §4.
+Baseline to compare against: **136 turns · $0.186995 · `spend.date: 2026-07-30`**. If `/api/stats`
+still reports 136 tomorrow, rotation did not fire and retention is silently unenforced — the most
+valuable finding this phase could produce.
+
+**On (3) — this is a miss of mine.** Phase 6's exit criteria said "both documents tightened". I
+updated `plan.md` continuously but **`CLAUDE.md` has not been touched since Phase 1**, and it is now
+stale in specific ways: the Layout section omits `mcp_server/`, `tokens.css` and `app.css`; it says
+"13-case eval" in two places where the set is **14** (off-topic was added in Phase 6); and it records
+none of the four measured prefix sizes or the prompt reaching v1.3. Phase 6 was marked complete
+without this. It is documentation rather than function, but `CLAUDE.md` is one of the two files the
+brief names explicitly.
+
+**On (4):** `.claude/` has a subagent (`kb-updater`) and two commands (`/update-kb`, `/log-decision`)
+but no hooks — `settings.json` carries only `$schema` and `permissions`. Note this file already argues
+*against* one hook (auto-commit on `Stop`, which fires per turn rather than per phase). Guardrails fit
+cleanly though: block writes to `.env`, block `git push --force`. Both are rules this project already
+states and currently relies on the operator to honour.
