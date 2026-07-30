@@ -372,3 +372,30 @@ instance (prompt 1.3, corpus sha `96cd2fffaf6d`, 102 turns, 45.1% refusal rate, 
 []`) · `uv export --no-dev` contains no `mcp` and the Dockerfile never copies `mcp_server/`, so the
 runtime image is unchanged · **the golden set still passes 14/14 against production**, confirming the
 request path was untouched.
+
+---
+
+## Phase 8 — Post-submission health check (part 1 of 2)
+
+**Asked for:** the post-submission health check — re-hit the live URL, confirm spend, volume, and that
+nothing has drifted.
+
+**Produced:** `reports/phase-8-report.md` with part 1 complete and part 2 specified, plus a recorded
+baseline for the checks that cannot run yet.
+
+**Changed:**
+1. **Split the phase rather than faking its headline result.** Its sharpest purpose is verifying the
+   two code paths that have never executed — log rotation and the daily spend rollover — and both fire
+   only at UTC midnight. It is currently 17:04 UTC, ~7h short, and the deployed instance still reports
+   `spend.date: 2026-07-30`. Reporting "rotation verified" would be false; reporting "rotation did not
+   fire" would be true and misleading, since it has not had the chance. Neither belongs in a report, so
+   part 1 is what is checkable now and part 2 is scheduled with exact commands and expected values.
+2. **Captured the baseline after the eval run, not before**, so tomorrow's numbers compare against a
+   known state rather than a moving one: 136 turns, $0.186995, `spend.date: 2026-07-30`.
+3. **Used the Phase 7 MCP server as the method**, which is what its forward review said it would be —
+   the four tools are exactly the four questions this phase asks.
+
+**Verified:** `bot_health` reachable, prompt 1.3, corpus sha `96cd2fffaf6d`, sink writable ·
+`refusal_breakdown` 119 turns, 46.2%, `unexpected_reasons: []` · `spend_today` $0.161 of $5.00 (3.22%) ·
+`bot_stats` 89.1% cache hit, p50 2,418 ms · **golden set 14/14 against the deployed URL** · volume
+attached at `/data`, Ready, 91 MB of 5,000 MB. Nothing has drifted since Phase 7.
