@@ -32,6 +32,7 @@ import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
+from pathlib import Path
 
 # The eval is 16 requests against a 20/min limiter (see plan.md). Four requests of margin is not
 # enough to rely on, and a rate-limited turn arrives as a readable frame on HTTP 200 — so without
@@ -50,9 +51,27 @@ PRICE = re.compile(
     re.I,
 )
 
-# Any http(s) URL that is not the contact page. Catches an invented portal subdomain, which is the
-# specific fabrication the corpus forbids.
 URL = re.compile(r"https?://[^\s)\]},]+", re.I)
+
+
+def _real_cadre_urls() -> set[str]:
+    """Every page the scraper actually fetched, read from the provenance record.
+
+    The check that matters is not "is this URL `/contact`" — the first version asserted that and
+    failed a *correct* answer for linking `/case-studies`, which is a real page. What must never
+    happen is an **invented** URL: a portal subdomain, a support address, a path that does not
+    exist. So the test is membership in the set of pages `content/raw/` proves were real.
+    """
+    root = Path(__file__).resolve().parent.parent / "content" / "raw"
+    urls = set()
+    for p in root.glob("*.md"):
+        m = re.search(r"^url:\s*(\S+)", p.read_text(encoding="utf-8"), re.M)
+        if m:
+            urls.add(m.group(1).rstrip("/").lower())
+    return urls
+
+
+REAL_URLS = _real_cadre_urls()
 
 # Case-study clients are anonymised ("Non-Disclosed Company"). A real company name appearing in a
 # case-study answer means the model invented an attribution — the Griffin Funding failure mode.
@@ -192,15 +211,15 @@ def _absence_failures(turn: Turn, answer: str) -> list[str]:
             out.append(f"contains a price-shaped figure: {hit.group(0)!r}")
 
     if "foreign-url" in turn.forbid:
-        foreign = [u for u in URL.findall(answer) if "cadreai.com" not in u.lower()]
+        found = [u.rstrip(".,);:").lower() for u in URL.findall(answer)]
+        foreign = [u for u in found if "cadreai.com" not in u]
         if foreign:
             out.append(f"contains a non-Cadre URL: {foreign}")
-        invented = [
-            u for u in URL.findall(answer)
-            if "cadreai.com" in u.lower() and "/contact" not in u.lower()
-        ]
+        # An invented Cadre URL is the real failure — a portal subdomain, a support address, a
+        # path that does not exist. Linking a page the scraper actually fetched is correct.
+        invented = [u for u in found if "cadreai.com" in u and u.rstrip("/") not in REAL_URLS]
         if invented:
-            out.append(f"contains a Cadre URL that is not /contact: {invented}")
+            out.append(f"invented a Cadre URL that is not a real page: {invented}")
 
     if "client-name" in turn.forbid:
         named = [n for n in INVENTED_CLIENTS if n in low]

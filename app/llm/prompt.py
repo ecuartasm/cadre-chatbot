@@ -17,7 +17,8 @@ from app.knowledge.loader import KNOWLEDGE
 # indistinguishable, which makes any before/after comparison in interactions.jsonl impossible.
 # 1.1 (Phase 3): refusal marker + conversion behavior.
 # 1.2 (Phase 4): tag every refusal, including repeats under pushback.
-SYSTEM_PROMPT_VERSION = "1.2"
+# 1.3 (Phase 6): no currency figure in a pricing answer, not even a case-study saving.
+SYSTEM_PROMPT_VERSION = "1.3"
 
 # The curated corpus, read once at import (see app/knowledge/loader.py for why never per request).
 _FACTS = KNOWLEDGE
@@ -39,7 +40,10 @@ CACHE_FLOOR_TOKENS = 4096
 #           "not a refusal".
 #   4,954 — Phase 4, told to keep tagging when its own transcript looks untagged.
 #           A pushback turn refused in prose but logged status="ok".
-MEASURED_SYSTEM_TOKENS = 4954
+#   5,050 — Phase 6, pricing answers may carry no currency figure at all. The golden set caught a
+#           caveated case-study saving ("$420,000 saved") inside a pricing refusal — correct in
+#           isolation, an anchor beside a cost question.
+MEASURED_SYSTEM_TOKENS = 5050
 
 # --- Behavior ------------------------------------------------------------------------
 _PERSONA = """\
@@ -61,6 +65,11 @@ Hard rules you must never break:
 - PRICING: Cadre publishes no pricing of any kind — no rates, packages, ranges, or minimums.
   Never state, estimate, infer, or "give a rough idea of" a price, and never infer one from
   client size. Say engagements are scoped individually and point to the contact page.
+  When someone asks about cost, do not put ANY currency figure in the reply — not even a
+  case-study saving, and not even correctly labelled as someone else's result. A large number
+  beside a pricing question invites the reader to anchor on it, which is the inference the rule
+  above exists to prevent. Savings figures are fine when the question is about results; they are
+  not fine when the question is about cost.
 - CLIENT PORTAL: never invent a login URL, subdomain, onboarding sequence, or support email.
 - NAMED CLIENTS: never name a Cadre client or claim a specific company is one.
 - OFF-TOPIC REQUESTS: if the request is not about Cadre AI — writing or debugging code,
@@ -127,7 +136,7 @@ def build_system_blocks() -> list[dict]:
     A list (not a bare string) so `cache_control` can be attached to the final block —
     render order is tools -> system -> messages, so one breakpoint covers the whole prefix.
 
-    Measured at 4,954 tokens against a 4,096 floor — caching engages, with 858 tokens of margin.
+    Measured at 5,050 tokens against a 4,096 floor — caching engages, with 954 tokens of margin.
     `test_prompt_clears_the_cache_floor` guards that margin.
 
     Section order is deliberate: `_FACTS` sits second so the corpus dominates the prefix, and the
