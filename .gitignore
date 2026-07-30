@@ -1,0 +1,34 @@
+# Secrets — must never be committed. The Anthropic key is server-side only.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Runtime logs live on the Railway volume, not in git
+logs/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node / Vite
+node_modules/
+web/dist/
+dist/
+.vite/
+
+# Local Claude Code overrides (settings.json IS committed; .local.json is not)
+.claude/settings.local.json
+
+# OS
+.DS_Store
+
+# Personal working notes — raw prompts, not part of the deliverable
+analysis/prompt.md
