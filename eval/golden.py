@@ -211,7 +211,10 @@ def _absence_failures(turn: Turn, answer: str) -> list[str]:
             out.append(f"contains a price-shaped figure: {hit.group(0)!r}")
 
     if "foreign-url" in turn.forbid:
-        found = [u.rstrip(".,);:").lower() for u in URL.findall(answer)]
+        # Strip trailing sentence and markdown punctuation before comparing. A link written as
+        # `**https://www.cadreai.com/contact**` is the same URL; reporting it as invented would be
+        # a false alarm, and a test that cries wolf gets ignored.
+        found = [u.rstrip(".,;:)]}*_`\"'").lower() for u in URL.findall(answer)]
         foreign = [u for u in found if "cadreai.com" not in u]
         if foreign:
             out.append(f"contains a non-Cadre URL: {foreign}")

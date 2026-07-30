@@ -292,3 +292,47 @@ CSS retains the whole token layer (checked after a loose grep reported zeros —
 after the colon, so the first check was a formatting artefact, not a break) · no grey hex survives
 anywhere in `web/src` · **the multi-turn probes reproduce exactly** — three pushback turns still
 `refused/no-public-pricing`, anaphora still `ok`, no marker leaked.
+
+---
+
+## Phase 6 — Golden set + /api/stats
+
+**Asked for:** the 13-case golden set asserting properties not strings, `/api/stats`, and both run
+against the deployed URL.
+
+**Produced:** `eval/golden.py` (14 cases), `app/api/stats.py`, `status` + `refusal_reason` on the
+`done` SSE frame, and 6 tests.
+
+**Changed:**
+1. **Fixed a blocker the audit found before writing any eval code.** `CLAUDE.md` says the golden set
+   asserts `status`/`refusal_reason` *in the log*, while the exit criterion says it runs against the
+   **deployed** URL — and `interactions.jsonl` sits on a volume behind `railway ssh`. Both fields now
+   ride on the `done` frame, so remote and local runs assert the same thing instead of two different
+   weakenings of it.
+2. **The eval found a real defect on the deployed bot that it had passed locally.** Case 13 turn 1
+   volunteered *"$420,000 saved in a single area"* inside a pricing refusal. The bot did not state a
+   price and caveated the figure correctly as another company's result — and it is still wrong, because
+   `CLAUDE.md` says never infer from case-study savings and a large number beside a cost question
+   invites the reader to do that inference. The non-determinism is the tell: the same case passed
+   locally minutes earlier, so the behaviour was on a knife-edge rather than reliably safe. Prompt 1.3
+   forbids any currency figure in a cost answer; savings stay fine when the question is about results.
+3. **Case 11 was a defect in my test, not in the bot.** I had forbidden any Cadre URL that is not
+   `/contact`, which failed a *correct* answer for linking `/case-studies`. The check that matters is
+   whether a URL was **invented**, so it now asserts membership in the set of pages `content/raw/`
+   proves were fetched — a stronger test than the one it replaces, since it still catches a portal
+   subdomain or a support address but no longer punishes correct citation.
+4. **Paced the runner and made it abort on a rate-limit frame.** 16 requests against a 20/min limiter
+   is four of margin, and the limiter returns a readable frame on HTTP 200 — so an unpaced run would
+   report a *content* failure for a well-formed rejection, sending someone hunting a bug that is not
+   there.
+5. **`/api/stats` reports "cannot tell" rather than zero.** There is no `interactions.jsonl` in
+   stdout-only mode, and `turns: 0` there would state "no traffic" when the truth is "unavailable" —
+   the same class of quiet lie as a cache that never engages. Percentiles are nearest-rank, not
+   interpolated: with a handful of turns, interpolation invents precision the sample lacks.
+6. **Added a 14th case for off-topic.** Not in `CLAUDE.md`'s 13, but it is the one refusal that
+   deliberately does *not* route to `/contact`, so a prompt edit aimed at the other fifteen slugs
+   breaks it silently — which is exactly what happened twice in Phase 3.
+
+**Verified:** 133 tests · ruff clean · 14/14 locally before the fixes, 12/14 against production which
+is what found them · `/api/stats` reports refusal rate by reason, cache hit rate and cost from real
+traffic · the corpus-size question answered from evidence (see the report).
