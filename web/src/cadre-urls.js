@@ -67,7 +67,23 @@ export function canonicalise(url) {
 
 const BY_CANONICAL = new Map(CADRE_URLS.map((u) => [canonicalise(u), u]))
 
-/** The canonical URL for `candidate`, or null if it is not a page we proved exists. */
+// Every allowlisted URL shares one origin. Derived rather than written, so it cannot disagree
+// with the list it is meant to describe.
+const ORIGIN = new URL(CADRE_URLS[0]).origin
+
+/**
+ * The canonical URL for `candidate`, or null if it is not a page we proved exists.
+ *
+ * Accepts a full URL **or a bare path**. The model routinely writes `/strategy` rather than the
+ * absolute form — it reads better in a list — and before this resolved paths, those printed as
+ * dead text while absolute URLs became links, which is the inconsistency that prompted it.
+ *
+ * ⚠️ **Resolving paths is also what puts an invented one under the allowlist.** A bare
+ * `/ai-agents` used to bypass the check entirely and sit in a list of real paths looking equally
+ * authoritative; now it simply fails to become a link, so the one the corpus cannot vouch for is
+ * the one that is visibly different.
+ */
 export function knownCadreUrl(candidate) {
-  return BY_CANONICAL.get(canonicalise(candidate)) ?? null
+  const full = candidate.startsWith('/') ? ORIGIN + candidate : candidate
+  return BY_CANONICAL.get(canonicalise(full)) ?? null
 }

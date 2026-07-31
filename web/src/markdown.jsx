@@ -21,7 +21,9 @@
  * ## Links
  *
  * ⚠️ **Only URLs in `cadre-urls.js` become links, and the `href` is taken from that constant —
- * never from the reply.** A URL the model was talked into inventing renders as plain text, which
+ * never from the reply.** Bare paths (`/contact`) resolve through the same list as absolute URLs,
+ * because the model writes both and a path that printed as dead text was the inconsistency users
+ * noticed first. A URL the model was talked into inventing renders as plain text, which
  * is exactly what it did before links existed. See the header of `cadre-urls.js` for why an
  * allowlist rather than a general linkifier: making every URL clickable would turn a *content*
  * boundary into a *clickable* one.
@@ -32,9 +34,16 @@ import { knownCadreUrl } from './cadre-urls'
 // One pass, alternation ordered so `**` is tried before `*`.
 const INLINE = /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`)/g
 
-// Bare URLs. Brackets and quotes are excluded so a parenthesised link does not swallow its own
-// closing paren; trailing sentence punctuation is trimmed separately below.
-const URL_RE = /(https?:\/\/[^\s<>()[\]"']+)/g
+// Absolute URLs, then bare site paths — in that order, so `https://www.cadreai.com/contact` is
+// consumed whole rather than having its path half re-matched.
+//
+// Brackets and quotes are excluded so a parenthesised link does not swallow its own closing paren;
+// trailing sentence punctuation is trimmed separately below.
+//
+// The path branch is deliberately loose: `and/or`, `24/7` and `he/she` all match it. That is
+// harmless, because matching is not what creates a link — **the allowlist lookup is**, and none of
+// them is a Cadre page, so each falls through to plain text unchanged.
+const URL_RE = /(https?:\/\/[^\s<>()[\]"']+|\/[a-z0-9][a-z0-9-]*(?:\/[a-z0-9-]+)*)/g
 
 // A URL at the end of a sentence — "…see https://www.cadreai.com/contact." — must not carry the
 // full stop into the href. Without this the lookup misses and the link silently does not render,
@@ -49,10 +58,10 @@ const TRAILING = /[.,;:!?]+$/
  * has caught a markdown-bolded `/contact` before.
  */
 function linkify(text, keyPrefix) {
-  if (!text.includes('://')) return text
+  if (!text.includes('://') && !text.includes('/')) return text
 
   return text.split(URL_RE).map((piece, i) => {
-    if (!piece || !piece.startsWith('http')) return piece || null
+    if (!piece || !(piece.startsWith('http') || piece.startsWith('/'))) return piece || null
 
     const trailing = piece.match(TRAILING)?.[0] ?? ''
     const bare = trailing ? piece.slice(0, -trailing.length) : piece

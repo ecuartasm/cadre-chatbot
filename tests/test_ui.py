@@ -364,3 +364,32 @@ def test_links_are_black_with_an_underline():
     assert "text-decoration: underline" in rule
     assert "var(--text)" in rule
     assert "blue" not in rule.lower()
+
+
+def test_bare_site_paths_resolve_through_the_allowlist():
+    """The model writes `/contact` at least as often as the absolute form — it reads better in a
+    list — and before paths resolved, those printed as dead text while absolute URLs became links.
+    Reported by the user as "the real working URLs are gone again".
+
+    ⚠️ **Resolving paths is also what puts an invented one under the allowlist.** A bare
+    `/ai-agents` (the real page is `/agents`) previously bypassed the check entirely and sat in a
+    list of genuine paths looking equally authoritative. Now it simply fails to become a link, so
+    the one the corpus cannot vouch for is the one that is visibly different.
+    """
+    src = code(CADRE_URLS_JS)
+    assert "candidate.startsWith('/')" in src, "bare paths must resolve against the site origin"
+    assert "new URL(CADRE_URLS[0]).origin" in src, (
+        "the origin must be derived from the allowlist, not written as a literal that could "
+        "disagree with the list it describes"
+    )
+    assert "/" in code(MARKDOWN).split("URL_RE", 1)[1][:400], "the path branch is missing"
+
+
+def test_a_loose_path_match_is_harmless_because_the_allowlist_is_the_gate():
+    """`and/or`, `24/7` and `he/she` all match the path pattern. That is fine and deliberate:
+    matching is not what creates a link — the lookup is — so each falls through to plain text.
+
+    Named explicitly because the tempting "fix" is a stricter regex, which would start rejecting
+    real pages as the corpus grows."""
+    src = code(MARKDOWN)
+    assert "if (!href) return piece" in src, "an unmatched candidate must be returned untouched"
