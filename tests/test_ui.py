@@ -27,7 +27,25 @@ APP_CSS = WEB / "app.css"
 # a guard that silently narrows is worse than one that fails, because it still reports green.
 COMPONENTS = sorted(WEB.glob("*.jsx"))
 STYLED = COMPONENTS + [APP_CSS]
-APP = WEB / "App.jsx"  # the chat view specifically, for the multi-turn assertions
+APP = WEB / "App.jsx"  # the chat view specifically, for layout-only assertions
+
+# Every file that can hold behaviour, discovered rather than listed. Guards that assert on logic
+# must search THIS, not App.jsx: the conversation engine moved out to useChat.js when the widget
+# arrived, and three checks pinned to App.jsx broke — which was the good outcome. Pinned to the old
+# path they would have passed while covering nothing, which is how this project has lost coverage
+# eight times.
+SOURCES = sorted(WEB.glob("*.jsx")) + sorted(WEB.glob("*.js"))
+
+
+def all_source() -> str:
+    """Every component and module concatenated. For 'this behaviour exists somewhere' assertions,
+    where pinning to one file is what silently narrows."""
+    return "\n".join(code(p) for p in SOURCES)
+
+
+# Anything Vite treats as an entry point. A new page means a new entry, and an entry that forgets
+# the stylesheet imports builds cleanly and applies nothing.
+ENTRY_POINTS = sorted(p for p in WEB.glob("*main*.jsx"))
 
 # Any hex literal that is not black or white. Black/white are allowed nowhere but tokens.css either,
 # but they are what the rule is *about*, so failures name the real problem rather than a near-miss.
@@ -44,12 +62,24 @@ def code(path: Path) -> str:
     return _LINE_COMMENT.sub("", _BLOCK_COMMENT.sub("", text))
 
 
-def test_the_stylesheets_are_actually_imported():
+@pytest.mark.parametrize("entry", ENTRY_POINTS, ids=lambda p: p.name)
+def test_the_stylesheets_are_actually_imported(entry: Path):
     """Without this, Vite builds cleanly and applies nothing — the state the repo was in before
-    Phase 5, when there was no CSS entry point at all."""
-    main = code(WEB / "main.jsx")
-    assert "./tokens.css" in main
-    assert "./app.css" in main
+    Phase 5, when there was no CSS entry point at all.
+
+    ⚠️ **Parametrised over every entry point, not hardcoded to `main.jsx`.** The audit of the
+    widget plan caught this one before any code was written: a second entry that forgot the imports
+    would render an unstyled page while the suite stayed green, and this test — the one guarding
+    exactly that failure — would not have been looking.
+    """
+    src = code(entry)
+    assert "./tokens.css" in src, f"{entry.name} does not import tokens.css"
+    assert "./app.css" in src, f"{entry.name} does not import app.css"
+
+
+def test_at_least_one_entry_point_is_discovered():
+    """Guards the guard: a glob matching nothing parametrises to zero cases, reporting green."""
+    assert ENTRY_POINTS, "no *main*.jsx entry points found — the glob has gone stale"
 
 
 @pytest.mark.parametrize("path", COMPONENTS, ids=lambda p: p.name)
@@ -128,9 +158,9 @@ def test_component_styles_consume_tokens(token: str):
 def test_the_multi_turn_loop_was_not_refactored():
     """Phase 4's requirement. The client must accumulate only visible delta text and post the whole
     array back — storing raw frames instead would put the refusal marker into history."""
-    app = code(APP)
-    assert "JSON.stringify({ messages: next })" in app, "history must still be sent whole"
-    assert "copy[copy.length - 1].content + evt.text" in app, "deltas must still accumulate"
+    src = all_source()
+    assert "JSON.stringify({ messages: next })" in src, "history must still be sent whole"
+    assert "copy[copy.length - 1].content + evt.text" in src, "deltas must still accumulate"
 
 
 def test_woff2_mimetype_is_registered_explicitly():
@@ -218,14 +248,14 @@ def test_no_markdown_library_was_added():
 def test_only_assistant_text_is_formatted():
     """The user typed their own asterisks; reinterpreting them would be surprising. And an error
     frame is server prose, not model output."""
-    app = code(APP)
-    assert "m.role === 'assistant' && !m.isError ? renderInline(m.content) : m.content" in app
+    src = all_source()
+    assert "m.role === 'assistant' && !m.isError ? renderInline(m.content) : m.content" in src
 
 
 def test_user_turns_align_right():
     css = code(APP_CSS)
     assert ".turn--user" in css and "text-align: right" in css
-    assert "'turn turn--user'" in code(APP), "the modifier must actually be applied"
+    assert "'turn turn--user'" in all_source(), "the modifier must actually be applied"
 
 
 # ── clickable links ──────────────────────────────────────────────────────────────────
