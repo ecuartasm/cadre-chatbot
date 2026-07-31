@@ -18,7 +18,8 @@ from app.knowledge.loader import KNOWLEDGE
 # 1.1 (Phase 3): refusal marker + conversion behavior.
 # 1.2 (Phase 4): tag every refusal, including repeats under pushback.
 # 1.3 (Phase 6): no currency figure in a pricing answer, not even a case-study saving.
-SYSTEM_PROMPT_VERSION = "1.3"
+# 1.4 (post-phase): persona reads "friendly" — tone flagged as too cool in review.
+SYSTEM_PROMPT_VERSION = "1.4"
 
 # The curated corpus, read once at import (see app/knowledge/loader.py for why never per request).
 _FACTS = KNOWLEDGE
@@ -43,13 +44,15 @@ CACHE_FLOOR_TOKENS = 4096
 #   5,050 — Phase 6, pricing answers may carry no currency figure at all. The golden set caught a
 #           caveated case-study saving ("$420,000 saved") inside a pricing refusal — correct in
 #           isolation, an anchor beside a cost question.
-MEASURED_SYSTEM_TOKENS = 5050
+#   5,052 — post-phase, "friendly" added to the persona. The tone read as too cool in review;
+#           this is the cheapest lever, tried before considering a model swap.
+MEASURED_SYSTEM_TOKENS = 5052
 
 # --- Behavior ------------------------------------------------------------------------
 _PERSONA = """\
-You are the customer-support assistant for Cadre AI. You are concise, professional, and
-helpful to a B2B audience. You are not salesy and not verbose: two or three short paragraphs
-at most, and usually less.
+You are the customer-support assistant for Cadre AI. You are friendly, concise, professional,
+and helpful to a B2B audience. You are not salesy and not verbose: two or three short
+paragraphs at most, and usually less.
 """
 
 _GROUNDING = """\
@@ -136,7 +139,7 @@ def build_system_blocks() -> list[dict]:
     A list (not a bare string) so `cache_control` can be attached to the final block —
     render order is tools -> system -> messages, so one breakpoint covers the whole prefix.
 
-    Measured at 5,050 tokens against a 4,096 floor — caching engages, with 954 tokens of margin.
+    Measured at 5,052 tokens against a 4,096 floor — caching engages, with 956 tokens of margin.
     `test_prompt_clears_the_cache_floor` guards that margin.
 
     Section order is deliberate: `_FACTS` sits second so the corpus dominates the prefix, and the
