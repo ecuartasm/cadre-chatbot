@@ -102,11 +102,11 @@ the tag records what you did, not where you sent them. Broken twice in Phase 3, 
   15 slugs plus `off-topic`, parsed by `loader.py`. Never hand-copy it into Python; a second copy is a
   second place to drift. ⚠️ Models read `acknowledge-only` differently — see Verification.
 - **Count with `count_tokens`; don't estimate.** Current: 4,028 corpus; full prefix is per-model
-  (5,383 Haiku / 7,415 Sonnet — same bytes, different tokenisers).
+  (6,054 Haiku / 8,336 Sonnet — same bytes, different tokenisers).
 
 ## System prompt rules
 
-Lives in `app/llm/prompt.py`, versioned (`SYSTEM_PROMPT_VERSION`, currently **1.8**), logged per turn.
+Lives in `app/llm/prompt.py`, versioned (`SYSTEM_PROMPT_VERSION`, currently **1.9**), logged per turn.
 Sections: persona · corpus · grounding · boundary · **refusal marker** · conversion · format.
 
 **Refusals are structural, not prompt text.** The model opens a refusal with `[[refusal:<slug>]]`;
@@ -132,8 +132,8 @@ whole refusal vocabulary on request. Publishing `[[refusal:…]]` makes it injec
 suppress a refusal. If reinstated: dev-gated, never editable (5.2× cost, kills the shared cache).
 
 **Re-measured after every edit**, per model (`MEASURED_SYSTEM_TOKENS_BY_MODEL`, guarded by a live
-`count_tokens` test). Phase 0c's 511-token prefix **never cached at all**; **v1.8** clears every floor
-— Haiku 5,383 (+1,287), Sonnet 7,415 (+6,391). Run `edit-system-prompt/measure-prefix.py`.
+`count_tokens` test). Phase 0c's 511-token prefix **never cached at all**; **v1.9** clears every floor
+— Haiku 6,054 (+1,958), Sonnet 8,336 (+7,312). Run `edit-system-prompt/measure-prefix.py`.
 
 The floor inverts the usual instinct: trimming the prompt *costs* ~6× here, because a cached turn is
 $0.00120 against $0.00627 uncached. **Bump `SYSTEM_PROMPT_VERSION` on every change** — log lines from
@@ -144,7 +144,7 @@ two prompts are otherwise indistinguishable, which makes any before/after compar
 - **`client.py` is the only file importing `anthropic`; `models.py` is the only place a per-model
   fact lives** (floor, four rates, `thinking`, window). Together they make `ANTHROPIC_MODEL=` a
   one-line `.env` change. A model number read from anywhere else is a bug — it keeps passing and stops
-  being true. ⚠️ **Measured prefix is per-model:** 5,383 Haiku / 7,415 Sonnet, a 38% tokeniser gap.
+  being true. ⚠️ **Measured prefix is per-model:** 6,054 Haiku / 8,336 Sonnet, a 38% tokeniser gap.
 - **Cost math needs four rates, not two:** input, output, cache-write (1.25×), cache-read (0.1×).
   Two-rate math is wrong the moment caching engages and makes the spend cap throttle on money never
   spent. An unpriced model **raises** rather than defaulting. Compute it in `cost.py`, nowhere else.

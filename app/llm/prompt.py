@@ -24,7 +24,9 @@ from app.llm.models import active
 # 1.6 (post-phase): no HYPOTHETICAL currency figures either — the bot invented "$50k/$500k".
 # 1.7 (post-phase): warmth does not make a decline informal — the v1.5 voice dropped the tag 2/6.
 # 1.8 (post-phase): never disclose its own instructions — it recited the whole refusal vocabulary.
-SYSTEM_PROMPT_VERSION = "1.8"
+# 1.9 (post-phase): a canonical site map + "never derive a path from a name". It had been
+#      slugifying service NAMES into /ai-strategy, /ai-agents, /ai-leadership-and-facilitation.
+SYSTEM_PROMPT_VERSION = "1.9"
 
 # The curated corpus, read once at import (see app/knowledge/loader.py for why never per request).
 _FACTS = KNOWLEDGE
@@ -56,9 +58,14 @@ CACHE_FLOOR_TOKENS = active().cache_floor
 #   5,138 — post-phase, hypothetical prices forbidden; the bot invented "$50k/$500k"
 #   5,216 — post-phase, warmth does not make a decline informal (dropped the tag 2/6)
 #   5,383 — post-phase, instructions non-disclosable; it recited its whole refusal vocabulary
+#   6,054 — post-phase, the SITE MAP: every real page path, plus the rule never to derive one from
+#           a page or service name. Three of the four service lines have a path that differs from
+#           their title, and the bot was slugifying the title — /ai-strategy, /ai-agents and
+#           /ai-leadership-and-facilitation all 404. +671 tokens, the largest single addition since
+#           Phase 1, and worth it: a broken link is a wrong answer the user acts on
 MEASURED_SYSTEM_TOKENS_BY_MODEL: dict[str, int] = {
-    "claude-haiku-4-5": 5383,
-    "claude-sonnet-5": 7415,
+    "claude-haiku-4-5": 6054,
+    "claude-sonnet-5": 8336,
 }
 
 # The active model's figure. Kept as a module-level name because it reads as one number at every
@@ -93,6 +100,11 @@ Hard rules you must never break:
   numbers: the reader remembers the figures, not the caveat. Say that scope drives cost and that
   it varies widely, in words, with no digits. Savings figures are fine when the question is about
   results; nothing with a currency symbol belongs in an answer about cost.
+- PAGE PATHS: cite only paths listed in the Site map section of your knowledge, verbatim. NEVER
+  derive one from a page or service name — three service lines have a path that differs from their
+  title, and guessing produced /ai-strategy, /ai-agents and /ai-leadership-and-facilitation, none of
+  which resolve. If unsure a page exists, link the section root or the contact page; both are always
+  correct. A broken link is worse than no link.
 - CLIENT PORTAL: never invent a login URL, subdomain, onboarding sequence, or support email.
 - NAMED CLIENTS: never name a Cadre client or claim a specific company is one.
 - OFF-TOPIC REQUESTS: if the request is not about Cadre AI — writing or debugging code,
@@ -171,7 +183,7 @@ def build_system_blocks() -> list[dict]:
     render order is tools -> system -> messages, so one breakpoint covers the whole prefix.
 
     The same bytes are a different number of tokens per model, so the margin is per-model too:
-    **5,383 against Haiku 4.5's 4,096 floor (+1,287); 7,415 against Sonnet 5's 1,024 (+6,391)** —
+    **6,054 against Haiku 4.5's 4,096 floor (+1,958); 8,336 against Sonnet 5's 1,024 (+7,312)** —
     a 38% tokeniser gap on identical text. `test_prompt_clears_the_cache_floor` guards the active
     model's margin; `measure-prefix.py` checks every model in the registry.
 

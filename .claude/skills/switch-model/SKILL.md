@@ -44,7 +44,7 @@ number.
 |---|---|---|---|
 | **Cache floor** | 4,096 | 1,024 | **Silently.** No error — `cache_creation_input_tokens` just stays `0` and every turn pays full price. |
 | **Four rates** | $1 / $5 | $3 / $15 (3× across the board) | **Silently.** The spend cap throttles on money never spent, or fails to throttle at all. |
-| **Measured prefix** | 5,383 | 7,415 | **Silently.** Same bytes, 38% apart — a shared constant is wrong for whichever model was not measured. |
+| **Measured prefix** | 6,054 | 8,336 | **Silently.** Same bytes, 38% apart — a shared constant is wrong for whichever model was not measured. |
 | **`thinking`** | not supported | `{"type": "disabled"}` | Loudly — the API rejects the parameter. The one that *can't* hide. |
 
 ⚠️ **Cache floors are non-monotonic.** The cheaper, smaller model has the **higher** floor. It cannot
@@ -101,8 +101,8 @@ Both computed from the active model by `app/obs/spend.py`, never hardcoded:
 
 | | Haiku 4.5 | Sonnet 5 |
 |---|---|---|
-| Worst-case turn (cache write) | $0.00749 | $0.03009 |
-| Turns on the $5/day cap | **667** | **166** |
+| Worst-case turn (cache write) | $0.00833 | $0.03355 |
+| Turns on the $5/day cap | **600** | **149** |
 
 Every Sonnet rate is exactly 3×, so the gap compounds with volume rather than shrinking — **scale is
 an argument for Haiku, not against it.** Sonnet is the escalation model, chosen on measured evidence

@@ -28,10 +28,14 @@ production.
 
 ## Four service lines [disclosure: answerable]
 
-1. **AI Strategy** — find where AI improves the business; produces the roadmap.
-2. **AI Leadership & Facilitation** — change management and training; turning teams into AI users.
-3. **AI Engineering** — building and orchestrating intelligent processes across the business.
-4. **AI Agents** — autonomous agents that handle complex, repeatable work.
+⚠️ The page path does **not** match the service name. Use the path given, never one derived from
+the name — `/ai-strategy` and `/ai-agents` do not exist.
+
+1. **AI Strategy** (`/strategy`) — find where AI improves the business; produces the roadmap.
+2. **AI Leadership & Facilitation** (`/leadership-facilitation`) — change management and training;
+   turning teams into AI users.
+3. **AI Engineering** (`/ai-engineering`) — building and orchestrating intelligent processes.
+4. **AI Agents** (`/agents`) — autonomous agents that handle complex, repeatable work.
 
 ## Industries served — nine [disclosure: answerable]
 
@@ -220,6 +224,42 @@ article** (e.g. one entry carries both "January 5, 2026" and "March 25, 2025"), 
 defensible. Describe topics, link to the page, and let the reader see the date themselves.
 
 ---
+
+## Site map — the ONLY real page paths [disclosure: answerable]
+
+Every page on cadreai.com, from the scrape. **These are the only paths that exist.** Cite one of
+these verbatim or cite no path at all.
+
+⚠️ **Never derive a path from a page or service name.** Three of the four service lines have a path
+that differs from their title, and inventing the "obvious" slug produced `/ai-strategy`,
+`/ai-agents` and `/ai-leadership-and-facilitation` — none of which resolve. A broken link is a
+worse answer than no link.
+
+If you are not certain a page exists, link the section root (`/industries`, `/departments`,
+`/articles`) or `/contact`. Both are always correct.
+
+**Top level:** `/` · `/about` · `/contact` · `/careers` · `/case-studies` · `/articles` ·
+`/industries` · `/departments`
+
+**Service lines:** `/strategy` · `/leadership-facilitation` · `/ai-engineering` · `/agents`
+
+**Offerings:** `/ai-transformation-intensive`
+
+**Industries** (nine, all under `/industries/`): `construction` · `financial-services` ·
+`hospitality` · `manufacturing-logistics` · `mortgage-lending` · `private-equity` ·
+`professional-services` · `real-estate` · `retail-e-commerce`
+
+**Departments** (eight, all under `/departments/`): `customer-success` · `executive-leadership` ·
+`finance` · `legal` · `marketing` · `operations` · `sales` · `technology`
+
+**Podcasts:** `/2030-podcast` (executive strategy) · `/ai-2030-podcast` (technical)
+
+**Named articles:** `/articles/ai-model-selection` ·
+`/articles/cadre-ai-selected-as-an-official-openai-service-partner`
+
+**Legal:** `/legal/privacy-policy` · `/terms-of-service`
+
+Write paths as full URLs — `https://www.cadreai.com/strategy` — so they are clickable.
 
 # NEGATIVE KNOWLEDGE — never state these [disclosure: refuse]
 
