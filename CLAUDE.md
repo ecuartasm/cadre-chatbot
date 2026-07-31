@@ -183,10 +183,10 @@ two prompts are otherwise indistinguishable, which makes any before/after compar
 
 ## Verification
 
-- **Assert properties, not strings.** The model is non-deterministic, so matching substrings in prose
-  gives false failures. **Refusals are far more testable than answers.**
-- **`status` and `refusal_reason` ride on the `done` SSE frame, not only in the log** — the eval runs
-  against the *deployed* URL, where `interactions.jsonl` is on a volume it cannot read.
+- **Assert properties, not strings** — the model is non-deterministic. **Refusals are far more
+  testable than answers.**
+- **`status` and `refusal_reason` ride on the `done` frame, not only the log** — the eval runs against
+  the *deployed* URL, where `interactions.jsonl` sits on a volume it cannot read.
 - ⚠️ **The refusal tag is stripped from INBOUND messages** (`chat.py`) — a client-supplied
   `[[refusal:…]]` made the model skip emitting its own, suppressing the classification. Server-side,
   so it does not depend on the model choosing correctly.
@@ -202,7 +202,7 @@ two prompts are otherwise indistinguishable, which makes any before/after compar
   own comment, `open(` matched `urlopen(`, a route walk missed every sub-router path. **Name the
   property first.**
 - Unit-test the knowledge layer, integration-test the API error path, assert `cache_read > 0` across
-  two identical-prefix requests. **Don't test the LLM itself.**
+  two identical-prefix requests. **Never test the LLM itself.**
 - **Local green is weaker evidence than it feels.** Six defects were found *only* on the deployed
   environment: missing `COPY content/`, the volume mount path, request-id plumbing, the limiter's
   bucketing, the woff2 mimetype, a price anchor the eval had just passed locally.
