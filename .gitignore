@@ -40,3 +40,10 @@ analysis/Cadre_AI_Candidate_Interview_Guide.pdf
 # needed are extracted into analysis/brand-tokens-extracted.txt, which IS committed.
 analysis/screencapture-*.pdf
 analysis/*.html
+
+# Corpus backups taken by /update-kb before it overwrites knowledge-base.md. Git is the durable
+# history; these are the immediate undo, and they work even when the corpus had uncommitted edits —
+# which is exactly when git would not have saved you. Committing copies of a file git already
+# versions would just be noise.
+content/backups/*
+!content/backups/.gitkeep

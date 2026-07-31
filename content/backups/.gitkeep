@@ -1,0 +1,3 @@
+Backups written here by /update-kb before it overwrites content/knowledge-base.md.
+Restore with:  cp content/backups/knowledge-base-<STAMP>.md content/knowledge-base.md && railway up --ci
+This directory is gitignored except for this file.

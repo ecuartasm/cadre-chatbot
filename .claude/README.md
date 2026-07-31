@@ -16,7 +16,15 @@ reintroduce exactly that path.
 
 ## Commands — `commands/`
 
-- **`/update-kb`** — run the drift check and review what it proposes.
+- **`/update-kb`** — the full corpus-refresh loop, five stages: **detect** (kb-updater) → **draft** a
+  candidate file, re-verifying each fact against `content/raw/` → **🚦 approve** via an explicit
+  question, with anything negative-knowledge asked separately and defaulting to reject → **back up
+  and apply** → **verify** (tests, redeploy, golden set).
+
+  Two properties worth keeping if this is ever edited. The subagent still has **no Write tool** — the
+  drafting moved to the main session rather than granting it write access, so the guarantee stays
+  structural. And the backup at stage 4 is **verified with `cmp` before the corpus is overwritten**: a
+  backup that fails silently converts "I can undo this" from a fact into an assumption.
 - **`/log-decision`** — append a decision to `docs/ai-workflow-log.md` while it is fresh. Reconstructing
   "what I changed and why" at the end of a phase defeats the purpose of keeping the log.
 
