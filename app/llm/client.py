@@ -20,6 +20,21 @@ from app.llm.prompt import SYSTEM_PROMPT_VERSION, build_system_blocks
 
 MODEL = os.getenv("ANTHROPIC_MODEL", DEFAULT_MODEL)
 
+# Optional gateway. Unset — the default — means talking to api.anthropic.com exactly as before, so
+# nothing about local development changes. Set, it routes through a compatible endpoint; the
+# deployed instance uses OpenRouter, because the key Cadre supplied for the project is theirs
+# (`sk-or-v1-…`), not an Anthropic one.
+#
+# The seam makes this a one-line change rather than a port: everything upstream depends on
+# `stream_reply()` and the `Chunk` shape, and the gateway speaks the same `/v1/messages` wire
+# format, so `MarkerScanner`, the four-rate cost model, the refusal enum and the spend cap are all
+# untouched. Verified end to end on both models, including prompt caching.
+#
+# ⚠️ **Do NOT include `/v1`.** The SDK appends `/v1/messages` itself, so a base of
+# `https://openrouter.ai/api/v1` requests `/api/v1/v1/messages` and gets a 404 HTML page — an
+# error that names nothing useful. The correct value is `https://openrouter.ai/api`.
+BASE_URL = os.getenv("ANTHROPIC_BASE_URL") or None
+
 # Support answers are short. A low ceiling bounds cost and keeps latency honest — it is not a limit
 # we expect to hit (the longest observed answer was 150 output tokens). Clamped to the model's own
 # maximum so a swap to a model with a lower ceiling fails loudly here rather than at the API.
@@ -163,8 +178,29 @@ def get_client() -> AsyncAnthropic:
         key = os.getenv("ANTHROPIC_API_KEY")
         if not key:
             raise RuntimeError("ANTHROPIC_API_KEY is not set")
-        _client = AsyncAnthropic(api_key=key, timeout=REQUEST_TIMEOUT_S, max_retries=2)
+        extra = {"base_url": BASE_URL} if BASE_URL else {}
+        _client = AsyncAnthropic(
+            api_key=key, timeout=REQUEST_TIMEOUT_S, max_retries=2, **extra
+        )
     return _client
+
+
+def base_url_warning() -> str | None:
+    """The one misconfiguration worth catching at startup rather than on the first turn.
+
+    A base URL ending in `/v1` produces `/v1/v1/messages` and a 404 whose body is an HTML page —
+    the SDK surfaces it as `NotFoundError` with a wall of markup and no hint about the cause. It
+    cost a debugging round trip when this was first wired up.
+
+    Returned rather than raised: a wrong gateway should not stop the app booting, because the same
+    process still serves `/health`, which is how you would diagnose it.
+    """
+    if BASE_URL and BASE_URL.rstrip("/").endswith("/v1"):
+        return (
+            f"ANTHROPIC_BASE_URL ends with /v1 ({BASE_URL!r}). The SDK appends /v1/messages "
+            "itself, so every request will 404. Drop the /v1."
+        )
+    return None
 
 
 async def stream_reply(messages: list[dict]) -> AsyncIterator[Chunk]:
@@ -241,6 +277,11 @@ def model_info() -> dict[str, object]:
     spec = spec_for(MODEL)
     return {
         "model": MODEL,
+        # Which endpoint is actually serving this. Surfaced because "the key is configured" and
+        # "the key works against the endpoint we are calling" are different claims, and the gap
+        # between them is exactly what a wrong key looks like.
+        "api_base": BASE_URL or "https://api.anthropic.com",
+        "via_gateway": BASE_URL is not None,
         "max_tokens": MAX_TOKENS,
         "system_prompt_version": SYSTEM_PROMPT_VERSION,
         # Surfaced so the playground and /api/config describe the model actually in use rather

@@ -31,6 +31,12 @@ from app.obs.sink import SINK
 
 log = get_logger("app")
 
+# A base URL ending in /v1 makes every request 404 with an HTML body — worth saying at startup
+# rather than leaving to the first user turn. Logged, not raised: the process still needs to serve
+# /health, which is how the problem gets diagnosed.
+if (_warn := llm_client.base_url_warning()):
+    log.error("anthropic_base_url_misconfigured", extra={"detail": _warn})
+
 # `StaticFiles` derives Content-Type from the stdlib `mimetypes` database, which is seeded from the
 # host OS. macOS knows `.woff2`; the slim Debian image does not — so the self-hosted fonts served as
 # `font/woff2` locally and `application/octet-stream` in production. Browsers honour the
@@ -145,6 +151,11 @@ def health() -> dict[str, object]:
         "status": "ok",
         "environment": ENVIRONMENT,
         "model": llm_client.MODEL,
+        # WHERE the model is being called, not just which one. "A key is configured" and "that key
+        # works against the endpoint we call" are different claims, and the gap between them is
+        # exactly what a wrong key looks like — a Cadre-supplied OpenRouter key (`sk-or-v1-…`) sent
+        # to api.anthropic.com is a flat 401 that this field would have explained at a glance.
+        "api_base": llm_client.model_info()["api_base"],
         "anthropic_key_configured": bool(os.getenv("ANTHROPIC_API_KEY")),
         "web_bundle_present": WEB_DIST.is_dir(),
         # Answers "are my logs actually persisting?" without needing a shell on the container.
