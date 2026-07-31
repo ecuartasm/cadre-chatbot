@@ -393,3 +393,33 @@ def test_a_loose_path_match_is_harmless_because_the_allowlist_is_the_gate():
     real pages as the corpus grows."""
     src = code(MARKDOWN)
     assert "if (!href) return piece" in src, "an unmatched candidate must be returned untouched"
+
+
+def test_html_revalidates_and_hashed_assets_are_immutable():
+    """Vite hashes asset filenames, so index.html is the ONLY file with a stable name — and with no
+    Cache-Control a browser applies *heuristic* caching. A stale index.html then references asset
+    names that no longer exist, which presents as "my fix did not deploy" rather than as a cache
+    problem. It has cost this project a debugging session twice.
+
+    The two rules are deliberate opposites: HTML always revalidates (cheap, the ETag makes it a
+    304), and hashed assets are immutable because the content hash IS the cache key.
+    """
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    client = TestClient(app)
+
+    html = client.get("/")
+    assert html.status_code == 200
+    assert html.headers.get("cache-control") == "no-cache", (
+        "index.html must revalidate, or a stale copy points at deleted asset filenames"
+    )
+
+    asset = re.search(r'/assets/[^"]+\.js', html.text)
+    assert asset, "no hashed asset referenced by index.html"
+    js = client.get(asset.group(0))
+    assert js.status_code == 200
+    assert "immutable" in js.headers.get("cache-control", ""), (
+        "content-hashed assets are safe to cache forever; not doing so wastes every reload"
+    )

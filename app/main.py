@@ -91,6 +91,21 @@ async def request_context(request: Request, call_next):  # noqa: ANN001, ANN201
             },
         )
     response.headers["X-Request-Id"] = rid
+
+    # ⚠️ Vite hashes asset filenames, so `index.html` is the ONLY file whose name is stable — and
+    # with no Cache-Control it gets *heuristic* caching (browsers guess, typically ~10% of the age
+    # since Last-Modified). A stale index.html then references asset names that no longer exist,
+    # which reads as "my fix did not deploy" rather than as a cache problem. It has cost this
+    # project a debugging session twice.
+    #
+    # The two rules are opposites on purpose:
+    #   - HTML: always revalidate. The ETag makes that a cheap 304, not a re-download.
+    #   - /assets/*: the content hash IS the cache key, so a changed file has a changed name and
+    #     the old one can be kept forever.
+    if response.headers.get("content-type", "").startswith("text/html"):
+        response.headers["Cache-Control"] = "no-cache"
+    elif request.url.path.startswith("/assets/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     return response
 
 
