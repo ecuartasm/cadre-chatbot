@@ -28,6 +28,27 @@ cd web && npm ci && npm run build && cd ..
 uvicorn app.main:app --reload            # http://127.0.0.1:8000
 ```
 
+<details>
+<summary>Without <code>uv</code></summary>
+
+```bash
+pip install --require-hashes -r requirements.txt        # runtime only
+pip install --require-hashes -r requirements-dev.txt    # + pytest, ruff, mcp
+```
+
+Both are **generated from `uv.lock`** and fully hash-pinned — the same export the Dockerfile runs,
+so an image and a local `pip install` resolve to identical bytes rather than merely compatible
+versions. `pyproject.toml` + `uv.lock` remain the source of truth; a test fails if the files drift.
+
+Regenerate after changing a dependency:
+
+```bash
+uv export --no-dev --frozen --no-emit-project -o requirements.txt
+uv export         --frozen --no-emit-project -o requirements-dev.txt
+```
+
+</details>
+
 | URL | |
 |---|---|
 | `/` | Chat, plus a **Playground** tab showing per-turn tokens, cache, cost and latency |
