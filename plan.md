@@ -1108,7 +1108,8 @@ this file is where the open items live.
 | 2 | **Phase 5 visual sign-off** — hierarchy, spacing, 375px | ⏳ **Open** — needs a human's eyes; I cannot see the rendered page |
 | 3 | **Tighten `CLAUDE.md`** | ✅ Done — refreshed and cut back under its own 250-line cap (249) |
 | 4 | **Add a guardrail hook to `.claude/`** | ✅ Done — `hooks/guard-commit.sh`, verified against six paths |
-| 5 | **Phase 9 — playground tab** | 📋 **Planned, not started** — see the phase above |
+| 5 | **Phase 9 — playground tab** | ✅ Built and reported; **not deployed** |
+| 6 | **Eval split into lite/full** | ✅ 14-case gate + 71-case edge suite. `full` found two real defects on its first run |
 
 **One item still needs a human; the other is queued work.**
 

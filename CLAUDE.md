@@ -51,7 +51,7 @@ content/
   raw/*.md             Byte-faithful scraped pages. Provenance. Never edited by hand.
   knowledge-base.md    Hand-curated, ~4k tokens. THE file the bot reasons over.
 scripts/scrape.py      The curl-based scraper. Must stay re-runnable.
-eval/golden.py         14-case golden set. See "Verification".
+eval/golden.py         Runner. eval/suites.py holds the cases — lite (gate) + full
 mcp_server/            Read-only MCP tools over /api/stats. NOT in the runtime image (dev group)
 web/src/tokens.css     Design tokens — the ONLY file allowed a literal colour, size, or font
 web/src/app.css        Component styles; every value a var(). No inline styles in any component
@@ -139,18 +139,14 @@ turns while the prompt grew 4,964 → 5,206.
 silently** — no error, `cache_creation_input_tokens` just stays `0`. Floors are non-monotonic (512 on
 Opus 5, 1,024 on Sonnet 5, 4,096 on Haiku 4.5), so this is not guessable. **Measure it.**
 
-⚠️ **The prompt text is never served to a client.** No endpoint returns it; the playground shows only
-metadata. Publishing it publishes the `[[refusal:…]]` syntax — injectable to fake or suppress a
-refusal, corrupting the metric this bot is judged on — plus a map of the boundary's seams. If ever
-reinstated: dev-gated, never editable (an editable box = 5.2× cost and kills every visitor's cache).
+⚠️ **The prompt text is never served, and the bot must not recite it either** — it once listed its
+whole refusal vocabulary on request. Publishing the `[[refusal:…]]` syntax makes it injectable to
+fake or suppress a refusal. If ever reinstated: dev-gated, never editable (5.2× cost, kills the
+shared cache).
 
-**Re-measured after every prompt edit** (`MEASURED_SYSTEM_TOKENS`, guarded by a live `count_tokens` test):
-
-| | Prefix | Margin over 4,096 |
-|---|---|---|
-| Phase 0c — 3 hardcoded facts | 511 | **−3,585** ❌ caching never engaged |
-| Phase 1 — curated corpus | 4,415 | +319 |
-| Phase 6 — **v1.3**, current | **5,050** | **+954** |
+**Re-measured after every edit** (`MEASURED_SYSTEM_TOKENS`, guarded by a live `count_tokens` test;
+full history in `prompt.py`). Phase 0c's 511-token prefix **never cached at all**; today's **v1.8** is
+**5,383**, clearing the floor by **1,287**. Use `.claude/skills/edit-system-prompt/measure-prefix.py`.
 
 The floor inverts the usual instinct: trimming the prompt *costs* ~6× here, because a cached turn is
 $0.00120 against $0.00627 uncached. **Bump `SYSTEM_PROMPT_VERSION` on every change** — log lines from
@@ -168,7 +164,7 @@ two prompts are otherwise indistinguishable, which makes any before/after compar
 - **Log `user_message_redacted`, never the raw message.** **Retention: 7 days**, enforced by the
   rotation config — the config *is* the policy. The bot discusses Cadre's data-security posture; its
   own logging must not be the counterexample. (Rotation verified 2026-07-31; 7-day *deletion* needs
-  the 8th day and remains unverified — say so rather than claiming "retention confirmed".)
+  the 8th day — say so rather than claiming "retention confirmed".)
 - **Bound conversation history server-side** — 8 turns in the Pydantic model. The array arrives from
   the browser; don't trust the client.
 - **Every log line carries `request_id`** — but *carry* it, don't read it from the ContextVar late.
@@ -187,24 +183,29 @@ two prompts are otherwise indistinguishable, which makes any before/after compar
 
 ## Verification
 
-- **The golden set asserts properties, not strings.** The model is non-deterministic, so matching
-  substrings in prose gives false failures. **Refusals are far more testable than answers** — an exact
-  match on a closed enum beats any guess about wording.
+- **Assert properties, not strings.** The model is non-deterministic, so matching substrings in prose
+  gives false failures. **Refusals are far more testable than answers.**
 - **`status` and `refusal_reason` ride on the `done` SSE frame, not only in the log** — the eval runs
   against the *deployed* URL, where `interactions.jsonl` is on a volume it cannot read.
-- **14 cases:** 6 scenarios · 3 required refusals · 2 coverage · 2 multi-turn · **plus off-topic**,
-  the one refusal that gets *no* `/contact` link, so edits aimed elsewhere break it silently.
+- ⚠️ **The refusal tag is stripped from INBOUND messages** (`chat.py`) — a client-supplied
+  `[[refusal:…]]` made the model skip emitting its own, suppressing the classification. Server-side,
+  so it does not depend on the model choosing correctly.
+- **Two suites.** `--suite lite` = 14 cases, the **deploy gate**. `--suite full` = 71, adding the
+  oblique routes (pricing eight ways, injection, 8 multi-turn) — run it after a prompt edit, when the
+  boundary moves in ways direct questions miss. **`full` is not expected to be 100%:** a *boundary*
+  failure (price, URL, client name, prompt leak) is a defect; a *tagging* failure is the known
+  under-reporting, measured at **~7%** and concentrated in soft refusals.
 - **Absence beats presence.** "No dollar figure" survives rewording; "contains 'individually'" breaks
   on the first synonym. An invented URL is tested by membership in the pages `content/raw/` proves
-  were fetched — not by matching `/contact`, which fails correct citations.
-- ⚠️ **Four times here a test asserted a substring where it meant a property** — `grey` matched its own
-  comment, the URL check flagged a correct link then a bolded one, `open(` matched `urlopen(`, and the
-  rotation check couldn't tell "broken" from "not yet triggered". **Name the property first.**
-- Unit-test the knowledge layer, integration-test the API error path, assert
-  `cache_read_input_tokens > 0` across two identical-prefix requests. **Don't test the LLM itself.**
-- **Local green is weaker evidence than it feels.** Six defects here were found *only* on the deployed
+  were fetched — matching `/contact` fails correct citations.
+- ⚠️ **Seven times a test asserted something narrower than the property meant** — `grey` matched its
+  own comment, `open(` matched `urlopen(`, a route walk missed every sub-router path. **Name the
+  property first.**
+- Unit-test the knowledge layer, integration-test the API error path, assert `cache_read > 0` across
+  two identical-prefix requests. **Don't test the LLM itself.**
+- **Local green is weaker evidence than it feels.** Six defects were found *only* on the deployed
   environment: missing `COPY content/`, the volume mount path, request-id plumbing, the limiter's
-  bucketing, the woff2 mimetype, and a price anchor the eval passed locally.
+  bucketing, the woff2 mimetype, a price anchor the eval had just passed locally.
 
 ---
 
@@ -234,9 +235,9 @@ taught** → commit → push → redeploy and verify the live URL. `plan.md` has
 - **The forward-review step earns its place.** It caught the Dockerfile never copying `content/` (a bot
   with no knowledge base, all local tests green), that Phase 4's stated scope was already built, and
   that MCP was absent from the brief entirely. Ask what this phase taught that changes the next one.
-- **Two records per phase.** `docs/ai-workflow-log.md` is a terse four-field entry (asked for /
-  produced / changed / verified); `reports/phase-<n>-report.md` is the narrative. Write both *as you
-  go*, from the phase's own evidence — measured values, real hashes — never from recollection.
+- **Two records per phase.** `docs/ai-workflow-log.md` is a terse four-field entry; the phase report
+  is the narrative. Write both *as you go*, from measured values and real hashes — never recollection.
+  Post-phase work goes in `reports/testing_adjusting.md`.
 - **Push at the end of every phase.** Work that exists only locally isn't safe, and the repo *is* the
   deliverable. Don't batch phases into one push.
 - ✅ **The gate is closed** — Phase 6 answered all six scenarios on the deployed URL, which gated MCP
