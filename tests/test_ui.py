@@ -227,6 +227,16 @@ def test_both_views_stay_mounted_when_switching_tabs():
 # ── inline markdown rendering ────────────────────────────────────────────────────────
 
 MARKDOWN = WEB / "markdown.jsx"
+LINKS = WEB / "links.js"
+
+# The renderer and the matching module together. These source checks assert that a property is
+# implemented *somewhere* in the link path — pinning them to one file is what broke when the regexes
+# moved into links.js, which is the same narrowing this file has now hit five times.
+#
+# The real coverage is behavioural: tests/test_links_behaviour.py runs web/scripts/link-audit.mjs
+# over all 36 pages and 31 edge shapes. These remain as cheap structural backstops.
+def link_path_source() -> str:
+    return code(MARKDOWN) + "\n" + code(LINKS)
 
 
 def test_markdown_renders_elements_never_html():
@@ -312,19 +322,19 @@ def test_the_href_comes_from_the_allowlist_not_from_the_reply():
     a substring of model output, however the model was influenced into producing it. There is
     nothing left to sanitise.
     """
-    src = code(MARKDOWN)
-    assert "knownCadreUrl" in src, "the renderer must resolve URLs through the allowlist"
-    assert "href={href}" in src, "href must be the looked-up constant"
-    # The matched text is named `bare`; it may be displayed but must never be the href.
-    assert "href={bare}" not in src and "href={piece}" not in src
+    src = link_path_source()
+    assert "knownCadreUrl" in src, "the link path must resolve URLs through the allowlist"
+    assert "href={resolved.href}" in code(MARKDOWN), "href must be the looked-up constant"
+    # The matched text may be displayed but must never become the href.
+    assert "href={piece}" not in src and "href={label}" not in src
 
 
 def test_an_unknown_url_renders_as_plain_text():
     """An invented portal URL must not become a clickable link that looks official — the KB's
     first rule. Falling back to plain text is the pre-existing behaviour, so the failure mode of
     the whole feature is a no-op rather than a broken render."""
-    src = code(MARKDOWN)
-    assert "if (!href) return piece" in src
+    src = link_path_source()
+    assert "if (!resolved) return piece" in src, "an unresolved candidate must pass through"
 
 
 def test_blank_targets_carry_noopener():
@@ -340,9 +350,8 @@ def test_trailing_punctuation_is_not_swallowed_into_the_href():
     This is the most common way a naive linkifier fails, and it fails *silently*: the lookup
     misses, so the URL renders as plain text and nobody notices the link never appeared.
     """
-    src = code(MARKDOWN)
-    assert "TRAILING" in src, "trailing sentence punctuation must be trimmed before lookup"
-    assert "{trailing}" in src, "the trimmed punctuation must still be rendered"
+    assert "TRAILING" in link_path_source(), "trailing punctuation must be trimmed before lookup"
+    assert "{resolved.trailing}" in code(MARKDOWN), "the trimmed punctuation must still render"
 
 
 def test_urls_inside_bold_are_still_linked():
@@ -382,7 +391,7 @@ def test_bare_site_paths_resolve_through_the_allowlist():
         "the origin must be derived from the allowlist, not written as a literal that could "
         "disagree with the list it describes"
     )
-    assert "/" in code(MARKDOWN).split("URL_RE", 1)[1][:400], "the path branch is missing"
+    assert "URL_RE" in code(LINKS), "the matching patterns belong in links.js"
 
 
 def test_a_loose_path_match_is_harmless_because_the_allowlist_is_the_gate():
@@ -391,8 +400,9 @@ def test_a_loose_path_match_is_harmless_because_the_allowlist_is_the_gate():
 
     Named explicitly because the tempting "fix" is a stricter regex, which would start rejecting
     real pages as the corpus grows."""
-    src = code(MARKDOWN)
-    assert "if (!href) return piece" in src, "an unmatched candidate must be returned untouched"
+    assert "if (!resolved) return piece" in code(MARKDOWN), (
+        "an unmatched candidate must be returned untouched"
+    )
 
 
 def test_html_revalidates_and_hashed_assets_are_immutable():

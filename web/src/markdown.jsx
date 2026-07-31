@@ -29,26 +29,13 @@
  * boundary into a *clickable* one.
  */
 
-import { knownCadreUrl } from './cadre-urls'
+import { looksLikeLink, resolveLink, URL_RE } from './links.js'
 
 // One pass, alternation ordered so `**` is tried before `*`.
 const INLINE = /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`)/g
 
-// Absolute URLs, then bare site paths — in that order, so `https://www.cadreai.com/contact` is
-// consumed whole rather than having its path half re-matched.
-//
-// Brackets and quotes are excluded so a parenthesised link does not swallow its own closing paren;
-// trailing sentence punctuation is trimmed separately below.
-//
-// The path branch is deliberately loose: `and/or`, `24/7` and `he/she` all match it. That is
-// harmless, because matching is not what creates a link — **the allowlist lookup is**, and none of
-// them is a Cadre page, so each falls through to plain text unchanged.
-const URL_RE = /(https?:\/\/[^\s<>()[\]"']+|\/[a-z0-9][a-z0-9-]*(?:\/[a-z0-9-]+)*)/g
-
-// A URL at the end of a sentence — "…see https://www.cadreai.com/contact." — must not carry the
-// full stop into the href. Without this the lookup misses and the link silently does not render,
-// which is the single most common way a naive linkifier fails.
-const TRAILING = /[.,;:!?]+$/
+// The matching patterns and the resolve step live in `links.js`, so the audit script can import
+// the real ones. A harness that copies a regex tests the copy, and the copy goes stale silently.
 
 /**
  * Split `text` on URLs, linking only those the corpus proves exist.
@@ -61,24 +48,21 @@ function linkify(text, keyPrefix) {
   if (!text.includes('://') && !text.includes('/')) return text
 
   return text.split(URL_RE).map((piece, i) => {
-    if (!piece || !(piece.startsWith('http') || piece.startsWith('/'))) return piece || null
+    if (!piece || !looksLikeLink(piece)) return piece || null
 
-    const trailing = piece.match(TRAILING)?.[0] ?? ''
-    const bare = trailing ? piece.slice(0, -trailing.length) : piece
-
-    // The lookup returns the CANONICAL string from the allowlist. `bare` is only ever a key —
-    // it never reaches the DOM as an href.
-    const href = knownCadreUrl(bare)
-    if (!href) return piece
+    // `href` is the canonical string from the allowlist; the matched text is only ever a key and
+    // never reaches the DOM as an href.
+    const resolved = resolveLink(piece)
+    if (!resolved) return piece
 
     return (
       <span key={`${keyPrefix}-${i}`}>
         {/* `noopener noreferrer` is not optional with `_blank`: without it the opened page gets
             a live `window.opener` handle back to this one. */}
-        <a href={href} target="_blank" rel="noopener noreferrer">
-          {bare}
+        <a href={resolved.href} target="_blank" rel="noopener noreferrer">
+          {resolved.label}
         </a>
-        {trailing}
+        {resolved.trailing}
       </span>
     )
   })
