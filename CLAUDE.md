@@ -190,11 +190,10 @@ two prompts are otherwise indistinguishable, which makes any before/after compar
 - ⚠️ **The refusal tag is stripped from INBOUND messages** (`chat.py`) — a client-supplied
   `[[refusal:…]]` made the model skip emitting its own, suppressing the classification. Server-side,
   so it does not depend on the model choosing correctly.
-- **Two suites.** `--suite lite` = 14 cases, the **deploy gate**. `--suite full` = 71, adding the
-  oblique routes (pricing eight ways, injection, 8 multi-turn) — run it after a prompt edit, when the
-  boundary moves in ways direct questions miss. **`full` is not expected to be 100%:** a *boundary*
-  failure (price, URL, client name, prompt leak) is a defect; a *tagging* failure is the known
-  under-reporting, measured at **~7%** and concentrated in soft refusals.
+- **Two suites.** `--suite lite` = 14 cases, the **deploy gate**. `--suite full` = 71, adding oblique
+  routes (pricing eight ways, injection, multi-turn) — run after a prompt edit. **`full` is not
+  expected to be 100%:** a *boundary* failure (price, URL, client name, prompt leak) is a defect; a
+  *tagging* failure is the known ~7% under-reporting, concentrated in soft refusals.
 - **Absence beats presence.** "No dollar figure" survives rewording; "contains 'individually'" breaks
   on the first synonym. An invented URL is tested by membership in the pages `content/raw/` proves
   were fetched — matching `/contact` fails correct citations.
