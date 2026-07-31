@@ -943,8 +943,8 @@ Written down deliberately rather than discovered later.
 ### Phase 9 — Playground tab · 75–95 min
 
 A second tab beside the chat: run inference and see what it actually cost. Tokens, money, latency,
-cache behaviour, and the refusal classification — per turn, as it happens — plus the assembled system
-prompt in a scrollable read-only window at the bottom.
+cache behaviour, and the refusal classification — per turn, as it happens — plus prompt *metadata*
+(version, token count, section sizes). **The prompt text itself is not served; see 9.2.**
 
 **Why it earns a phase.** Every number this needs is already produced; none of it is visible. The
 `done` frame carries all four token counters, `status`, `refusal_reason`, `stop_reason` and
@@ -964,29 +964,43 @@ of the observability work rather than a new feature bolted on.
 | **total latency** | server-side only (`latency_ms`) | **add to the `done` frame** |
 | model, prompt version, corpus sha | `/api/config` | display in a header strip |
 | session aggregates | `/api/stats` | optional panel |
-| **the assembled system prompt** | nowhere on the wire | **new `GET /api/prompt`** |
+| the assembled system prompt | nowhere on the wire | **stays that way — see 9.2** |
 
 Adding `cost_usd` and `latency_ms` to `done` is the honest fix. The alternative — shipping the rate
 table to the browser and recomputing — would create a second implementation of the four-rate maths,
 and the whole point of `cost.py` is that there is exactly one.
 
-#### 9.2 ⚠️ The system prompt is DISPLAYED, never EDITABLE
+#### 9.2 ⚠️ The system prompt is NOT served to the client — decision reversed
 
-The window is read-only, and this is a hard constraint rather than a scoping choice.
+An earlier draft of this phase put the assembled prompt in a read-only scrollable window. **That is
+cut.** No endpoint returns it, and the playground does not display it.
 
-The prompt is a **byte-exact cached prefix**. An editable box would change it per turn, so every turn
-would miss the cache: **$0.00120 → $0.00627, a 5.2× increase**, and it would also invalidate the entry
-for every *other* visitor sharing that prefix. A "playground" that quietly multiplies the cost of the
-production bot is not a playground.
+The original reasoning only weighed the obvious risk — the contents are corpus derived from public
+pages plus boundary rules, so nothing in it is secret. That framing missed the real problem, which is
+not *secrecy* but *attack surface*:
 
-Display, by contrast, is free and genuinely useful: it makes the boundary **inspectable**. A reviewer
-can read the exact rules the bot is operating under, next to a live refusal those rules produced.
+- **It publishes the refusal marker syntax.** `[[refusal:REASON]]` and the 16-slug vocabulary would be
+  in plain view. Someone can then try to inject that literal string through the user message —
+  either to fabricate a refusal on an ordinary answer, or to probe for a phrasing that suppresses one.
+  Either corrupts `refusal_reason`, which is the number this bot is judged on and the field the
+  golden set asserts against.
+- **It hands over a precise map of the boundary.** Not "the bot won't discuss pricing" — the exact
+  wording of every rule, which is what you would want in order to find the seam between two of them.
+  The off-topic failure in Phase 3 was exactly a seam between two rules, found by accident; the prompt
+  text is a shortcut to finding the next one.
+- **The transparency argument does not need it.** What a reviewer actually wants to see is *that the
+  boundary is principled and measured* — and `/api/stats` already shows refusal rate by reason, the
+  golden set demonstrates the rules holding under pushback, and the repo contains the prompt in full
+  for anyone with access. None of that requires serving it from a public endpoint.
 
-**Decision to make explicitly, not by default:** `GET /api/prompt` exposes ~20 KB publicly. Its
-contents are the curated corpus (derived entirely from public pages), the boundary rules, and the
-refusal vocabulary — nothing secret, and knowing "do not state pricing" does not help anyone get a
-price. The transparency is arguably the point. But decide it rather than inherit it, and if the answer
-is no, gate the whole tab behind `ENVIRONMENT == "development"`.
+**If it is ever reinstated, two things hold.** It must never be *editable* — an editable box changes
+the cached prefix per turn (5.2× cost) and invalidates the entry every other visitor shares. And it
+should be gated behind `ENVIRONMENT == "development"` rather than public.
+
+**What the playground shows instead:** prompt *metadata*, which carries the observability value with
+none of the exposure — version, total token count, and the per-section character breakdown
+(`_PERSONA` 208 · `_FACTS` 15,842 · `_BOUNDARY` 1,766 · …). That tells you the prefix is 5,050 tokens
+and where the weight sits, without publishing a single rule.
 
 #### 9.3 Constraints inherited from earlier phases
 
@@ -1036,10 +1050,10 @@ cheaper answer.
 │  latency  first token 812 ms · total 1,949 ms                 │
 │  request  f80c1cda46ef431f                                    │
 ├───────────────────────────────────────────────────────────────┤
-│  System prompt (read-only, 5,050 tokens)          ▲ scroll ▼  │
-│  ┌───────────────────────────────────────────────────────┐    │
-│  │ You are the customer-support assistant for Cadre AI…  │    │
-│  └───────────────────────────────────────────────────────┘    │
+│  Prompt v1.3 · 5,050 tokens · 954 over the 4,096 floor         │
+│  persona 208 · corpus 15,842 · boundary 1,766 · marker 1,185   │
+│  conversion 594 · format 120 · grounding 242   (characters)    │
+│                        — text not served, see 9.2 —            │
 └───────────────────────────────────────────────────────────────┘
 ```
 
@@ -1049,13 +1063,15 @@ than the raw counters do.
 
 **Exit:** the tab runs inference and shows tokens, cost, latency, cache write/read, status,
 `refusal_reason` and `request_id` per turn · `cost_usd` and `latency_ms` on the `done` frame, computed
-by `cost.py` and not reimplemented in JS · the prompt renders **read-only** and scrollable, with its
-token count · `tests/test_ui.py` covers the new component rather than silently only covering the old
-one · the marker leaks nowhere · the golden set still passes 14/14 against the deployed URL. Then the
-checklist.
+by `cost.py` and not reimplemented in JS · prompt **metadata** shown (version, token count, section
+sizes) and **no endpoint returns the prompt text** — asserted by a test, since "we didn't add it" is
+not a guarantee · `tests/test_ui.py` covers the new component rather than silently only covering the
+old one · the marker leaks nowhere · the golden set still passes 14/14 against the deployed URL. Then
+the checklist.
 
-**Not in scope:** editing the prompt · switching models · overriding `max_tokens` or sampling · any
-endpoint that bypasses the rate limiter or the spend cap · saving or replaying sessions.
+**Not in scope:** **serving or displaying the prompt text** · editing it · switching models ·
+overriding `max_tokens` or sampling · any endpoint that bypasses the rate limiter or the spend cap ·
+saving or replaying sessions.
 
 ---
 

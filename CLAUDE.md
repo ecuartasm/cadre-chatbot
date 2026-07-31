@@ -127,31 +127,31 @@ Sections: persona · corpus · grounding · boundary · **refusal marker** · co
 
 **Refusals are structural, not prompt text.** The model opens a refusal with `[[refusal:<slug>]]`;
 `MarkerScanner` strips it before the first delta reaches the browser, and `status`/`refusal_reason`
-go to the log *and* the `done` frame. A missing marker under-reports rather than mislabels.
+go to the log *and* the `done` frame. A missing marker under-reports rather than mislabels — and the
+marker syntax is not published, so it cannot be injected through a user message.
 
 ⚠️ **The prompt must be byte-stable.** Caching is a prefix match, so **no timestamp, `request_id`,
-session id, or per-user string anywhere in the system block** — anything dynamic goes in `messages`.
-Put `cache_control: {"type": "ephemeral"}` on the **last system block**; render order is `tools` →
-`system` → `messages`, so one breakpoint covers the whole prefix. Confirmed empirically: `cache_read`
-held constant at 4,948 across a 3-turn conversation while the prompt grew 4,964 → 5,206.
+session id, or per-user string in the system block** — anything dynamic goes in `messages`. Put
+`cache_control: {"type": "ephemeral"}` on the **last system block**; render order is `tools` →
+`system` → `messages`, so one breakpoint covers it. Confirmed: `cache_read` held at 4,948 across 3
+turns while the prompt grew 4,964 → 5,206.
 
 ⚠️ **Haiku 4.5's minimum cacheable prefix is 4,096 tokens.** Below the floor, caching **fails
 silently** — no error, `cache_creation_input_tokens` just stays `0`. Floors are non-monotonic (512 on
 Opus 5, 1,024 on Sonnet 5, 4,096 on Haiku 4.5), so this is not guessable. **Measure it.**
 
-⚠️ **The prompt may be DISPLAYED but never made editable.** The playground shows it read-only. An
-editable box changes the prefix per turn — 5.2× cost, and it invalidates the entry every other
-visitor shares. Display is free and makes the boundary inspectable; editing is a different product.
+⚠️ **The prompt text is never served to a client.** No endpoint returns it; the playground shows only
+metadata. Publishing it publishes the `[[refusal:…]]` syntax — injectable to fake or suppress a
+refusal, corrupting the metric this bot is judged on — plus a map of the boundary's seams. If ever
+reinstated: dev-gated, never editable (an editable box = 5.2× cost and kills every visitor's cache).
 
-**Measured, and re-measured after every prompt edit** (`MEASURED_SYSTEM_TOKENS` in `prompt.py`, guarded
-by a live `count_tokens` test):
+**Re-measured after every prompt edit** (`MEASURED_SYSTEM_TOKENS`, guarded by a live `count_tokens` test):
 
 | | Prefix | Margin over 4,096 |
 |---|---|---|
 | Phase 0c — 3 hardcoded facts | 511 | **−3,585** ❌ caching never engaged |
 | Phase 1 — curated corpus | 4,415 | +319 |
-| Phase 3 — refusal marker + conversion | 4,870 | +774 |
-| Phase 6 — prompt **v1.3** (current) | **5,050** | **+954** |
+| Phase 6 — **v1.3**, current | **5,050** | **+954** |
 
 The floor inverts the usual instinct: trimming the prompt *costs* ~6× here, because a cached turn is
 $0.00120 against $0.00627 uncached. **Bump `SYSTEM_PROMPT_VERSION` on every change** — log lines from
@@ -187,16 +187,16 @@ two prompts are otherwise indistinguishable, which makes any before/after compar
 
 ## Verification
 
-- **The golden set asserts properties, not strings.** The model is non-deterministic, so substring
-  matching on prose gives false failures on correct behaviour. **Refusals are far more testable than
-  answers** — an exact match on a closed enum beats any guess about wording.
+- **The golden set asserts properties, not strings.** The model is non-deterministic, so matching
+  substrings in prose gives false failures. **Refusals are far more testable than answers** — an exact
+  match on a closed enum beats any guess about wording.
 - **`status` and `refusal_reason` ride on the `done` SSE frame, not only in the log** — the eval runs
   against the *deployed* URL, where `interactions.jsonl` is on a volume it cannot read.
 - **14 cases:** 6 scenarios · 3 required refusals · 2 coverage · 2 multi-turn · **plus off-topic**,
   the one refusal that gets *no* `/contact` link, so edits aimed elsewhere break it silently.
-- **Absence beats presence.** "Contains no dollar figure" survives rewording; "contains the word
-  'individually'" breaks on the first synonym. An invented URL is tested by membership in the pages
-  `content/raw/` proves were fetched, not by matching `/contact`, which fails correct citations.
+- **Absence beats presence.** "No dollar figure" survives rewording; "contains 'individually'" breaks
+  on the first synonym. An invented URL is tested by membership in the pages `content/raw/` proves
+  were fetched — not by matching `/contact`, which fails correct citations.
 - ⚠️ **Four times here a test asserted a substring where it meant a property** — `grey` matched its own
   comment, the URL check flagged a correct link then a bolded one, `open(` matched `urlopen(`, and the
   rotation check couldn't tell "broken" from "not yet triggered". **Name the property first.**
