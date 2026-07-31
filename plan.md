@@ -157,6 +157,43 @@ have shipped: a container that cannot write to its own log volume, and a cost tr
 streams. Both are silent. That is now this project's recurring theme — the cache floor, the missing
 `COPY content/`, and a skipped test were all silent — so each item below names how it fails *loudly*.
 
+#### 2.0 The API provider differs between production and local — deliberately
+
+**Recorded 2026-07-31.** Two keys with two jobs, and they are *supposed* to differ:
+
+| | Key | Endpoint |
+|---|---|---|
+| **Railway (production)** | **OpenRouter** — `sk-or-v1-…`, Cadre's own project key | `ANTHROPIC_BASE_URL=https://openrouter.ai/api` |
+| **Local dev, eval, prefix measurement** | **Anthropic direct** — `sk-ant-…` in `.env` | unset → `api.anthropic.com` |
+
+Cadre supplied an OpenRouter key for the project rather than an Anthropic one. Pointed at
+`api.anthropic.com` it is a flat **401**, which is what the first deploy on it did — the `sk-or-v1-`
+prefix is the only clue, and only if you happen to know it.
+
+`ANTHROPIC_BASE_URL` makes this one line in `client.py`. Unset is the default and means today's
+behaviour exactly, so local development is untouched. The gateway speaks the same `/v1/messages`
+format, so `MarkerScanner`, the four-rate cost model, the refusal enum and the spend cap are all
+unaffected — a test asserts `cost.py`, `prompt.py`, `chat.py` and `loader.py` never learn it exists.
+
+Verified before it was written: streaming on both models, **prompt caching working** (write 6,047 →
+read 6,047, the exact usage fields the cost model reads), the refusal marker emitted, no price leak,
+model ids accepted verbatim so `models.py` needs no mapping. Then lite **14/14** through the gateway,
+and **14/14 against the deployed URL**.
+
+Three things this costs, all recorded rather than left to be rediscovered:
+
+1. **`count_tokens` is 404 on OpenRouter**, and the SDK reads `ANTHROPIC_BASE_URL` *itself* — so a
+   bare `Anthropic()` follows it silently. Prefix measurement and its live test skip when a gateway
+   is set and must run against Anthropic directly. That is fine: measuring is build-time work.
+2. **A base URL ending in `/v1` 404s every request** with an HTML body, because the SDK appends
+   `/v1/messages`. Caught at startup and logged.
+3. **The OpenRouter allowance is $5 *total*, not daily.** `DAILY_COST_CAP_USD=5.00` therefore bounds
+   a day at the entire budget. Left at $5 by the owner's decision so reviewers have headroom; at
+   ~$0.0016/turn that is roughly 3,000 turns.
+
+⚠️ **Never change `ANTHROPIC_API_KEY` on Railway** — it is Cadre's, managed by the owner in the
+dashboard. A difference between it and local `.env` is correct, not drift.
+
 #### 2.1 🔴 First: the volume, and the permission collision
 
 **Decided 2026-07-29: attach the volume and build P0+P1 as specified.** The paid-infrastructure

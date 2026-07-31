@@ -24,6 +24,7 @@ Python + FastAPI (backend) · React + Vite (frontend) · Anthropic API · deploy
 | Escalation model | `claude-sonnet-5` | **Switch with `ANTHROPIC_MODEL` in `.env`; nothing else changes.** Every per-model fact lives in `app/llm/models.py`. Every rate is 3× — which makes scale an argument *for* Haiku, not against. Verified on Sonnet: 13/14 lite, caching engages (7,411 read). |
 | Token counting | `client.messages.count_tokens` | **Never `tiktoken`** — it's OpenAI's tokenizer and undercounts Claude by ~15–20%. |
 | Deploy | Railway + mounted Volume | The volume is for `logs/`. Serverless is ruled out: ephemeral FS loses the logs. |
+| **API provider** | **prod ≠ local, deliberately** | **Railway calls OpenRouter** (`sk-or-v1-…`, Cadre's own project key, `ANTHROPIC_BASE_URL=https://openrouter.ai/api`). **Local uses a direct Anthropic key** (`sk-ant-…`, no base URL). A mismatch between them is CORRECT, never drift. |
 | Serving | **One deployable** | FastAPI serves the built React bundle as static files. Avoids CORS and two ways to break one deadline. |
 
 ## Layout
@@ -161,8 +162,16 @@ two prompts are otherwise indistinguishable, which makes any before/after compar
 - **Every log line carries `request_id`** — but *carry* it, don't read the ContextVar late: the
   middleware resets it before its own log call, and `call_next` returns at headers, so an SSE body
   is iterated after it.
-- **Secrets:** API key server-side only, never in the React bundle — Vite inlines anything prefixed
-  `VITE_` at build time. `.env` is gitignored before the first commit.
+- **Secrets:** API key server-side only, never in the React bundle — Vite inlines anything `VITE_`
+  prefixed at build time. `.env` is gitignored. ⚠️ **Never print Railway variable values** —
+  `railway variables` echoes secrets in full and once put the live key in a transcript; names only.
+  **Never set `ANTHROPIC_API_KEY` on Railway**: it is Cadre's, managed by the owner.
+- ⚠️ **`ANTHROPIC_BASE_URL` unset = direct Anthropic.** Set, the client routes through a gateway;
+  prod uses OpenRouter since the supplied key is theirs. One line in `client.py`; a test asserts
+  `cost.py`/`prompt.py`/`chat.py`/`loader.py` never learn it exists. **Do NOT include `/v1`** — the
+  SDK appends `/v1/messages`, so `.../api/v1` 404s everything with an HTML body. Model ids need no
+  translation. ⚠️ **`count_tokens` is 404 on the gateway** and the SDK reads `ANTHROPIC_BASE_URL`
+  *itself*, so measure the prefix against Anthropic directly.
 - ⚠️ **`.env` loads in `app/__init__.py`, never an entry point.** Below `main.py`'s imports it ran
   *after* `client.py` resolved `ANTHROPIC_MODEL`, so editing `.env` did nothing — invisible because
   the file and `DEFAULT_MODEL` agreed. Swap with the `switch-model` skill, which verifies through a
