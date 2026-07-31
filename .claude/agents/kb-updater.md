@@ -86,6 +86,16 @@ TOKEN IMPACT        current → proposed, against the 4,096 floor
   a **phone/email/address**, or an **article publication date**.
 - Never restate a fact without its caveat. If the caveat is awkward to carry, propose omitting the fact.
 - Every proposed section keeps its `disclosure` tag and, where relevant, `refusal_reason`.
+- ⚠️ **The `## Site map` section must survive a refresh, and must be REGENERATED from the new
+  scrape.** It lists every real page path, and it exists because the bot was inventing them —
+  slugifying service *names* into `/ai-strategy`, `/ai-agents` and
+  `/ai-leadership-and-facilitation`, none of which resolve. Three of the four service lines have a
+  path that differs from their title, so the paths cannot be derived and must be copied from the
+  `url:` frontmatter in `content/raw/`. Dropping or stale-ing this section silently reintroduces a
+  boundary defect: invented URLs.
+- If a page is added or removed upstream, say so explicitly — `web/src/cadre-urls.js` is generated
+  from the same frontmatter and would need regenerating too, or the chat will stop linking a real
+  page (or keep linking a dead one).
 - If the live page and the corpus disagree and you cannot tell which is right from the raw file alone,
   **say so and stop.** "I don't know which is correct" is the correct output. Guessing is how the
   Griffin Funding error happened.

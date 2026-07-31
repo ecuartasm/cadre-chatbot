@@ -263,15 +263,43 @@ def test_no_markdown_library_was_added():
 
 def test_only_assistant_text_is_formatted():
     """The user typed their own asterisks; reinterpreting them would be surprising. And an error
-    frame is server prose, not model output."""
-    src = all_source()
-    assert "m.role === 'assistant' && !m.isError ? renderInline(m.content) : m.content" in src
+    frame is server prose, not model output.
+
+    ⚠️ **Pinned to `Turn.jsx`, and this is the one place a narrow assertion is RIGHT.** The markup
+    used to live twice — in `App.jsx` and `Widget.jsx` — while this check searched *all* sources,
+    so one copy satisfying it masked the other regressing. Searching everywhere can only prove that
+    *somewhere* obeys the rule. There is now exactly one turn renderer, so naming it is precise.
+    """
+    src = code(WEB / "Turn.jsx")
+    assert "message.role === 'assistant' && !message.isError" in src
+    assert "renderInline(message.content)" in src
+    assert ": message.content" in src, "non-assistant text must bypass the renderer"
+
+
+def test_there_is_exactly_one_turn_renderer():
+    """The property the extraction exists to hold: if a component renders turns itself again, the
+    guard above silently stops covering it.
+
+    ⚠️ **I got the marker wrong twice writing this**, which is worth recording because it is the
+    exact failure mode this file keeps documenting. First I asked "which files call
+    `renderInline`" — that flagged `markdown.jsx`, which *defines* it. Then I used the streaming
+    caret — but `Playground.jsx` has one too, on a single answer.
+
+    What makes something a transcript *turn* is the **speaker label**: choosing between "You" and
+    "Cadre AI". The playground renders one unattributed answer; the chat and the widget render
+    attributed turns. That is the property — precise, rather than merely narrow.
+    """
+    others = [p.name for p in COMPONENTS if p.name != "Turn.jsx" and "'Cadre AI'" in code(p)]
+    assert not others, f"turn markup duplicated in {others}; they must render through Turn.jsx"
 
 
 def test_user_turns_align_right():
     css = code(APP_CSS)
     assert ".turn--user" in css and "text-align: right" in css
-    assert "'turn turn--user'" in all_source(), "the modifier must actually be applied"
+    # Applied in Turn.jsx from a per-surface class map, so assert the mechanism and the chat view's
+    # mapping rather than a concatenated literal that no longer exists anywhere.
+    assert "classes.turnUser" in code(WEB / "Turn.jsx"), "the modifier must actually be applied"
+    assert "turnUser: 'turn--user'" in code(APP), "the chat view must map it to the styled class"
 
 
 # ── clickable links ──────────────────────────────────────────────────────────────────

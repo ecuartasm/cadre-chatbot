@@ -105,10 +105,15 @@ def test_the_widget_reuses_the_shared_conversation_engine():
 
 def test_the_widget_renders_assistant_text_through_the_shared_renderer():
     """Otherwise links, bold and the refusal-marker handling behave differently in the widget than
-    on the full page — the same prose formatted two ways."""
+    on the full page — the same prose formatted two ways.
+
+    The turn markup itself now lives in `Turn.jsx`, shared with the chat view, because two copies
+    meant a rule could regress in one while the other kept the suite green. So the widget must
+    *delegate* rather than render turns itself."""
     src = code(WIDGET)
-    assert "renderInline" in src
-    assert "m.role === 'assistant' && !m.isError ? renderInline(m.content) : m.content" in src
+    assert "Turn" in src, "the widget must render turns through the shared component"
+    assert "renderInline" not in src, "the widget must not format prose itself — Turn.jsx does"
+    assert "renderInline(message.content)" in code(WEB / "Turn.jsx")
 
 
 def test_there_is_exactly_one_sse_parser_in_the_codebase():
@@ -157,7 +162,11 @@ def test_the_panel_survives_the_ios_keyboard():
 
 
 def test_reduced_motion_is_respected():
-    assert "prefers-reduced-motion" in code(WIDGET)
+    """Smooth-scrolling a streaming transcript is continuous motion for as long as the answer
+    takes — exactly what the setting exists to suppress. Shared by all three transcript views via
+    `useScrollToEnd`, so it cannot be present in one and forgotten in another."""
+    assert "prefers-reduced-motion" in code(WEB / "useScrollToEnd.js")
+    assert "useScrollToEnd" in code(WIDGET), "the widget must use the shared hook"
 
 
 # ── build wiring ─────────────────────────────────────────────────────────────────────

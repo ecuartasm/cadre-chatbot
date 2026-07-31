@@ -1,6 +1,6 @@
 ---
 name: edit-system-prompt
-description: Use when changing app/llm/prompt.py — the persona, grounding rule, boundary rules, refusal marker, conversion behavior, or format section. A prompt edit touches five files and has a silent failure mode below the 4,096-token cache floor. Also use when asked to make the bot stricter, looser, or differently worded about what it will answer.
+description: Use when changing app/llm/prompt.py OR content/knowledge-base.md — the persona, grounding rule, boundary rules, refusal marker, conversion behavior, format section, or the corpus itself. Both change the cached prefix, whose size is recorded PER MODEL and fails silently below the cache floor. Also use when asked to make the bot stricter, looser, or differently worded about what it will answer.
 ---
 
 # Editing the system prompt
@@ -58,7 +58,9 @@ per-industry value propositions scenario 1 genuinely lacked, not filler.
 
 The script names these, but they are easy to half-do:
 
-1. `MEASURED_SYSTEM_TOKENS` — the constant. A test fails past 150 drift.
+1. `MEASURED_SYSTEM_TOKENS_BY_MODEL` — a dict with **an entry per model**, not one number. The
+   two tokenise the same bytes 38% apart (6,054 Haiku / 8,336 Sonnet), so a single constant is
+   silently wrong for whichever model was not measured. A test fails past 150 drift.
 2. The **history comment** above it — append a line with the new value *and why it changed*. Append,
    don't insert; the list is chronological and reads as a record of what the bot learned.
 3. The `Measured at N tokens ... M tokens of margin` figure in `build_system_blocks()`'s docstring.

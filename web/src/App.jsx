@@ -1,7 +1,9 @@
-import { useEffect, useRef } from 'react'
-
-import { renderInline } from './markdown.jsx'
+import Turn from './Turn.jsx'
 import { useChat } from './useChat.js'
+import { useScrollToEnd } from './useScrollToEnd.js'
+
+// Class names differ between the two surfaces; the turn's behaviour does not. See Turn.jsx.
+const CLASSES = { turn: 'turn', turnUser: 'turn--user', speaker: 'speaker' }
 
 /**
  * The full-page chat view.
@@ -16,12 +18,7 @@ import { useChat } from './useChat.js'
  */
 export default function App() {
   const { messages, input, setInput, send, streaming, firstTokenMs } = useChat()
-  const endRef = useRef(null)
-
-  useEffect(() => {
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    endRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' })
-  }, [messages, streaming])
+  const endRef = useScrollToEnd([messages, streaming])
 
   return (
     <div className="chat">
@@ -37,17 +34,13 @@ export default function App() {
       <div className="transcript" role="log" aria-live="polite" aria-label="Conversation">
         {messages.length === 0 && <p className="empty">No messages yet.</p>}
         {messages.map((m, i) => (
-          <p className={m.role === 'user' ? 'turn turn--user' : 'turn'} key={i}>
-            <span className="speaker">{m.role === 'user' ? 'You' : 'Cadre AI'}</span>
-            <span className={m.isError ? 'message message--error' : 'message'}>
-              {/* The user's own text is rendered literally — they typed it, and interpreting
-                  their asterisks would be surprising. Only assistant prose is formatted. */}
-              {m.role === 'assistant' && !m.isError ? renderInline(m.content) : m.content}
-              {streaming && i === messages.length - 1 && m.role === 'assistant' && (
-                <span className="caret">▍</span>
-              )}
-            </span>
-          </p>
+          <Turn
+            key={i}
+            message={m}
+            isLast={i === messages.length - 1}
+            streaming={streaming}
+            classes={CLASSES}
+          />
         ))}
         <div ref={endRef} />
       </div>

@@ -29,7 +29,7 @@ export const URL_RE = /(https?:\/\/[^\s<>()[\]"']+|\/[a-z0-9][a-z0-9-]*(?:\/[a-z
 // A URL at the end of a sentence — "…see /contact." — must not carry the full stop into the href.
 // Without this the lookup misses and the link silently does not render, which is the single most
 // common way a naive linkifier fails.
-export const TRAILING = /[.,;:!?]+$/
+const TRAILING = /[.,;:!?]+$/
 
 /** True if `piece` is worth attempting to resolve. */
 export function looksLikeLink(piece) {

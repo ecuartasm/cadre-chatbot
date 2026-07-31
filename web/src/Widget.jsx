@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { renderInline } from './markdown.jsx'
+import Turn from './Turn.jsx'
 import { useChat } from './useChat.js'
+import { useScrollToEnd } from './useScrollToEnd.js'
+
+const CLASSES = { turn: 'wg-turn', turnUser: 'wg-turn--user', speaker: 'wg-who' }
 
 /**
  * The support bot as a floating launcher that opens into a chat panel.
@@ -31,7 +34,7 @@ export default function Widget() {
   const launcherRef = useRef(null)
   const panelRef = useRef(null)
   const inputRef = useRef(null)
-  const endRef = useRef(null)
+  const endRef = useScrollToEnd([messages, streaming, open])
 
   // Focus in on open, back to the launcher on close. `wasOpen` avoids stealing focus on first
   // mount, when the panel has never been open and the user may be reading the page.
@@ -50,12 +53,6 @@ export default function Widget() {
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [open])
-
-  useEffect(() => {
-    if (!open) return
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    endRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' })
-  }, [messages, streaming, open])
 
   return (
     <div className="wg">
@@ -86,17 +83,13 @@ export default function Widget() {
               </p>
             )}
             {messages.map((m, i) => (
-              <p className={m.role === 'user' ? 'wg-turn wg-turn--user' : 'wg-turn'} key={i}>
-                <span className="wg-who">{m.role === 'user' ? 'You' : 'Cadre AI'}</span>
-                <span className={m.isError ? 'message message--error' : 'message'}>
-                  {/* Same rule as the full page: only assistant prose is formatted. The user
-                      typed their own asterisks. */}
-                  {m.role === 'assistant' && !m.isError ? renderInline(m.content) : m.content}
-                  {streaming && i === messages.length - 1 && m.role === 'assistant' && (
-                    <span className="caret">▍</span>
-                  )}
-                </span>
-              </p>
+              <Turn
+                key={i}
+                message={m}
+                isLast={i === messages.length - 1}
+                streaming={streaming}
+                classes={CLASSES}
+              />
             ))}
             <div ref={endRef} />
           </div>

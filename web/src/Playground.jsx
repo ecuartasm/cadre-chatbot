@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 
 import { readSseFrames } from './sse.js'
+import { useScrollToEnd } from './useScrollToEnd.js'
 import { renderInline } from './markdown.jsx'
 
 /**
@@ -25,12 +26,7 @@ export default function Playground({ config }) {
   const [answer, setAnswer] = useState('')
   const [meta, setMeta] = useState(null)
   const [running, setRunning] = useState(false)
-  const endRef = useRef(null)
-
-  useEffect(() => {
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    endRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' })
-  }, [answer, meta])
+  const endRef = useScrollToEnd([answer, meta])
 
   async function run(e) {
     e.preventDefault()

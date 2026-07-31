@@ -41,7 +41,7 @@ def main() -> int:
     print(f"SYSTEM_PROMPT_VERSION  : {SYSTEM_PROMPT_VERSION}\n")
 
     # Every model, not just the active one. The two tokenise the same prompt very differently
-    # (5,383 vs 7,415 — a 38% gap), so measuring only the current one leaves the other silently
+    # (6,054 vs 8,336 — a 38% gap), so measuring only the current one leaves the other silently
     # stale and its floor test asserting a number that no longer describes anything.
     for mid, spec in MODELS.items():
         live = client.messages.count_tokens(
