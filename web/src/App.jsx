@@ -108,7 +108,7 @@ export default function App() {
   }
 
   return (
-    <main className="shell">
+    <div className="chat">
       <header className="header">
         <h1 className="title">Cadre AI — Support</h1>
         <p className="subtitle">
@@ -156,6 +156,6 @@ export default function App() {
         Answers come only from Cadre&rsquo;s public site. Anything else routes to{' '}
         <a href="https://www.cadreai.com/contact">cadreai.com/contact</a>.
       </p>
-    </main>
+    </div>
   )
 }

@@ -204,3 +204,41 @@ def test_done_frame_carries_status_and_refusal_reason(fake_stream):
     assert payload["status"] == "ok"
     assert payload["refusal_reason"] is None
     assert "usage" in payload and "request_id" in payload
+
+
+def test_no_endpoint_returns_the_system_prompt_text():
+    """plan.md §9.2. Serving the prompt would publish the `[[refusal:…]]` syntax — which a user
+    message could then try to inject to fake or suppress a refusal, corrupting the field this bot is
+    judged on — plus the exact wording of every boundary rule.
+
+    Asserted by hitting every GET route rather than by grepping the source, because "we didn't add
+    an endpoint" is an absence and this needs to be a guarantee. A future well-meaning change that
+    dumps config would fail here.
+    """
+    from app.llm.prompt import build_system_blocks
+
+    prompt = build_system_blocks()[0]["text"]
+    # Distinctive fragments: a boundary rule, the marker syntax, and a corpus line.
+    fingerprints = ["[[refusal:", "Hard rules you must never break", "NEGATIVE KNOWLEDGE"]
+    for f in fingerprints:
+        assert f in prompt, f"fingerprint {f!r} is stale — update this test with the prompt"
+
+    # From the OpenAPI schema, not `app.routes` — sub-router paths are nested there and the naive
+    # walk silently returned only the four top-level ones, which would have made this pass while
+    # testing almost nothing.
+    schema = app.openapi()["paths"]
+    routes = [p for p, ops in schema.items() if "get" in ops and "{" not in p]
+    assert "/api/config" in routes and "/health" in routes, f"unexpected route set: {routes}"
+
+    for path in routes:
+        body = client.get(path).text
+        for f in fingerprints:
+            assert f not in body, f"{path} leaks the system prompt (matched {f!r})"
+
+
+def test_config_reports_prompt_size_but_not_content():
+    r = client.get("/api/config")
+    p = r.json()["prompt"]
+    assert p["tokens"] > p["cache_floor_tokens"], "the prefix must clear the cache floor"
+    assert p["margin_over_floor"] == p["tokens"] - p["cache_floor_tokens"]
+    assert "text" not in p and "sections" not in p

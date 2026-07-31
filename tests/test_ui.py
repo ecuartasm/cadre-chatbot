@@ -12,15 +12,22 @@ are verified by hand and recorded in the phase report.
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
 import pytest
 
 WEB = Path(__file__).parent.parent / "web" / "src"
-APP = WEB / "App.jsx"
 TOKENS = WEB / "tokens.css"
 APP_CSS = WEB / "app.css"
+
+# Every component, discovered rather than listed. The Phase 9 audit found seven checks here
+# hardcoded to App.jsx: adding Playground.jsx would have left them passing while covering nothing —
+# a guard that silently narrows is worse than one that fails, because it still reports green.
+COMPONENTS = sorted(WEB.glob("*.jsx"))
+STYLED = COMPONENTS + [APP_CSS]
+APP = WEB / "App.jsx"  # the chat view specifically, for the multi-turn assertions
 
 # Any hex literal that is not black or white. Black/white are allowed nowhere but tokens.css either,
 # but they are what the rule is *about*, so failures name the real problem rather than a near-miss.
@@ -45,16 +52,22 @@ def test_the_stylesheets_are_actually_imported():
     assert "./app.css" in main
 
 
-def test_no_inline_styles_in_the_component():
+@pytest.mark.parametrize("path", COMPONENTS, ids=lambda p: p.name)
+def test_no_inline_styles_in_any_component(path: Path):
     """`style={{…}}` is CSS-in-JS by another name, which CLAUDE.md rules out in favour of plain CSS
-    with custom properties."""
-    assert "style={{" not in code(APP)
+    with custom properties. Parametrised over every component so a new one cannot slip the rule."""
+    assert "style={{" not in code(path)
+
+
+def test_the_component_list_is_not_empty():
+    """A glob that matches nothing turns every parametrised check above into a silent no-op."""
+    assert len(COMPONENTS) >= 3, f"expected shell, chat and playground views, found {COMPONENTS}"
 
 
 def test_no_colour_literals_outside_the_token_file():
     """A literal here is a value that cannot be restyled from one place, which is the entire point
     of the token layer."""
-    for path in (APP, APP_CSS):
+    for path in STYLED:
         found = HEX.findall(code(path))
         assert not found, f"{path.name} contains colour literals {found}; put them in tokens.css"
 
@@ -130,3 +143,46 @@ def test_woff2_mimetype_is_registered_explicitly():
     import app.main  # noqa: F401 — importing registers the type
 
     assert mimetypes.guess_type("x.woff2")[0] == "font/woff2"
+
+
+# ── Phase 9: the playground ──────────────────────────────────────────────────────────
+
+PLAYGROUND = WEB / "Playground.jsx"
+SHELL = WEB / "Shell.jsx"
+
+
+def test_the_playground_does_not_recompute_cost_in_js():
+    """`cost.py` exists so there is exactly one implementation of the four-rate cache maths. A
+    second one in the browser would drift from it the first time a rate changed."""
+    src = code(PLAYGROUND)
+    assert "cost_usd" in src, "the playground should read the server's figure"
+    for rate in ("1.25", "0.1", "5.00", "1000000", "1_000_000"):
+        assert rate not in src, f"{rate} looks like a price rate reimplemented in JS"
+
+
+def test_the_playground_never_renders_prompt_text():
+    """The decision from plan.md §9.2. Metadata only — publishing the prompt would publish the
+    refusal-marker syntax, which a user message could then inject to fake or suppress a refusal."""
+    src = code(PLAYGROUND)
+    assert "[[refusal" not in src
+    for leaked in ("prompt.text", "promptText", "system_prompt\"", "'system_prompt'"):
+        assert leaked not in src, f"{leaked} suggests the prompt body is being rendered"
+    # It should show size, not content.
+    assert "prompt?.tokens" in src or "prompt.tokens" in src
+
+
+def test_no_router_dependency_was_added():
+    """Two tabs do not justify a routing library; CLAUDE.md rules out the same instinct for
+    component kits. Conditional rendering is the whole mechanism."""
+    pkg = json.loads((WEB.parent / "package.json").read_text(encoding="utf-8"))
+    deps = {**pkg.get("dependencies", {}), **pkg.get("devDependencies", {})}
+    assert not any("router" in d for d in deps), f"a router crept in: {sorted(deps)}"
+
+
+def test_both_views_stay_mounted_when_switching_tabs():
+    """Unmounting would discard a conversation or a playground result on every tab click. Hidden
+    with CSS instead — asserted because it is invisible in review and obvious in use."""
+    src = code(SHELL)
+    assert "view--hidden" in src
+    assert "<App />" in src and "<Playground" in src
+    assert ".map(" not in src, "views should be rendered directly, not conditionally unmounted"

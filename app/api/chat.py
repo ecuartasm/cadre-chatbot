@@ -24,7 +24,11 @@ from pydantic import BaseModel, Field, field_validator
 from app.knowledge.loader import REFUSAL_REASONS
 from app.knowledge.loader import info as corpus_info
 from app.llm.client import model_info, stream_reply
-from app.llm.prompt import SYSTEM_PROMPT_VERSION
+from app.llm.prompt import (
+    CACHE_FLOOR_TOKENS,
+    MEASURED_SYSTEM_TOKENS,
+    SYSTEM_PROMPT_VERSION,
+)
 from app.obs import limits, spend
 from app.obs.cost import InteractionLog, Usage, cost_usd
 from app.obs.log import get_logger, request_id_var
@@ -93,6 +97,12 @@ async def _event_stream(messages: list[dict], request_id: str) -> AsyncIterator[
     stop_reason: str | None = None
     refusal_reason: str | None = None
     err: str | None = None
+    # Computed ONCE at `done` and reused by the `finally`. The frame is emitted before the finally
+    # runs, so computing them separately would give the playground and the log two different
+    # latencies for the same turn — small enough to look like rounding, real enough to be a
+    # discrepancy, and whoever spots it stops trusting both numbers rather than one.
+    latency_ms: int | None = None
+    turn_cost: float | None = None
 
     try:
         async for chunk in stream_reply(messages):
@@ -120,10 +130,17 @@ async def _event_stream(messages: list[dict], request_id: str) -> AsyncIterator[
                     cache_creation_input_tokens=chunk.usage.cache_creation_input_tokens,
                     cache_read_input_tokens=chunk.usage.cache_read_input_tokens,
                 )
+                latency_ms = int((time.monotonic() - started) * 1000)
+                turn_cost = cost_usd(usage, str(model_info()["model"]))
                 yield _sse(
                     {
                         "type": "done",
                         "stop_reason": chunk.stop_reason,
+                        # On the wire for the playground. `cost_usd` comes from cost.py rather than
+                        # being recomputed in JS — a second implementation of the four-rate maths is
+                        # exactly what that module exists to prevent.
+                        "latency_ms": latency_ms,
+                        "cost_usd": turn_cost,
                         # On the wire, not only in the log. The golden set runs against the
                         # DEPLOYED url, where interactions.jsonl sits on a volume it cannot read —
                         # so without these the eval could only match substrings in prose, which is
@@ -152,7 +169,11 @@ async def _event_stream(messages: list[dict], request_id: str) -> AsyncIterator[
             model=str(model),
             system_prompt_version=SYSTEM_PROMPT_VERSION,
             user_message_redacted=redact(messages[-1]["content"]) if messages else "",
-            latency_ms=int((time.monotonic() - started) * 1000),
+            # Reuses the value computed at `done` so the frame and the log agree exactly. Falls
+            # back for turns that never reached `done` — errors and abandoned streams.
+            latency_ms=latency_ms if latency_ms is not None else int(
+                (time.monotonic() - started) * 1000
+            ),
             status=status,
             usage=usage,
             assistant_chars=chars,
@@ -168,7 +189,7 @@ async def _event_stream(messages: list[dict], request_id: str) -> AsyncIterator[
         # a money ledger — and it is bounded by the rate limiter. It is greppable rather than
         # invisible: `status="abandoned"` with `cost_usd=0` and a non-zero `assistant_chars` is
         # exactly this case.
-        await spend.record(cost_usd(usage, str(model)))
+        await spend.record(turn_cost if turn_cost is not None else cost_usd(usage, str(model)))
         log.info("interaction", extra={"stream": "interactions", **entry.as_dict()})
 
 
@@ -223,11 +244,27 @@ async def chat(req: ChatRequest, request: Request) -> StreamingResponse:
 
 @router.get("/config")
 async def config() -> dict[str, object]:
-    """What the running instance is actually configured with. No secrets."""
+    """What the running instance is actually configured with. No secrets.
+
+    `prompt` is metadata ONLY — size and version, never the text. Serving it would publish the
+    `[[refusal:…]]` syntax, which a user message could then try to inject to fake or suppress a
+    refusal, corrupting the field this bot is judged on — plus the wording of every boundary rule,
+    which is what you would want in order to find the seam between two of them.
+    Deliberately not a per-section breakdown either: naming a `marker` section reveals that the
+    mechanism exists, for decoration rather than value.
+    """
     return {
         **model_info(),
         "max_turns": MAX_TURNS,
         "max_message_chars": MAX_MESSAGE_CHARS,
         "corpus": corpus_info(),
         "rate_limit_per_minute": limits.RATE_LIMIT_PER_MINUTE,
+        "prompt": {
+            "version": SYSTEM_PROMPT_VERSION,
+            "tokens": MEASURED_SYSTEM_TOKENS,
+            "cache_floor_tokens": CACHE_FLOOR_TOKENS,
+            # The number that explains why a cached turn is cheap and how close the prefix sits to
+            # the cliff. Below the floor, caching stops silently at ~6x the per-turn cost.
+            "margin_over_floor": MEASURED_SYSTEM_TOKENS - CACHE_FLOOR_TOKENS,
+        },
     }

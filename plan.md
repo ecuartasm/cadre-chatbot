@@ -1051,9 +1051,11 @@ The playground invites inference on a public URL. It inherits the existing contr
 client, $5/day cap checked before the model call — and **must not be given a way around either**. No
 separate endpoint that skips the guards, no client-supplied `max_tokens`.
 
-Worth stating the risk plainly: making inference *more inviting* on a public URL is a deliberate
-choice. If the tab is meant only for the review conversation, gating it behind `ENVIRONMENT` is the
-cheaper answer.
+**DECISION: public.** Making inference more inviting on a public URL is a deliberate choice, taken
+because the guards are real and demonstrated — 20/min per client, a $5/day cap checked before the
+model call, both verified in production — and because the tab's value is letting a reviewer see what
+a turn actually costs without someone driving for them. The alternative (gate behind `ENVIRONMENT`)
+stays available if the spend profile ever changes.
 
 #### 9.6 Suggested shape
 

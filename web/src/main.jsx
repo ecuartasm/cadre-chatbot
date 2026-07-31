@@ -6,6 +6,6 @@ import { createRoot } from 'react-dom/client'
 import './tokens.css'
 import './app.css'
 
-import App from './App.jsx'
+import Shell from './Shell.jsx'
 
-createRoot(document.getElementById('root')).render(<App />)
+createRoot(document.getElementById('root')).render(<Shell />)
