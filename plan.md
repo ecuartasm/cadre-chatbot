@@ -963,6 +963,7 @@ of the observability work rather than a new feature bolted on.
 | **`cost_usd`** | server-side only → `interactions.jsonl` | **add to the `done` frame** |
 | **total latency** | server-side only (`latency_ms`) | **add to the `done` frame** |
 | model, prompt version, corpus sha | `/api/config` | display in a header strip |
+| **prefix token count + floor margin** | **nowhere** — `/api/config` has `corpus.chars` (15,842) but not the assembled 5,050 | **extend `/api/config`** |
 | session aggregates | `/api/stats` | optional panel |
 | the assembled system prompt | nowhere on the wire | **stays that way — see 9.2** |
 
@@ -997,20 +998,29 @@ not *secrecy* but *attack surface*:
 the cached prefix per turn (5.2× cost) and invalidates the entry every other visitor shares. And it
 should be gated behind `ENVIRONMENT == "development"` rather than public.
 
-**What the playground shows instead:** prompt *metadata*, which carries the observability value with
-none of the exposure — version, total token count, and the per-section character breakdown
-(`_PERSONA` 208 · `_FACTS` 15,842 · `_BOUNDARY` 1,766 · …). That tells you the prefix is 5,050 tokens
-and where the weight sits, without publishing a single rule.
+**What the playground shows instead:** prompt *metadata* — version, **total** prefix tokens, and the
+margin over the 4,096 floor. Served by extending `/api/config`, which already returns the version and
+the corpus sha.
+
+**Not a per-section breakdown**, though an earlier draft of this section proposed one. Listing
+`marker 1,185` tells a reader a marker mechanism exists — not its syntax, but its existence, which is
+the same category of hint this decision just closed, for decoration rather than value. The numbers
+that actually matter to someone reading a turn's cost are the total and the margin: they explain why
+a cached turn is cheap and how close the prefix sits to the cliff.
 
 #### 9.3 Constraints inherited from earlier phases
 
 These are not suggestions; each is guarded by a test that will fail.
 
 - **Phase 5:** no inline `style={{…}}` · every value from `tokens.css` · **all text black**, errors the
-  one exception · `dvh`/`svh` shell · input ≥16px · usable at 375px. `tests/test_ui.py` asserts these
-  against `App.jsx` — **if the playground moves into a new component, widen the test's file list or the
-  guard silently stops covering the UI.** That is the exact "configured but not running" failure this
-  project keeps finding.
+  one exception · `dvh`/`svh` shell · input ≥16px · usable at 375px.
+
+  ⚠️ **`tests/test_ui.py` is a mix, and the distinction matters.** Checked rather than assumed:
+  `test_text_is_black_and_no_grey_body_text` **globs** `web/src`, so a new component is covered
+  automatically. **Seven others are hardcoded to `App.jsx`/`app.css`** — including the inline-style
+  check and the colour-literal check. Put the playground in a new file and those seven silently stop
+  covering the UI while still passing. Widen them, or the Phase 5 guards quietly narrow to a file the
+  playground no longer lives in.
 - **Phase 4:** `send()` accumulates only visible delta text and posts the whole array back. The
   playground may keep its own transcript, but it must not change how the chat tab stores history —
   storing raw frames would put the refusal marker back into it.
@@ -1050,10 +1060,8 @@ cheaper answer.
 │  latency  first token 812 ms · total 1,949 ms                 │
 │  request  f80c1cda46ef431f                                    │
 ├───────────────────────────────────────────────────────────────┤
-│  Prompt v1.3 · 5,050 tokens · 954 over the 4,096 floor         │
-│  persona 208 · corpus 15,842 · boundary 1,766 · marker 1,185   │
-│  conversion 594 · format 120 · grounding 242   (characters)    │
-│                        — text not served, see 9.2 —            │
+│  prompt v1.3 · 5,050 tokens · 954 over the 4,096 floor         │
+│  corpus 96cd2fffaf6d          — text not served, see 9.2 —     │
 └───────────────────────────────────────────────────────────────┘
 ```
 
@@ -1063,11 +1071,11 @@ than the raw counters do.
 
 **Exit:** the tab runs inference and shows tokens, cost, latency, cache write/read, status,
 `refusal_reason` and `request_id` per turn · `cost_usd` and `latency_ms` on the `done` frame, computed
-by `cost.py` and not reimplemented in JS · prompt **metadata** shown (version, token count, section
-sizes) and **no endpoint returns the prompt text** — asserted by a test, since "we didn't add it" is
-not a guarantee · `tests/test_ui.py` covers the new component rather than silently only covering the
-old one · the marker leaks nowhere · the golden set still passes 14/14 against the deployed URL. Then
-the checklist.
+by `cost.py` and not reimplemented in JS · prompt **metadata** shown (version, total tokens, floor
+margin) via an extended `/api/config` · **no endpoint returns the prompt text or the marker syntax** —
+asserted by a test, since "we didn't add it" is not a guarantee · **the seven hardcoded checks in
+`tests/test_ui.py` widened** to cover the new component · the marker leaks nowhere · the golden set
+still passes 14/14 against the deployed URL. Then the checklist.
 
 **Not in scope:** **serving or displaying the prompt text** · editing it · switching models ·
 overriding `max_tokens` or sampling · any endpoint that bypasses the rate limiter or the spend cap ·

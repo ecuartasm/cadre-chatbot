@@ -97,8 +97,7 @@ immune to network failure, and avoids a name collision (an unrelated NY fintech 
 | **Client size / Cadre's own headcount or revenue** | No band, minimum, or figure is published; revenue numbers were founder projections. Answer by *segment and industry fit*, never by number → `/contact`. |
 | **Case-study client names** | ✅ Resolved Phase 1: **all eight are "Non-Disclosed Company"** — clients anonymised, individuals named. "Griffin Funding" was fabricated upstream and appears nowhere. Metrics are *reported past results*, never guarantees. |
 | **Engagement duration** | The "45-day AI Transformation Intensive" is *one named offering*, never a general answer to "how long does this take" → `/contact`. |
-| **Contact details** | Never invent a phone number, email, or street address. `/contact` only. |
-| **Security specifics** | Never assert a certification (SOC 2), retention policy, or contractual guarantee. Give the general public answer and route specifics → `/contact`. |
+| **Contact details / security specifics** | Never invent a phone, email or address; never assert a certification (SOC 2), retention policy or contractual guarantee. General public answer, specifics → `/contact`. |
 | **Third-party stats** | The site's "90% of AI initiatives fail" / "72% adoption" figures are imprecise. Attribute or omit. |
 
 **Every refusal routes to `https://www.cadreai.com/contact`, phrased as helpful routing — never as
@@ -181,7 +180,8 @@ two prompts are otherwise indistinguishable, which makes any before/after compar
   component kit, no router. **All text is black** (`#0b0707`, Cadre's own); de-emphasise with size and
   weight, never grey. Errors keep `--cadre-red` — the one documented exception. Shell in **`dvh`/`svh`,
   not `vh`** (iOS keyboard), input **≥16px** (less triggers iOS auto-zoom), **fonts self-hosted**.
-  ⚠️ `tests/test_ui.py` scans a file list — add new components to it or the guard silently narrows.
+  ⚠️ Only the grey check in `tests/test_ui.py` globs `web/src`; **seven others are hardcoded to
+  `App.jsx`/`app.css`** and silently stop covering the UI if a component moves. Widen them.
 
 ---
 
