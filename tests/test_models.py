@@ -94,3 +94,50 @@ def test_the_spend_cap_estimate_tracks_the_model():
     from app.obs.spend import worst_case_turn_usd
 
     assert worst_case_turn_usd() > 0
+
+
+def test_the_switch_model_skill_states_the_registry_numbers():
+    """Docs drift from constants, and this build has shipped it twice — a history entry carrying a
+    stale value, and a docstring claiming 4,954 while the constant said 5,050.
+
+    `switch-model/SKILL.md` is a decision aid: someone reads its floor and cost table and chooses a
+    model from it. A stale figure there is worse than none, so the numbers it states are pinned to
+    the registry rather than trusted to stay in sync.
+    """
+    from pathlib import Path
+
+    from app.llm.prompt import MEASURED_SYSTEM_TOKENS_BY_MODEL
+
+    skill = (
+        Path(__file__).parent.parent / ".claude" / "skills" / "switch-model" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+
+    for mid, spec in MODELS.items():
+        assert mid in skill, f"{mid} is in the registry but not mentioned in the skill"
+        assert f"{spec.cache_floor:,}" in skill, (
+            f"{mid}'s cache floor is {spec.cache_floor:,} but the skill does not say so"
+        )
+        assert f"{MEASURED_SYSTEM_TOKENS_BY_MODEL[mid]:,}" in skill, (
+            f"{mid}'s measured prefix changed; update the skill's table"
+        )
+
+
+def test_the_switch_model_script_never_prints_the_env_file():
+    """It edits the file holding the API key. Reading a value out is fine; echoing the file is not.
+
+    Checked as source rather than behaviour because the failure is a leak — there is no safe way to
+    trigger it once to observe it.
+    """
+    from pathlib import Path
+
+    src = (
+        Path(__file__).parent.parent / ".claude" / "skills" / "switch-model" / "switch-model.py"
+    ).read_text(encoding="utf-8")
+
+    assert "ANTHROPIC_API_KEY" not in src.split("env.setdefault")[0], (
+        "the script must not read the API key except to satisfy a subprocess import"
+    )
+    assert "print(original" not in src and "print(ENV_PATH.read_text" not in src
+    # Atomic write, because a crash mid-write would truncate the file holding the key.
+    assert ".replace(ENV_PATH)" in src
+    assert "shutil.copy2" in src, "must back the file up before rewriting it"

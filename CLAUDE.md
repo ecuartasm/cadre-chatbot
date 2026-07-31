@@ -64,6 +64,7 @@ cd web && npm run build          # → served by FastAPI in prod (npm run dev fo
 pytest && ruff check .
 python scripts/scrape.py         # rebuild content/raw/ (writes content_sha256 into frontmatter)
 python eval/golden.py --url <deployed> [--suite lite|full]   # lite=14/~$0.03, full=71/~$0.15
+uv run python .claude/skills/switch-model/switch-model.py [<model-id>]  # swap + prove it took
 uv run python mcp_server/server.py       # MCP tools over the deployed bot's observability
 railway up
 ```
@@ -159,7 +160,8 @@ two prompts are otherwise indistinguishable, which makes any before/after compar
   `VITE_` at build time. `.env` is gitignored before the first commit.
 - ⚠️ **`.env` loads in `app/__init__.py`, never an entry point.** Below `main.py`'s imports it ran
   *after* `client.py` resolved `ANTHROPIC_MODEL`, so editing `.env` did nothing — invisible because
-  the file and `DEFAULT_MODEL` agreed. Test a switch with a value ≠ the default, via the user's path.
+  the file and `DEFAULT_MODEL` agreed. Swap with the `switch-model` skill, which verifies through a
+  subprocess with the shell variable removed; a shell variable bypasses `.env` and hides this.
 - Styling: **plain CSS with custom properties** (`tokens.css` holds every literal). No CSS-in-JS, no
   component kit, no router. **All text is black** (`#0b0707`, Cadre's own); de-emphasise with size and
   weight, never grey. Errors keep `--cadre-red` — the one documented exception. Shell in **`dvh`/`svh`,
