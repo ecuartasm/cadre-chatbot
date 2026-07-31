@@ -28,6 +28,28 @@ reintroduce exactly that path.
 - **`/log-decision`** — append a decision to `docs/ai-workflow-log.md` while it is fresh. Reconstructing
   "what I changed and why" at the end of a phase defeats the purpose of keeping the log.
 
+## Skills — `skills/`
+
+Commands are typed; **skills are chosen by the model** from their `description`, and are directories
+that can bundle scripts. Both here hold detail that could not live in `CLAUDE.md`, which sits at 249
+of its own 250-line cap — that is the gap skills fill: expensive to always-load, loaded when relevant.
+
+- **`edit-system-prompt`** — invoked when `app/llm/prompt.py` changes. A prompt edit touches five
+  files and can silently disable caching below the 4,096-token floor, at ~6x per-turn cost forever.
+  Bundles `measure-prefix.py`, which reports the live token count, the drift against what is recorded,
+  the margin, and exactly which of the four places holding that number still need updating. It reports
+  rather than edits — those values should change deliberately. Written because the bookkeeping was
+  done by hand six times and botched twice.
+
+- **`verify-in-production`** — invoked after a deploy, or when something passed locally and is about
+  to be called done. Bundles `check.sh`, which reads deployed identity (prompt version, corpus sha),
+  sink writability, spend, and behaviour aggregates. Carries the deploy traps that cost real time:
+  "Failed to stream build logs" is not a failed deploy, a 502 mid-swap is normal, and
+  `railway deployment list` is the source of truth for DEPLOYING vs SUCCESS.
+
+  It also states what "verified" may and may not claim — "rotation ran" is not "7-day retention
+  works"; "the CSS contains `100dvh`" is not "it works on an iPhone".
+
 ## Hook — `hooks/guard-commit.sh` (PreToolUse on Bash)
 
 Guards `git commit` against two things a **permission rule cannot see**, because permissions match on
