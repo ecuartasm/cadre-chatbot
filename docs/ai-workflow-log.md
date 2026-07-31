@@ -432,3 +432,45 @@ under its own cap), `.claude/hooks/guard-commit.sh` wired as a PreToolUse hook, 
 **Verified:** rotation and rollover both confirmed on the deployed instance · 142 tests · ruff clean ·
 `CLAUDE.md` 249 lines · hook blocks a staged secret, a staged `.env`, and a 2 MB file, and passes
 through a clean commit, a non-commit command, and being run outside a git repo.
+
+---
+
+## Phase 9 — Playground tab
+
+**Asked for:** a second tab that runs inference and shows tokens, cost, latency and everything else
+relevant, with the system prompt in a scrollable window at the end.
+
+**Produced:** `web/src/Shell.jsx`, `Playground.jsx`, `markdown.jsx`, an extended `/api/config`,
+`cost_usd` + `latency_ms` on the `done` frame, and 9 new test functions.
+
+**Changed:**
+1. **The prompt window was cut, and the reasoning reversed my own.** I first asked whether the prompt
+   was *secret* — it is not — and called exposure defensible. The right question is what publishing it
+   *enables*: the `[[refusal:…]]` syntax becomes injectable through a user message to fake or suppress
+   a refusal, corrupting the field this bot is judged on, and the exact wording of every rule is a map
+   of the seams between them. Replaced with metadata; a later pass also dropped the per-section
+   breakdown, since naming a `marker` section is a smaller version of the same leak.
+2. **Almost nothing needed instrumenting.** The `done` frame already carried the token counters,
+   status and refusal_reason; `App.jsx` had been timing first-token since Phase 0c and discarding it.
+   Only `cost_usd`, `latency_ms` and the prompt metadata were genuinely missing.
+3. **Computed latency and cost once rather than once per consumer.** The `done` frame is emitted
+   before the `finally` that logs, so the obvious implementation reports 1,948 ms on screen beside
+   1,949 ms in the log for the same turn. Verified they now agree exactly: 2278 / 0.006826 in both.
+4. **Corrected a claim I had put in two documents.** "`tests/test_ui.py` scans a file list" was wrong
+   — it is a mix, one check globs and seven were hardcoded to `App.jsx`. Put the playground in a new
+   file and those seven would have kept passing while covering nothing. All seven now parametrise over
+   every component, with an assertion that the glob is non-empty.
+5. **Two follow-on changes from the requester using the running app:** user turns align right, and
+   inline markdown renders as real formatting — the model writes `**bold**` constantly despite
+   `_FORMAT` asking for plain prose, and we were showing the asterisks. Written as a 44-line tokeniser
+   returning React elements, never HTML: `dangerouslySetInnerHTML` would be an injection vector for
+   model output. Frontend dependencies remain two.
+6. **Two more instances of asserting a substring where I meant a property**, bringing the build total
+   to six. One of them *passed* while testing almost nothing — the prompt-leak test walked
+   `app.routes` and missed every sub-router path.
+
+**Verified:** 155 tests · ruff clean · frame and log agree exactly on latency and cost · no GET route
+returns the prompt text, checked against the OpenAPI schema · no rate constants in the component · the
+golden set 14/14 against production at the time of the Phase 9 deploy. **Not verified:** visual
+sign-off, and the §5 changes have never been deployed — Railway is disconnected by request and the
+deploy is deferred to the end.
