@@ -940,11 +940,129 @@ Written down deliberately rather than discovered later.
 
 ---
 
+### Phase 9 — Playground tab · 75–95 min
+
+A second tab beside the chat: run inference and see what it actually cost. Tokens, money, latency,
+cache behaviour, and the refusal classification — per turn, as it happens — plus the assembled system
+prompt in a scrollable read-only window at the bottom.
+
+**Why it earns a phase.** Every number this needs is already produced; none of it is visible. The
+`done` frame carries all four token counters, `status`, `refusal_reason`, `stop_reason` and
+`request_id`; the UI already times first-token and throws the value away. The gap is presentation, not
+instrumentation — which is what makes it cheap, and also what makes it a genuinely good demonstration
+of the observability work rather than a new feature bolted on.
+
+#### 9.1 What already exists vs what has to be added
+
+| Datum | Today | Action |
+|---|---|---|
+| input / output / cache-write / cache-read tokens | on the `done` frame | display |
+| `total_prompt_tokens` | on the `done` frame | display |
+| `status`, `refusal_reason`, `stop_reason`, `request_id` | on the `done` frame | display |
+| time to first token | measured in `App.jsx`, discarded | display |
+| **`cost_usd`** | server-side only → `interactions.jsonl` | **add to the `done` frame** |
+| **total latency** | server-side only (`latency_ms`) | **add to the `done` frame** |
+| model, prompt version, corpus sha | `/api/config` | display in a header strip |
+| session aggregates | `/api/stats` | optional panel |
+| **the assembled system prompt** | nowhere on the wire | **new `GET /api/prompt`** |
+
+Adding `cost_usd` and `latency_ms` to `done` is the honest fix. The alternative — shipping the rate
+table to the browser and recomputing — would create a second implementation of the four-rate maths,
+and the whole point of `cost.py` is that there is exactly one.
+
+#### 9.2 ⚠️ The system prompt is DISPLAYED, never EDITABLE
+
+The window is read-only, and this is a hard constraint rather than a scoping choice.
+
+The prompt is a **byte-exact cached prefix**. An editable box would change it per turn, so every turn
+would miss the cache: **$0.00120 → $0.00627, a 5.2× increase**, and it would also invalidate the entry
+for every *other* visitor sharing that prefix. A "playground" that quietly multiplies the cost of the
+production bot is not a playground.
+
+Display, by contrast, is free and genuinely useful: it makes the boundary **inspectable**. A reviewer
+can read the exact rules the bot is operating under, next to a live refusal those rules produced.
+
+**Decision to make explicitly, not by default:** `GET /api/prompt` exposes ~20 KB publicly. Its
+contents are the curated corpus (derived entirely from public pages), the boundary rules, and the
+refusal vocabulary — nothing secret, and knowing "do not state pricing" does not help anyone get a
+price. The transparency is arguably the point. But decide it rather than inherit it, and if the answer
+is no, gate the whole tab behind `ENVIRONMENT == "development"`.
+
+#### 9.3 Constraints inherited from earlier phases
+
+These are not suggestions; each is guarded by a test that will fail.
+
+- **Phase 5:** no inline `style={{…}}` · every value from `tokens.css` · **all text black**, errors the
+  one exception · `dvh`/`svh` shell · input ≥16px · usable at 375px. `tests/test_ui.py` asserts these
+  against `App.jsx` — **if the playground moves into a new component, widen the test's file list or the
+  guard silently stops covering the UI.** That is the exact "configured but not running" failure this
+  project keeps finding.
+- **Phase 4:** `send()` accumulates only visible delta text and posts the whole array back. The
+  playground may keep its own transcript, but it must not change how the chat tab stores history —
+  storing raw frames would put the refusal marker back into it.
+- **Phase 3:** the marker must never reach the UI. A playground showing "raw" output is the obvious
+  place to leak it; if raw output is shown at all, it must be the **stripped** text plus the parsed
+  `refusal_reason`, never the unstripped stream.
+
+#### 9.4 Routing
+
+No router today, and two tabs do not justify one. Use component state and conditional rendering.
+`CLAUDE.md` rules out component kits; adding `react-router` for two tabs is the same instinct.
+
+#### 9.5 It is a public spend surface
+
+The playground invites inference on a public URL. It inherits the existing controls — 20 req/min per
+client, $5/day cap checked before the model call — and **must not be given a way around either**. No
+separate endpoint that skips the guards, no client-supplied `max_tokens`.
+
+Worth stating the risk plainly: making inference *more inviting* on a public URL is a deliberate
+choice. If the tab is meant only for the review conversation, gating it behind `ENVIRONMENT` is the
+cheaper answer.
+
+#### 9.6 Suggested shape
+
+```
+┌─ Chat ─┬─ Playground ─────────────────────────────────────────┐
+│  model claude-haiku-4-5 · prompt v1.3 · corpus 96cd2fffaf6d   │
+├───────────────────────────────────────────────────────────────┤
+│  [ ask something                                    ] [Send]  │
+├───────────────────────────────────────────────────────────────┤
+│  answer …                                                     │
+├───────────────────────────────────────────────────────────────┤
+│  status refused · reason no-public-pricing · end_turn         │
+│  tokens   in 23 · out 100 · cache write 0 · read 4,864        │
+│           total prompt read 4,887                             │
+│  cost     $0.0010094                                          │
+│  latency  first token 812 ms · total 1,949 ms                 │
+│  request  f80c1cda46ef431f                                    │
+├───────────────────────────────────────────────────────────────┤
+│  System prompt (read-only, 5,050 tokens)          ▲ scroll ▼  │
+│  ┌───────────────────────────────────────────────────────┐    │
+│  │ You are the customer-support assistant for Cadre AI…  │    │
+│  └───────────────────────────────────────────────────────┘    │
+└───────────────────────────────────────────────────────────────┘
+```
+
+Label the cache line so the numbers are readable rather than merely present: a **write** is the first
+turn of a 5-minute TTL window and costs ~5× a read — showing that once teaches more about this system
+than the raw counters do.
+
+**Exit:** the tab runs inference and shows tokens, cost, latency, cache write/read, status,
+`refusal_reason` and `request_id` per turn · `cost_usd` and `latency_ms` on the `done` frame, computed
+by `cost.py` and not reimplemented in JS · the prompt renders **read-only** and scrollable, with its
+token count · `tests/test_ui.py` covers the new component rather than silently only covering the old
+one · the marker leaks nowhere · the golden set still passes 14/14 against the deployed URL. Then the
+checklist.
+
+**Not in scope:** editing the prompt · switching models · overriding `max_tokens` or sampling · any
+endpoint that bypasses the rate limiter or the spend cap · saving or replaying sessions.
+
+---
+
 ## Open items — as of 2026-07-30 17:30 UTC
 
-All eight phases are complete and deployed. Four things remain, none of them blocking a working
-system. Recorded here rather than left in a conversation, since this file is where the open items
-live.
+All eight phases are complete and deployed. Recorded here rather than left in a conversation, since
+this file is where the open items live.
 
 | # | Item | Status |
 |---|---|---|
@@ -952,8 +1070,9 @@ live.
 | 2 | **Phase 5 visual sign-off** — hierarchy, spacing, 375px | ⏳ **Open** — needs a human's eyes; I cannot see the rendered page |
 | 3 | **Tighten `CLAUDE.md`** | ✅ Done — refreshed and cut back under its own 250-line cap (249) |
 | 4 | **Add a guardrail hook to `.claude/`** | ✅ Done — `hooks/guard-commit.sh`, verified against six paths |
+| 5 | **Phase 9 — playground tab** | 📋 **Planned, not started** — see the phase above |
 
-**One item remains, and it is the one I cannot do.**
+**One item still needs a human; the other is queued work.**
 
 **On (1):** exact commands and the meaning of each outcome are in `reports/phase-8-report.md` §4.
 Baseline to compare against: **136 turns · $0.186995 · `spend.date: 2026-07-30`**. If `/api/stats`

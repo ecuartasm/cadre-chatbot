@@ -54,16 +54,15 @@ scripts/scrape.py      The curl-based scraper. Must stay re-runnable.
 eval/golden.py         14-case golden set. See "Verification".
 mcp_server/            Read-only MCP tools over /api/stats. NOT in the runtime image (dev group)
 web/src/tokens.css     Design tokens — the ONLY file allowed a literal colour, size, or font
-web/src/app.css        Component styles; every value a var(). No inline styles in App.jsx
+web/src/app.css        Component styles; every value a var(). No inline styles in any component
 web/src/fonts/         Self-hosted Inter + Inter Tight woff2 (no CDN — see "Conventions")
 logs/                  JSONL, on the Railway volume. Gitignored.
-docs/ai-workflow-log.md  Per-phase record of what Claude produced vs. what changed.
-reports/phase-<n>-report.md  The detailed narrative per phase.
+docs/  reports/        Per-phase workflow log; per-phase narrative + TECHNICAL-REPORT.md
 ```
 
 **Five seams, each independently replaceable:** UI → API → LLM client → knowledge layer, plus
 observability cutting across. Swapping the model, editing a fact, restyling the UI, or changing where
-logs go must each touch exactly one. If a change touches two, the seam is wrong.
+logs go must touch exactly one. If a change touches two, the seam is wrong.
 
 ---
 
@@ -105,8 +104,8 @@ immune to network failure, and avoids a name collision (an unrelated NY fintech 
 **Every refusal routes to `https://www.cadreai.com/contact`, phrased as helpful routing — never as
 failure. One exception:** off-topic requests get a one-line decline naming what the bot *can* help
 with and **deliberately no `/contact` link** — that person is not a lead. Still tagged `off-topic`:
-the tag records what you did, independent of where you send them. Broken twice in Phase 3, which is
-why it has its own golden-set case.
+the tag records what you did, independent of where you send them. Broken twice in Phase 3, hence its
+own golden-set case.
 
 ### Curation rules
 
@@ -140,6 +139,10 @@ held constant at 4,948 across a 3-turn conversation while the prompt grew 4,964 
 silently** — no error, `cache_creation_input_tokens` just stays `0`. Floors are non-monotonic (512 on
 Opus 5, 1,024 on Sonnet 5, 4,096 on Haiku 4.5), so this is not guessable. **Measure it.**
 
+⚠️ **The prompt may be DISPLAYED but never made editable.** The playground shows it read-only. An
+editable box changes the prefix per turn — 5.2× cost, and it invalidates the entry every other
+visitor shares. Display is free and makes the boundary inspectable; editing is a different product.
+
 **Measured, and re-measured after every prompt edit** (`MEASURED_SYSTEM_TOKENS` in `prompt.py`, guarded
 by a live `count_tokens` test):
 
@@ -158,11 +161,11 @@ two prompts are otherwise indistinguishable, which makes any before/after compar
 
 ## Conventions
 
-- **`app/llm/client.py` is the only file that imports `anthropic`.** That's what makes the model
+- **`app/llm/client.py` is the only file that imports `anthropic`** — that's what makes the model
   swappable.
-- **Cost math needs four rates, not two:** input, output, cache-write (1.25× input), cache-read
-  (0.1× input). Two-rate math is wrong the moment caching engages and makes the spend cap throttle on
-  money never spent. An unpriced model **raises** rather than defaulting.
+- **Cost math needs four rates, not two:** input, output, cache-write (1.25×), cache-read (0.1×).
+  Two-rate math is wrong the moment caching engages and makes the spend cap throttle on money never
+  spent. An unpriced model **raises** rather than defaulting. Compute it in `cost.py`, nowhere else.
 - **Log `user_message_redacted`, never the raw message.** **Retention: 7 days**, enforced by the
   rotation config — the config *is* the policy. The bot discusses Cadre's data-security posture; its
   own logging must not be the counterexample. (Rotation verified 2026-07-31; 7-day *deletion* needs
@@ -174,11 +177,11 @@ two prompts are otherwise indistinguishable, which makes any before/after compar
   returns when headers are ready, so an SSE body is iterated after the reset.
 - **Secrets:** API key server-side only. Never in the React bundle — Vite inlines anything prefixed
   `VITE_` at build time. `.env` is gitignored before the first commit.
-- Styling: **plain CSS with custom properties** (`tokens.css` is the only file allowed a literal). No
-  CSS-in-JS, no component kit. **All text is black** (`#0b0707`, Cadre's own); de-emphasise with size
-  and weight, never a lighter grey. Errors keep `--cadre-red` — the one documented exception.
-- Chat UI: shell in **`dvh`/`svh`, not `vh`** (iOS keyboard covers `vh`), input `font-size: 16px`
-  minimum (less triggers iOS focus auto-zoom). **Fonts are self-hosted** — one deployable, no CDN.
+- Styling: **plain CSS with custom properties** (`tokens.css` holds every literal). No CSS-in-JS, no
+  component kit, no router. **All text is black** (`#0b0707`, Cadre's own); de-emphasise with size and
+  weight, never grey. Errors keep `--cadre-red` — the one documented exception. Shell in **`dvh`/`svh`,
+  not `vh`** (iOS keyboard), input **≥16px** (less triggers iOS auto-zoom), **fonts self-hosted**.
+  ⚠️ `tests/test_ui.py` scans a file list — add new components to it or the guard silently narrows.
 
 ---
 
@@ -193,11 +196,10 @@ two prompts are otherwise indistinguishable, which makes any before/after compar
   the one refusal that gets *no* `/contact` link, so edits aimed elsewhere break it silently.
 - **Absence beats presence.** "Contains no dollar figure" survives rewording; "contains the word
   'individually'" breaks on the first synonym. An invented URL is tested by membership in the pages
-  `content/raw/` proves were fetched — not by matching `/contact`, which fails correct citations.
+  `content/raw/` proves were fetched, not by matching `/contact`, which fails correct citations.
 - ⚠️ **Four times here a test asserted a substring where it meant a property** — `grey` matched its own
-  explanatory comment, the URL check flagged a correct link then a bolded one, `open(` matched
-  `urlopen(`, and the rotation check couldn't tell "broken" from "not yet triggered". **Name the
-  property first, then find the expression for it.**
+  comment, the URL check flagged a correct link then a bolded one, `open(` matched `urlopen(`, and the
+  rotation check couldn't tell "broken" from "not yet triggered". **Name the property first.**
 - Unit-test the knowledge layer, integration-test the API error path, assert
   `cache_read_input_tokens > 0` across two identical-prefix requests. **Don't test the LLM itself.**
 - **Local green is weaker evidence than it feels.** Six defects here were found *only* on the deployed
@@ -208,7 +210,7 @@ two prompts are otherwise indistinguishable, which makes any before/after compar
 
 ## Out of scope — deliberately
 
-Don't build these. Each is a recorded decision, with the trigger that would reverse it in `plan.md`.
+Recorded decisions; the trigger that would reverse each is in `plan.md`.
 
 **RAG / vector DB** (~4k stable tokens — prompt-stuffing plus a cached prefix is cheaper *and*
 simpler; the eval confirmed every refusal is a designed boundary, not a coverage gap) · **auth /
@@ -232,11 +234,9 @@ taught** → commit → push → redeploy and verify the live URL. `plan.md` has
 - **The forward-review step earns its place.** It caught the Dockerfile never copying `content/` (a bot
   with no knowledge base, all local tests green), that Phase 4's stated scope was already built, and
   that MCP was absent from the brief entirely. Ask what this phase taught that changes the next one.
-
 - **Two records per phase.** `docs/ai-workflow-log.md` is a terse four-field entry (asked for /
-  produced / changed / verified); `reports/phase-<n>-report.md` is the narrative. Write both from the
-  phase's own evidence — measured values, real hashes, actual counts — never from recollection, and
-  write them *as you go*.
+  produced / changed / verified); `reports/phase-<n>-report.md` is the narrative. Write both *as you
+  go*, from the phase's own evidence — measured values, real hashes — never from recollection.
 - **Push at the end of every phase.** Work that exists only locally isn't safe, and the repo *is* the
   deliverable. Don't batch phases into one push.
 - ✅ **The gate is closed** — Phase 6 answered all six scenarios on the deployed URL, which gated MCP
