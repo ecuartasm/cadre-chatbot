@@ -18,6 +18,8 @@ web/dist
 analysis
 docs
 logs
+.localdata
+reports
 tests
 CLAUDE.md
 plan.md
