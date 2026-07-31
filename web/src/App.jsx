@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { renderInline } from './markdown.jsx'
+
 /**
  * Reads the SSE body with fetch + ReadableStream rather than EventSource, because EventSource
  * cannot issue a POST and the conversation has to go in the request body.
@@ -121,10 +123,12 @@ export default function App() {
       <div className="transcript" role="log" aria-live="polite" aria-label="Conversation">
         {messages.length === 0 && <p className="empty">No messages yet.</p>}
         {messages.map((m, i) => (
-          <p className="turn" key={i}>
+          <p className={m.role === 'user' ? 'turn turn--user' : 'turn'} key={i}>
             <span className="speaker">{m.role === 'user' ? 'You' : 'Cadre AI'}</span>
             <span className={m.isError ? 'message message--error' : 'message'}>
-              {m.content}
+              {/* The user's own text is rendered literally — they typed it, and interpreting
+                  their asterisks would be surprising. Only assistant prose is formatted. */}
+              {m.role === 'assistant' && !m.isError ? renderInline(m.content) : m.content}
               {streaming && i === messages.length - 1 && m.role === 'assistant' && (
                 <span className="caret">▍</span>
               )}

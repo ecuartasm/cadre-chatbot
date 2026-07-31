@@ -186,3 +186,43 @@ def test_both_views_stay_mounted_when_switching_tabs():
     assert "view--hidden" in src
     assert "<App />" in src and "<Playground" in src
     assert ".map(" not in src, "views should be rendered directly, not conditionally unmounted"
+
+
+# ── inline markdown rendering ────────────────────────────────────────────────────────
+
+MARKDOWN = WEB / "markdown.jsx"
+
+
+def test_markdown_renders_elements_never_html():
+    """The string being rendered is model output, and model output is shaped by whatever the user
+    typed. `dangerouslySetInnerHTML` is the obvious shortcut and it is an injection vector; a
+    tokeniser emitting React elements cannot inject markup because React escapes text nodes."""
+    src = code(MARKDOWN)
+    assert "dangerouslySetInnerHTML" not in src
+    assert "innerHTML" not in src
+    # `<strong key=` not `<strong>` — the elements carry keys. Matching the narrower literal
+    # would fail on correct code, which is the mistake this file has already made twice.
+    for tag in ("<strong key=", "<em key=", "<code key="):
+        assert tag in src, f"expected {tag} — the renderer must emit elements, not strings"
+
+
+def test_no_markdown_library_was_added():
+    """CLAUDE.md keeps the frontend at two dependencies. `react-markdown` pulls a remark/unified
+    tree — a permanently-owned dependency to render bold text."""
+    pkg = json.loads((WEB.parent / "package.json").read_text(encoding="utf-8"))
+    deps = {**pkg.get("dependencies", {}), **pkg.get("devDependencies", {})}
+    for banned in ("markdown", "remark", "unified", "marked", "showdown"):
+        assert not any(banned in d for d in deps), f"a markdown library crept in: {sorted(deps)}"
+
+
+def test_only_assistant_text_is_formatted():
+    """The user typed their own asterisks; reinterpreting them would be surprising. And an error
+    frame is server prose, not model output."""
+    app = code(APP)
+    assert "m.role === 'assistant' && !m.isError ? renderInline(m.content) : m.content" in app
+
+
+def test_user_turns_align_right():
+    css = code(APP_CSS)
+    assert ".turn--user" in css and "text-align: right" in css
+    assert "'turn turn--user'" in code(APP), "the modifier must actually be applied"

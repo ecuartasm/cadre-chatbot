@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { renderInline } from './markdown.jsx'
+
 /**
  * The playground tab: run one turn and see what it actually cost.
  *
@@ -123,7 +125,7 @@ export default function Playground({ config }) {
       <div className="transcript" role="log" aria-live="polite" aria-label="Playground answer">
         {!answer && !running && <p className="empty">Run a turn to see its tokens, cost and latency.</p>}
         <p className={meta?.error ? 'message message--error' : 'message'}>
-          {answer}
+          {meta?.error ? answer : renderInline(answer)}
           {running && <span className="caret">▍</span>}
         </p>
         <div ref={endRef} />

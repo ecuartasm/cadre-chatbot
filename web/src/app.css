@@ -316,3 +316,39 @@ body {
     margin-top: var(--space-3);
   }
 }
+
+/* --- User turns align right ---------------------------------------------------- */
+
+/* The speaker label is a block, so aligning the whole turn moves the label with the text —
+   which is the point: "You" should sit over its own message, not over the assistant's. */
+.turn--user {
+  text-align: right;
+}
+
+/* `pre-wrap` preserves the model's line breaks, but on a right-aligned block it would also
+   preserve leading spaces as visible indentation. The user's own text is short and typed, so
+   collapse whitespace here rather than inherit the assistant's rule. */
+.turn--user .message {
+  white-space: pre-line;
+}
+
+/* --- Inline formatting from the model ------------------------------------------ */
+
+/* The model writes **bold** constantly despite _FORMAT asking for plain prose. Rendering it
+   literally showed the asterisks; markdown.jsx turns them into elements. Weight only — no colour,
+   because all text is black (see tokens.css). */
+.message strong {
+  font-weight: var(--weight-semibold);
+}
+
+.message em {
+  font-style: italic;
+}
+
+.message code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  padding: 0 var(--space-1);
+  background: var(--cadre-sand-dark);
+  border-radius: var(--radius-sm);
+}
