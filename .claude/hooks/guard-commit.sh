@@ -18,11 +18,24 @@
 set -uo pipefail
 
 INPUT=$(cat)
+
+# FAST PATH, and it matters: this is a PreToolUse hook on `Bash`, so it runs before *every* shell
+# command — ls, pytest, git status, all of them — while only guarding commits. Parsing JSON with
+# python first cost ~23ms a call; a plain string test costs ~2.6ms. Over a working session that is
+# seconds of pure overhead on a check that fires for roughly one call in fifty.
+#
+# A substring test on the raw JSON can match things that are not commits (a file whose contents
+# mention "git commit", say). That is fine — this is a filter, not the decision. Anything it lets
+# through still goes to the real parse below, which exits 0 if the command is not a commit.
+case "$INPUT" in
+  *"git commit"*) ;;
+  *) exit 0 ;;
+esac
+
 CMD=$(printf '%s' "$INPUT" | python3 -c 'import json,sys
 try: print(json.load(sys.stdin).get("tool_input",{}).get("command",""))
 except Exception: print("")' 2>/dev/null)
 
-# Only guard commits. Everything else passes straight through.
 case "$CMD" in
   *"git commit"*) ;;
   *) exit 0 ;;

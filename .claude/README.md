@@ -43,7 +43,26 @@ no git, unparseable input all pass through, because a guard that breaks the work
 wrong is worse than no guard.
 
 Verified against six paths: non-commit passthrough · clean commit allowed · staged secret blocked ·
-staged `.env` blocked · 2 MB file blocked · outside a repo, allowed.
+staged `.env` blocked · large file blocked · outside a repo, allowed.
+
+**It runs before every Bash call**, because a hook `matcher` matches on tool *name* — the
+`Bash(git commit:*)` syntax available to `permissions` is not available here, so "is this a commit?"
+has to be decided inside the script. That makes its cost on non-commits load-bearing: a plain string
+test on the raw stdin runs first at ~2.6 ms, and `python3` is spawned to parse the JSON properly only
+once `git commit` appears anywhere in it. Doing the parse unconditionally cost ~23 ms **per shell
+command**, which is seconds a session for a check that fires on roughly one call in fifty.
+
+**It cannot lock you out.** Every error path exits 0 — not a git repo, git missing, unparseable input.
+Even a syntax error in the script itself exits non-2, which does not block. Only a deliberate `exit 2`
+stops a commit, so the worst a broken guard does is stop guarding.
+
+⚠️ **Hooks load at session start.** Adding or editing this file does nothing until Claude Code
+restarts — verified the hard way: a commit staging a fake `sk-ant-` key went straight through in the
+session where the hook was written. *Configured* and *running* are different claims. To confirm it is
+armed, stage a throwaway file containing a fake key and attempt a commit; it should refuse.
+
+It also only sees commits **Claude** makes through the Bash tool. A commit typed in your own terminal
+bypasses it — this is a Claude Code hook, not a git hook.
 
 ## What is deliberately NOT a hook
 
