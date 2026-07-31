@@ -23,6 +23,7 @@ from pathlib import Path
 
 from fastapi import APIRouter
 
+from app.obs import spend
 from app.obs.cost import UnknownModelError, rates_for
 from app.obs.log import get_logger
 from app.obs.sink import SINK
@@ -102,6 +103,11 @@ async def stats() -> dict[str, object]:
         "available": True,
         "log_sink": SINK.mode,
         "retention_days": SINK.retention_days,
+        # ⚠️ `turns`/`cost` below are derived from `interactions.jsonl`, which the 7-day rotation
+        # deletes. `spend` is the durable record: today's total plus one archived line per
+        # completed day, which is why lifetime cost is answerable at all. The two disagree by
+        # design once a log rotates, and the spend block is the one to trust for money.
+        "spend": spend.status(),
         "turns": total,
         "by_status": dict(status_counts),
         # The number this bot is actually judged on. A refusal rate near zero on real traffic would

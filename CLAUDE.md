@@ -150,7 +150,12 @@ two prompts are otherwise indistinguishable, which makes any before/after compar
   spent. An unpriced model **raises** rather than defaulting. Compute it in `cost.py`, nowhere else.
 - **Log `user_message_redacted`, never the raw message.** **Retention: 7 days** — the rotation config
   *is* the policy. The bot discusses Cadre's data-security posture; its own logging must not be the
-  counterexample. (Rotation verified; *deletion* needs day 8.)
+  counterexample. (Rotation verified; *deletion* needs day 8.) ⚠️ **`spend-history.jsonl` is exempt
+  and must stay so** — retention is a *privacy* rule about user messages, and a date + dollar total
+  has no personal data. `spend.json` holds only today; without the archive every daily total dies at
+  the next rollover, which is what happened to 2026-07-30's. **Both rollover paths must archive:**
+  `_roll_if_new_day()` only fires in a process that outlives midnight, so every restart went through
+  `_load()`, which dropped the total in silence — `spend_day_rollover` had never once been logged.
 - **Bound conversation history server-side** — 8 turns in the Pydantic model; the array comes from
   the browser, so don't trust it.
 - **Every log line carries `request_id`** — but *carry* it, don't read the ContextVar late: the
