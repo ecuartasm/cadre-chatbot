@@ -47,9 +47,14 @@ git rev-parse --git-dir >/dev/null 2>&1 || exit 0
 FAIL=""
 
 # --- 1. Secrets in staged content -------------------------------------------------------
-# Anthropic keys, generic long tokens after an api_key-ish name, and .env itself.
+# Provider keys, generic long tokens after an api_key-ish name, and .env itself.
+#
+# ⚠️ `sk-ant-` alone is not enough. This project's PRODUCTION key is OpenRouter's (`sk-or-v1-…`),
+# supplied by the client — a guard that only knew Anthropic's prefix would have waved it straight
+# through. Covers the providers a Claude app plausibly touches; the trailing generic rule catches
+# the rest by shape.
 SECRETS=$(git diff --cached -U0 2>/dev/null | grep -nE \
-  'sk-ant-[A-Za-z0-9_-]{20,}|(api[_-]?key|secret|password|token)["'"'"']?\s*[:=]\s*["'"'"'][A-Za-z0-9_-]{24,}' \
+  'sk-ant-[A-Za-z0-9_-]{20,}|sk-or-v1-[A-Za-z0-9]{20,}|sk-proj-[A-Za-z0-9_-]{20,}|(api[_-]?key|secret|password|token)["'"'"']?\s*[:=]\s*["'"'"'][A-Za-z0-9_-]{24,}' \
   | head -5)
 if [ -n "$SECRETS" ]; then
   FAIL="${FAIL}
