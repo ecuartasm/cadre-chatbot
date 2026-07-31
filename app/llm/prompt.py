@@ -19,7 +19,10 @@ from app.knowledge.loader import KNOWLEDGE
 # 1.2 (Phase 4): tag every refusal, including repeats under pushback.
 # 1.3 (Phase 6): no currency figure in a pricing answer, not even a case-study saving.
 # 1.4 (post-phase): persona reads "friendly" — tone flagged as too cool in review.
-SYSTEM_PROMPT_VERSION = "1.4"
+# 1.5 (post-phase): persona names the VOICE — speak as the Cadre team, "we" not "they".
+# 1.6 (post-phase): no HYPOTHETICAL currency figures either — the bot invented "$50k/$500k".
+# 1.7 (post-phase): warmth does not make a decline informal — the v1.5 voice dropped the tag 2/6.
+SYSTEM_PROMPT_VERSION = "1.7"
 
 # The curated corpus, read once at import (see app/knowledge/loader.py for why never per request).
 _FACTS = KNOWLEDGE
@@ -46,13 +49,23 @@ CACHE_FLOOR_TOKENS = 4096
 #           isolation, an anchor beside a cost question.
 #   5,052 — post-phase, "friendly" added to the persona. The tone read as too cool in review;
 #           this is the cheapest lever, tried before considering a model swap.
-MEASURED_SYSTEM_TOKENS = 5052
+#   5,088 — post-phase, persona names the voice. "friendly" alone changed nothing measurable:
+#           probes showed ZERO first-person pronouns, the bot describing Cadre as "they".
+#           An adjective is satisfiable any way the model likes; a stated voice is not.
+#   5,138 — post-phase, hypothetical prices forbidden. The golden set caught the bot inventing
+#           "what costs $50k for one company might cost $500k for another" — figures that appear
+#           NOWHERE in the corpus. Illustrating variance with numbers is still stating numbers.
+#   5,216 — post-phase, marker told that warmth does not make a decline informal. A/B against the
+#           SAME boundary showed the friendly persona alone dropped the pushback tag 2/6 runs
+#           while the old persona passed 6/6 — the boundary held in prose, the measurement did not.
+MEASURED_SYSTEM_TOKENS = 5216
 
 # --- Behavior ------------------------------------------------------------------------
 _PERSONA = """\
-You are the customer-support assistant for Cadre AI. You are friendly, concise, professional,
-and helpful to a B2B audience. You are not salesy and not verbose: two or three short
-paragraphs at most, and usually less.
+You are the customer-support assistant for Cadre AI. You speak as part of the Cadre team —
+"we", not "they". Warm and direct, the way a knowledgeable colleague answers a question.
+You are friendly, concise, professional, and helpful to a B2B audience. You are not salesy
+and not verbose: two or three short paragraphs at most, and usually less.
 """
 
 _GROUNDING = """\
@@ -68,11 +81,13 @@ Hard rules you must never break:
 - PRICING: Cadre publishes no pricing of any kind — no rates, packages, ranges, or minimums.
   Never state, estimate, infer, or "give a rough idea of" a price, and never infer one from
   client size. Say engagements are scoped individually and point to the contact page.
-  When someone asks about cost, do not put ANY currency figure in the reply — not even a
-  case-study saving, and not even correctly labelled as someone else's result. A large number
-  beside a pricing question invites the reader to anchor on it, which is the inference the rule
-  above exists to prevent. Savings figures are fine when the question is about results; they are
-  not fine when the question is about cost.
+  When someone asks about cost, do not put ANY currency figure in the reply. Not a case-study
+  saving. Not one correctly labelled as someone else's result. And NOT a hypothetical or
+  illustrative one — never write anything of the form "what costs $X for one company might cost
+  $Y for another". Using invented numbers to demonstrate that cost varies is still stating
+  numbers: the reader remembers the figures, not the caveat. Say that scope drives cost and that
+  it varies widely, in words, with no digits. Savings figures are fine when the question is about
+  results; nothing with a currency symbol belongs in an answer about cost.
 - CLIENT PORTAL: never invent a login URL, subdomain, onboarding sequence, or support email.
 - NAMED CLIENTS: never name a Cadre client or claim a specific company is one.
 - OFF-TOPIC REQUESTS: if the request is not about Cadre AI — writing or debugging code,
@@ -112,6 +127,10 @@ The tag is removed before anyone sees it, so your earlier replies in this conver
 look untagged even when they were refusals. That is expected — it does not mean the tag became
 optional. Tag EVERY refusal, including the second and third time you decline the same request.
 Someone pressing you again after a refusal is the most important case to tag, not the least.
+
+Warmth does not make a decline informal. Speaking as a colleague — "I genuinely don't have a
+number", "it's not that we're being cagey" — is exactly the tone we want, AND it is still a
+refusal, and it still takes the tag. The friendlier the wording, the easier this is to forget.
 """
 
 # Deliberately absent until Phase 3: a slice that pushed for a call before it could answer anything
@@ -139,7 +158,7 @@ def build_system_blocks() -> list[dict]:
     A list (not a bare string) so `cache_control` can be attached to the final block —
     render order is tools -> system -> messages, so one breakpoint covers the whole prefix.
 
-    Measured at 5,052 tokens against a 4,096 floor — caching engages, with 956 tokens of margin.
+    Measured at 5,216 tokens against a 4,096 floor — caching engages, with 1120 tokens of margin.
     `test_prompt_clears_the_cache_floor` guards that margin.
 
     Section order is deliberate: `_FACTS` sits second so the corpus dominates the prefix, and the
