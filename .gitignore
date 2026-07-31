@@ -47,3 +47,6 @@ analysis/*.html
 # versions would just be noise.
 content/backups/*
 !content/backups/.gitkeep
+
+# Local-only run artifacts (per-model log dirs from eval runs)
+.localdata/

@@ -207,12 +207,16 @@ would need a lock, and §2.1's single worker is what makes the simple version co
 Phase 0 measured `cache_read=0`, so a two-rate table would have looked correct. Phase 1 production shows
 a **4,409-token cache write on call 1 and a 4,409-token read on call 2**:
 
-| Rate | Multiplier | Haiku 4.5 |
-|---|---|---|
-| input | 1× | $1.00 / MTok |
-| output | — | $5.00 / MTok |
-| cache **write** | 1.25× input | $1.25 / MTok |
-| cache **read** | 0.1× input | $0.10 / MTok |
+| Rate | Multiplier | Haiku 4.5 | Sonnet 5 |
+|---|---|---|---|
+| input | 1× | $1.00 / MTok | $3.00 / MTok |
+| output | — | $5.00 / MTok | $15.00 / MTok |
+| cache **write** | 1.25× input | $1.25 / MTok | $3.75 / MTok |
+| cache **read** | 0.1× input | $0.10 / MTok | $0.30 / MTok |
+
+Both tables live in `app/llm/models.py` (added post-Phase 9, when the switch was first exercised) —
+`cost.py` imports them rather than keeping a copy. Every Sonnet rate is exactly 3×, so the same $5
+daily cap buys **667 turns on Haiku against 166 on Sonnet**.
 
 Measured: **$0.00119/turn cached · $0.00516 uncached · $0.00551 on a cache-write turn.**
 

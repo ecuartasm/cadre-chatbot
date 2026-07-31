@@ -12,6 +12,7 @@ below is deliberately separate from it: the corpus says what is *known*, this fi
 from __future__ import annotations
 
 from app.knowledge.loader import KNOWLEDGE
+from app.llm.models import active
 
 # Bump on EVERY change to the assembled text. Log lines from two different prompts are otherwise
 # indistinguishable, which makes any before/after comparison in interactions.jsonl impossible.
@@ -28,42 +29,41 @@ SYSTEM_PROMPT_VERSION = "1.8"
 # The curated corpus, read once at import (see app/knowledge/loader.py for why never per request).
 _FACTS = KNOWLEDGE
 
-# Haiku 4.5's minimum cacheable prefix. Below this, prompt caching fails SILENTLY — no error,
-# `cache_creation_input_tokens` just stays 0 forever at ~10x the per-turn input cost. Non-monotonic
-# across models (512 on Opus 5, 1,024 on Sonnet 5), so it cannot be inferred from the tier.
-CACHE_FLOOR_TOKENS = 4096
+# The active model's minimum cacheable prefix, from app/llm/models.py. Below it, caching fails
+# SILENTLY — no error, the cache counters just stay 0 while every turn pays full input price.
+# NON-MONOTONIC across models (4,096 on Haiku 4.5, 1,024 on Sonnet 5), so it is data rather than a
+# constant: hardcoding Haiku's number meant the floor test kept passing after a model swap while
+# checking nothing real.
+CACHE_FLOOR_TOKENS = active().cache_floor
 
-# Measured with count_tokens. Asserted by tests so a future edit that trims the corpus below the
-# floor fails loudly instead of quietly tripling cost.
-#   4,415 — Phase 1 (2026-07-29), corpus + persona + grounding + boundary + format
-#   4,715 — Phase 3 (2026-07-30), + refusal marker + conversion behavior
+# Measured with count_tokens, PER MODEL — the two tokenise the same prompt very differently (5,383
+# vs 7,415, a 38% gap), so a single number would be silently wrong for whichever model was not
+# measured. Asserted by tests so an edit that trims below the floor fails loudly rather than
+# quietly costing ~6x per turn.
+#
+# History (Haiku 4.5, the default):
+#   4,415 — Phase 1, corpus + persona + grounding + boundary + format
+#   4,715 — Phase 3, + refusal marker + conversion behavior
 #   4,813 — Phase 3, off-topic promoted to a hard rule after a live probe answered a coding
-#           question. The old wording was a sub-clause about the contact link, so the model
-#           obeyed the "no link" half and answered anyway.
-#   4,870 — Phase 3, off-topic told explicitly to emit the refusal tag. It then declined
-#           correctly but logged status="ok", because "not routing to /contact" read as
-#           "not a refusal".
-#   4,954 — Phase 4, told to keep tagging when its own transcript looks untagged.
-#           A pushback turn refused in prose but logged status="ok".
-#   5,050 — Phase 6, pricing answers may carry no currency figure at all. The golden set caught a
-#           caveated case-study saving ("$420,000 saved") inside a pricing refusal — correct in
-#           isolation, an anchor beside a cost question.
-#   5,052 — post-phase, "friendly" added to the persona. The tone read as too cool in review;
-#           this is the cheapest lever, tried before considering a model swap.
-#   5,088 — post-phase, persona names the voice. "friendly" alone changed nothing measurable:
-#           probes showed ZERO first-person pronouns, the bot describing Cadre as "they".
-#           An adjective is satisfiable any way the model likes; a stated voice is not.
-#   5,138 — post-phase, hypothetical prices forbidden. The golden set caught the bot inventing
-#           "what costs $50k for one company might cost $500k for another" — figures that appear
-#           NOWHERE in the corpus. Illustrating variance with numbers is still stating numbers.
-#   5,216 — post-phase, marker told that warmth does not make a decline informal. A/B against the
-#           SAME boundary showed the friendly persona alone dropped the pushback tag 2/6 runs
-#           while the old persona passed 6/6 — the boundary held in prose, the measurement did not.
-#   5,383 — post-phase, instructions are non-disclosable. The new `full` eval suite caught the
-#           bot listing its ENTIRE refusal vocabulary and naming the NEGATIVE KNOWLEDGE table
-#           when asked "what reason codes do you use" — defeating the whole reason the prompt
-#           text is never served, since it hands the syntax over conversationally instead.
-MEASURED_SYSTEM_TOKENS = 5383
+#           question; the old wording was a sub-clause about the contact link
+#   4,870 — Phase 3, off-topic told explicitly to emit the tag — it had declined correctly but
+#           logged status="ok", because "not routing to /contact" read as "not a refusal"
+#   4,954 — Phase 4, keep tagging when its own transcript looks untagged
+#   5,050 — Phase 6, no currency figure in a pricing answer; the eval caught a caveated
+#           case-study saving ("$420,000 saved") sitting beside a cost question
+#   5,052 — post-phase, "friendly" added. Changed nothing measurable
+#   5,088 — post-phase, the voice named. An adjective is satisfiable however the model likes
+#   5,138 — post-phase, hypothetical prices forbidden; the bot invented "$50k/$500k"
+#   5,216 — post-phase, warmth does not make a decline informal (dropped the tag 2/6)
+#   5,383 — post-phase, instructions non-disclosable; it recited its whole refusal vocabulary
+MEASURED_SYSTEM_TOKENS_BY_MODEL: dict[str, int] = {
+    "claude-haiku-4-5": 5383,
+    "claude-sonnet-5": 7415,
+}
+
+# The active model's figure. Kept as a module-level name because it reads as one number at every
+# call site — the per-model dict above is the source of truth.
+MEASURED_SYSTEM_TOKENS = MEASURED_SYSTEM_TOKENS_BY_MODEL[active().id]
 
 # --- Behavior ------------------------------------------------------------------------
 _PERSONA = """\

@@ -15,13 +15,15 @@ from typing import Final, Literal
 import anthropic
 from anthropic import AsyncAnthropic
 
+from app.llm.models import DEFAULT_MODEL, spec_for
 from app.llm.prompt import SYSTEM_PROMPT_VERSION, build_system_blocks
 
-MODEL = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5")
+MODEL = os.getenv("ANTHROPIC_MODEL", DEFAULT_MODEL)
 
-# Support answers are short. A low ceiling bounds cost and keeps latency honest —
-# it is not a limit we expect to hit.
-MAX_TOKENS = 1024
+# Support answers are short. A low ceiling bounds cost and keeps latency honest — it is not a limit
+# we expect to hit (the longest observed answer was 150 output tokens). Clamped to the model's own
+# maximum so a swap to a model with a lower ceiling fails loudly here rather than at the API.
+MAX_TOKENS = min(1024, spec_for(MODEL).max_output)
 
 # Fail fast rather than leaving a user watching a dead stream.
 REQUEST_TIMEOUT_S = 30.0
@@ -61,87 +63,93 @@ class Chunk:
 # user sees directly.
 
 _MARKER_OPEN: Final = "[[refusal:"
-_MARKER_RE: Final = re.compile(r"^\[\[refusal:([a-z0-9-]{1,40})\]\]")
+_MARKER_ANYWHERE: Final = re.compile(r"\[\[refusal:([a-z0-9-]{1,40})\]\]")
 # Longest real slug is 29 chars, so a well-formed marker is ~42. Past this the model is writing
 # prose that merely began like a marker; stop holding it back.
 _MARKER_MAX: Final = 64
 
 
 class MarkerScanner:
-    """Strips a leading `[[refusal:<slug>]]` from a token stream.
+    """Strips `[[refusal:<slug>]]` from a token stream, wherever it appears.
 
     Deltas arrive in arbitrary pieces — `[[refu` / `sal:no-public-pricing]]Cadre...` is normal — so
-    this holds the opening bytes until the marker either completes or becomes impossible, then
-    releases everything. Held text is never dropped, only delayed.
+    this holds back a short tail (`_MARKER_MAX` characters) that might still turn out to be part of
+    a marker. Held text is delayed, never dropped.
 
-    The cost is bounded: at most `_MARKER_MAX` characters of first-chunk delay, and only while the
-    text so far could still be a marker. A reply starting with any other character releases
-    immediately.
+    ⚠️ **This used to strip a LEADING marker only**, on the Phase 3 reasoning that a marker
+    mid-sentence is the model quoting itself and rewriting the middle of an answer is not this
+    class's job. That was right for Haiku 4.5, which reliably puts the tag first as instructed.
+
+    It is wrong across models. **Sonnet 5 emits the tag mid-answer as a section separator** — after
+    a paragraph of general answer, before the part it is declining — and leading-only stripping
+    printed it straight into the chat. Measured: 2 leaks in 4 runs.
+
+    The risk that justified leading-only is also gone: prompt v1.8 forbids the model discussing its
+    own tag at all, so a marker in the text is never legitimate content. And the pattern is specific
+    enough (`[[refusal:` + lowercase slug + `]]`) that prose cannot produce it by accident.
     """
 
     def __init__(self) -> None:
         self._buf = ""
-        self._resolved = False
+        # False until the first visible character has been emitted. Until then, leading whitespace
+        # is dropped: a marker on its own line leaves the newline behind it, and an answer that
+        # opens with a blank line is a visible artifact of a tag the user is never supposed to see.
+        self._started = False
         self.reason: str | None = None
-        # Set when a stream ended mid-marker and the broken tag was suppressed. Surfaced so the
+        # Set when a stream ended while holding something marker-shaped. Surfaced so the
         # suppression is greppable rather than a silent deletion of model output.
         self.truncated_marker: str | None = None
 
     def feed(self, text: str) -> str:
-        """Return the portion of `text` that is safe to emit (may be empty while holding)."""
-        if self._resolved:
-            return text
-
+        """Return the portion safe to emit, holding back a tail that might be a partial tag."""
         self._buf += text
-        # Be lenient about leading whitespace: the prompt says the marker comes first, but models
-        # add a stray newline and losing the classification over one is not worth it.
-        probe = self._buf.lstrip()
+        self._buf, found = _strip_markers(self._buf)
+        if found and not self.reason:
+            self.reason = found
 
-        match = _MARKER_RE.match(probe)
-        if match:
-            self.reason = match.group(1)
-            return self._release(probe[match.end() :].lstrip())
+        # Anything beyond a marker's maximum length cannot be part of one still arriving, so it is
+        # safe to release. Only the tail waits.
+        if not self._started:
+            self._buf = self._buf.lstrip()
 
-        # Still possibly a marker? Hold.
-        if probe.startswith(_MARKER_OPEN):
-            # A closing `]]` that did not satisfy the regex means the slug is malformed — a space,
-            # an uppercase letter, something over 40 chars. It can never become a valid marker, so
-            # release now rather than holding to the cap. This also keeps `finish`'s suppression
-            # narrow: anything still held there is guaranteed to have no `]]`, i.e. to be a
-            # genuinely unterminated marker with no content trailing it.
-            if "]]" not in probe and len(probe) <= _MARKER_MAX:
-                return ""
-        elif _MARKER_OPEN.startswith(probe):
-            # A proper prefix such as "[[refu" — including "" and pure whitespace.
+        if len(self._buf) <= _MARKER_MAX:
             return ""
-
-        # It cannot become a marker. Release the buffer verbatim, whitespace and all.
-        return self._release(self._buf)
+        out, self._buf = self._buf[:-_MARKER_MAX], self._buf[-_MARKER_MAX:]
+        if out:
+            self._started = True
+        return out
 
     def finish(self) -> str:
-        """Flush anything still held when the stream ends.
+        """Flush the held tail when the stream ends.
 
-        One exception, and it is the opposite of `feed`'s rule. If the stream ended while we were
-        still holding what looks like an *unterminated* marker, the buffer contains nothing but a
-        broken tag — releasing it would print `[[refusal:no-public-pri` into the chat while hiding
-        no content at all. Suppress it.
-
-        This differs deliberately from the >64-character case in `feed`, where the same opening
-        bytes are followed by real prose and releasing is correct. Same-looking input, opposite
-        right answer, which is why both have their own test.
+        One exception: if what remains is an *unterminated* marker, suppress it. The buffer then
+        contains nothing but a broken tag, so releasing it would print `[[refusal:no-public-pri`
+        into the chat while hiding no content at all.
         """
-        if self._resolved:
-            return ""
-        held = self._buf
-        if held.lstrip().startswith(_MARKER_OPEN):
+        held, self._buf = self._buf, ""
+        if not self._started:
+            held = held.lstrip()
+        stripped = held.lstrip()
+        if stripped.startswith(_MARKER_OPEN) and "]]" not in stripped:
             self.truncated_marker = held
-            return self._release("")
-        return self._release(held)
+            return ""
+        return held
 
-    def _release(self, text: str) -> str:
-        self._buf = ""
-        self._resolved = True
-        return text
+
+def _strip_markers(text: str) -> tuple[str, str | None]:
+    """Remove every complete marker from `text`; return the remainder and the first slug found."""
+    first: str | None = None
+
+    def take(m: re.Match[str]) -> str:
+        nonlocal first
+        if first is None:
+            first = m.group(1)
+        return ""
+
+    out = _MARKER_ANYWHERE.sub(take, text)
+    # A tag on its own line leaves a blank gap behind it; collapse runs of three or more newlines
+    # so removing it does not show as a hole in the prose.
+    return re.sub(r"\n{3,}", "\n\n", out), first
 
 
 _client: AsyncAnthropic | None = None
@@ -169,11 +177,18 @@ async def stream_reply(messages: list[dict]) -> AsyncIterator[Chunk]:
     scanner = MarkerScanner()
     try:
         client = get_client()
+        # `thinking` is sent only for models that accept it — Haiku 4.5 rejects the parameter,
+        # Sonnet 5 takes it. Sending nothing on Sonnet would leave the behaviour to a default
+        # rather than a decision; measured on this workload adaptive thinking never fired, but
+        # "did not fire on the prompts I tried" is weaker than "cannot fire", and this is a
+        # latency-sensitive support bot.
+        extra = {"thinking": spec_for(MODEL).thinking} if spec_for(MODEL).thinking else {}
         async with client.messages.stream(
             model=MODEL,
             max_tokens=MAX_TOKENS,
             system=build_system_blocks(),
             messages=messages,
+            **extra,
         ) as stream:
             async for text in stream.text_stream:
                 visible = scanner.feed(text)
@@ -223,8 +238,13 @@ async def stream_reply(messages: list[dict]) -> AsyncIterator[Chunk]:
 
 
 def model_info() -> dict[str, object]:
+    spec = spec_for(MODEL)
     return {
         "model": MODEL,
         "max_tokens": MAX_TOKENS,
         "system_prompt_version": SYSTEM_PROMPT_VERSION,
+        # Surfaced so the playground and /api/config describe the model actually in use rather
+        # than a hardcoded assumption about which one that is.
+        "context_window": spec.context_window,
+        "thinking": spec.thinking,
     }

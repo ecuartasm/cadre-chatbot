@@ -16,8 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
-FLOOR = 4096
-THIN = 4300  # a margin under this is one prose trim away from breaking caching
+THIN_MARGIN = 200  # a margin under this is one prose trim away from breaking caching
 
 
 def main() -> int:
@@ -27,54 +26,62 @@ def main() -> int:
 
     import anthropic
 
+    from app.llm.models import MODELS
     from app.llm.prompt import (
-        MEASURED_SYSTEM_TOKENS,
+        MEASURED_SYSTEM_TOKENS_BY_MODEL,
         SYSTEM_PROMPT_VERSION,
         build_system_blocks,
     )
 
-    live = anthropic.Anthropic().messages.count_tokens(
-        model="claude-haiku-4-5",
-        system=build_system_blocks(),
-        messages=[{"role": "user", "content": "x"}],
-    ).input_tokens
+    client = anthropic.Anthropic()
+    blocks = build_system_blocks()
+    problems: list[str] = []
+    stale: dict[str, int] = {}
 
-    margin = live - FLOOR
-    drift = live - MEASURED_SYSTEM_TOKENS
+    print(f"SYSTEM_PROMPT_VERSION  : {SYSTEM_PROMPT_VERSION}\n")
 
-    print(f"live count_tokens      : {live:,}")
-    print(f"recorded in prompt.py  : {MEASURED_SYSTEM_TOKENS:,}   (drift {drift:+,})")
-    print(f"margin over the {FLOOR} floor : {margin:+,}")
-    print(f"SYSTEM_PROMPT_VERSION  : {SYSTEM_PROMPT_VERSION}")
+    # Every model, not just the active one. The two tokenise the same prompt very differently
+    # (5,383 vs 7,415 — a 38% gap), so measuring only the current one leaves the other silently
+    # stale and its floor test asserting a number that no longer describes anything.
+    for mid, spec in MODELS.items():
+        live = client.messages.count_tokens(
+            model=mid, system=blocks, messages=[{"role": "user", "content": "x"}]
+        ).input_tokens
+        recorded = MEASURED_SYSTEM_TOKENS_BY_MODEL.get(mid)
+        margin = live - spec.cache_floor
+        drift = live - recorded if recorded is not None else None
+
+        drift_s = "not recorded" if drift is None else f"drift {drift:+,}"
+        print(f"  {mid:20} live {live:>6,} · floor {spec.cache_floor:>5,} · "
+              f"margin {margin:>+6,} · {drift_s}")
+
+        if live < spec.cache_floor:
+            problems.append(
+                f"{mid}: BELOW THE FLOOR by {spec.cache_floor - live}. Caching stops silently and "
+                f"every turn costs ~6x more. Do not deploy — add real content back, do not pad."
+            )
+        elif margin < THIN_MARGIN:
+            problems.append(
+                f"{mid}: margin is only {margin} tokens. One prose trim breaks caching, silently."
+            )
+        if drift is None or drift != 0:
+            stale[mid] = live
+
     print()
-
-    problems = []
-    if live < FLOOR:
+    if stale:
+        pairs = ", ".join(f'"{m}": {n}' for m, n in stale.items())
         problems.append(
-            f"BELOW THE FLOOR by {FLOOR - live}. Caching will silently stop and every turn will "
-            f"cost ~6x more. Do not deploy this — add real content back, do not pad."
-        )
-    elif margin < THIN - FLOOR:
-        problems.append(
-            f"Margin is only {margin} tokens. One prose trim breaks caching, silently. "
-            f"Consider whether the edit should be smaller."
-        )
-
-    if drift != 0:
-        problems.append(
-            f"Update MEASURED_SYSTEM_TOKENS in app/llm/prompt.py to {live} "
-            f"(a test fails past 150 drift), append a line to its history comment saying WHY it "
-            f"changed, and fix the 'Measured at N tokens' figure in build_system_blocks()'s "
-            f"docstring."
+            f"Update MEASURED_SYSTEM_TOKENS_BY_MODEL in app/llm/prompt.py to {{{pairs}}} "
+            f"(a test fails past 150 drift), append a line to the history comment saying WHY it "
+            f"changed, and fix the 'Measured at N tokens' figure in build_system_blocks()."
         )
         problems.append(
-            f"Bump SYSTEM_PROMPT_VERSION (currently {SYSTEM_PROMPT_VERSION}). Log lines from two "
-            f"prompts are otherwise indistinguishable, which makes before/after comparison in "
-            f"interactions.jsonl impossible."
+            f"Bump SYSTEM_PROMPT_VERSION (currently {SYSTEM_PROMPT_VERSION}) — log lines from two "
+            f"prompts are otherwise indistinguishable."
         )
 
     if not problems:
-        print("OK — nothing to update. The recorded value matches and the margin is healthy.")
+        print("OK — nothing to update. Every model matches its record and clears its floor.")
         return 0
 
     print("TO DO:")

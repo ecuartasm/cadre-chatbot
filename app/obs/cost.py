@@ -12,38 +12,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-# Haiku 4.5. If the model changes, this table must change with it — hence the assertion in
-# `rates_for()` rather than a silent default.
-_RATES: dict[str, dict[str, float]] = {
-    "claude-haiku-4-5": {
-        "input": 1.00,
-        "output": 5.00,
-        "cache_write": 1.25,  # 1.25x input
-        "cache_read": 0.10,  # 0.10x input
-    },
-    # The documented escalation target (plan.md §10). Present so a model swap does not silently
-    # fall through to Haiku's rates and under-report cost by 3x.
-    "claude-sonnet-5": {
-        "input": 3.00,
-        "output": 15.00,
-        "cache_write": 3.75,
-        "cache_read": 0.30,
-    },
-}
+from app.llm.models import UnknownModelError, spec_for
 
+__all__ = ["UnknownModelError", "Usage", "InteractionLog", "cost_usd", "rates_for"]
 
-class UnknownModelError(KeyError):
-    """A model with no rate table. Never guess — a wrong rate silently corrupts the spend cap."""
-
-
+# Rates live in app/llm/models.py, with the cache floor and thinking config for the same model.
+# Keeping a second table here would be a second place for a rate to drift — and the one that drifted
+# would silently corrupt the spend cap, which is the only control that costs money.
 def rates_for(model: str) -> dict[str, float]:
-    try:
-        return _RATES[model]
-    except KeyError as e:
-        raise UnknownModelError(
-            f"No price table for {model!r}. Add it to app/obs/cost.py before deploying — "
-            "an unpriced model makes the daily spend cap meaningless."
-        ) from e
+    """Four rates for a model. Raises `UnknownModelError` rather than guessing."""
+    return spec_for(model).rates
 
 
 @dataclass(frozen=True)

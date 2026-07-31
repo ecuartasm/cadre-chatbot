@@ -134,13 +134,35 @@ def test_a_reply_that_is_only_a_marker_yields_no_visible_text():
     assert s.reason == "off-topic"
 
 
-def test_marker_later_in_the_reply_is_not_stripped():
-    """Only a leading marker is structural. One mid-sentence is the model quoting itself, and
-    rewriting the middle of an answer is not this class's job."""
+def test_marker_mid_answer_is_stripped_too():
+    """⚠️ **This asserts the OPPOSITE of what it did through Phase 9.**
+
+    The original rule was leading-only, reasoning that a marker mid-sentence is the model quoting
+    itself and rewriting the middle of an answer is not this class's job. That held for Haiku 4.5,
+    which reliably puts the tag first as instructed.
+
+    It broke on the first model swap. **Sonnet 5 uses the tag as a section separator** — general
+    answer, tag, then the part it is declining — so leading-only stripping printed
+    `[[refusal:security-specifics-not-public]]` straight into the chat. Measured at 2 leaks in 4
+    runs of the same question, so not an edge case.
+
+    Reversed deliberately, and the risk that justified leading-only is gone: prompt v1.8 forbids
+    the model discussing its own tag at all, so a marker in the text is never legitimate content.
+    """
     s = MarkerScanner()
-    text = "Here is the answer. [[refusal:no-public-pricing]] was not meant literally."
-    assert _run(s, text) == text
-    assert s.reason is None
+    out = _run(s, "The general answer.\n\n[[refusal:no-public-pricing]]\n\nThe specifics are not.")
+    assert "[[refusal" not in out
+    assert out == "The general answer.\n\nThe specifics are not."
+    assert s.reason == "no-public-pricing", "a mid-answer tag still classifies the turn"
+
+
+def test_removing_a_tag_does_not_leave_a_hole_in_the_prose():
+    """The tag usually arrives on its own line. Deleting it without collapsing the newlines around
+    it leaves a visible gap where it was — the leak made cosmetic rather than fixed."""
+    s = MarkerScanner()
+    out = _run(s, "First paragraph.\n\n[[refusal:no-public-pricing]]\n\nSecond paragraph.")
+    assert "\n\n\n" not in out
+    assert not out.startswith(("\n", " "))
 
 
 def test_scanner_never_drops_characters():

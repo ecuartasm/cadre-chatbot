@@ -26,10 +26,14 @@ from app.obs.sink import SINK
 
 log = get_logger("spend")
 
-# $5/day. Priced against the *worst* case, a cache-WRITE turn: 12 input + 150 output + 4,409
-# written = $0.00627, so ~795 turns/day. A cache-READ turn is $0.00120 (~4,150 turns). Budget
-# against the write: the cache TTL is 5 minutes, so on a low-traffic demo most turns are the first
-# of a fresh window and therefore the expensive one. Asserted in tests/test_obs.py.
+# $5/day, priced against the *worst* case: a cache-WRITE turn. Budget against the write rather than
+# the read, because the cache TTL is 5 minutes and on low traffic most turns are the first of a
+# fresh window.
+#
+# ⚠️ **How many turns that buys is MODEL-DEPENDENT**, and by a lot. Every Sonnet rate is 3x Haiku's,
+# so the same cap is roughly a third of the traffic. `turns_remaining_estimate()` computes it from
+# the active model rather than leaving a stale "~797 turns" comment to be read as current after a
+# swap. See tests/test_obs.py.
 DAILY_CAP_USD = float(os.getenv("DAILY_COST_CAP_USD", "5.00"))
 
 # Log as the ceiling is approached, so the first sign of trouble is not the cap already tripped.
@@ -132,6 +136,19 @@ async def record(cost: float) -> None:
         _persist()
 
 
+def worst_case_turn_usd() -> float:
+    """A cache-WRITE turn on the active model, using the measured shape of a real turn."""
+    from app.llm.client import MODEL
+    from app.llm.prompt import MEASURED_SYSTEM_TOKENS
+    from app.obs.cost import Usage, cost_usd
+
+    return cost_usd(
+        Usage(input_tokens=12, output_tokens=150,
+              cache_creation_input_tokens=MEASURED_SYSTEM_TOKENS),
+        MODEL,
+    )
+
+
 def status() -> dict[str, object]:
     _roll_if_new_day()
     return {
@@ -141,4 +158,10 @@ def status() -> dict[str, object]:
         "turns_today": _state.turns,
         "pct_of_cap": round(100 * _state.total_usd / DAILY_CAP_USD, 2) if DAILY_CAP_USD else None,
         "persisted": _STATE_PATH is not None,
+        # Computed from the active model, never a hardcoded figure: the same $5 buys roughly a
+        # third as many turns on Sonnet as on Haiku.
+        "worst_case_turn_usd": round(worst_case_turn_usd(), 6),
+        "turns_remaining_estimate": int(
+            max(0.0, DAILY_CAP_USD - _state.total_usd) / worst_case_turn_usd()
+        ),
     }
