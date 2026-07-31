@@ -98,11 +98,20 @@ class RateLimited(RuntimeError):
 
 
 def ask(url: str, history: list[dict]) -> tuple[str, dict]:
+    """One turn. Returns the visible answer and the `done` frame, with client-side timing added.
+
+    `latency_ms` on the frame is the server's own measurement. **Time to first token is measured
+    here and nowhere else** — it is a property of the stream arriving, so only the client can see
+    it, and on a streaming UI it matters more than the total: it is when the user stops waiting.
+    """
     body = json.dumps({"messages": history}).encode()
     req = urllib.request.Request(
         f"{url}/api/chat", data=body, headers={"Content-Type": "application/json"}
     )
     text, done = [], {}
+    started = time.monotonic()
+    first_token_ms: int | None = None
+
     with urllib.request.urlopen(req, timeout=120) as r:
         for raw in r:
             line = raw.decode("utf-8").strip()
@@ -111,6 +120,8 @@ def ask(url: str, history: list[dict]) -> tuple[str, dict]:
             ev = json.loads(line[6:])
             kind = ev.get("type")
             if kind == "delta":
+                if first_token_ms is None:
+                    first_token_ms = int((time.monotonic() - started) * 1000)
                 text.append(ev["text"])
             elif kind == "done":
                 done = ev
@@ -118,6 +129,9 @@ def ask(url: str, history: list[dict]) -> tuple[str, dict]:
                 if ev.get("reason") == "rate-limited":
                     raise RateLimited(ev.get("text", "rate limited"))
                 text.append(f"[ERROR] {ev.get('text')}")
+
+    done["first_token_ms"] = first_token_ms
+    done["wall_ms"] = int((time.monotonic() - started) * 1000)
     return "".join(text), done
 
 
@@ -166,7 +180,18 @@ def _absence_failures(turn: Turn, answer: str) -> list[str]:
     return out
 
 
-def run_case(url: str, case: Case, verbose: bool) -> list[str]:
+def cache_kind(usage: dict) -> str:
+    """Which of the three billing paths this turn took. The raw counters do not say it outright,
+    and a write costs ~5x a read — so this is the number that explains the cost column."""
+    if usage.get("cache_creation_input_tokens", 0) > 0:
+        return "write"
+    if usage.get("cache_read_input_tokens", 0) > 0:
+        return "read"
+    return "none"
+
+
+def run_case(url: str, case: Case, verbose: bool, telemetry: list[dict] | None = None
+             ) -> list[str]:
     failures: list[str] = []
     history: list[dict] = []
 
@@ -192,6 +217,35 @@ def run_case(url: str, case: Case, verbose: bool) -> list[str]:
 
         failures += [f"{where}: {f}" for f in _absence_failures(turn, answer)]
 
+        if telemetry is not None:
+            u = done.get("usage", {}) or {}
+            telemetry.append({
+                "case": case.id,
+                "title": case.title,
+                "tags": list(case.tags),
+                "turn": i,
+                "of_turns": len(case.turns),
+                "request": turn.ask,
+                "status": got_status,
+                "refusal_reason": got_reason,
+                "stop_reason": done.get("stop_reason"),
+                "expected_status": turn.status,
+                "expected_reason": turn.reason,
+                "input_tokens": u.get("input_tokens", 0),
+                "output_tokens": u.get("output_tokens", 0),
+                "cache_write": u.get("cache_creation_input_tokens", 0),
+                "cache_read": u.get("cache_read_input_tokens", 0),
+                "prompt_read": u.get("total_prompt_tokens", 0),
+                "cache": cache_kind(u),
+                "cost_usd": done.get("cost_usd", 0.0),
+                "latency_ms": done.get("latency_ms"),
+                "first_token_ms": done.get("first_token_ms"),
+                "wall_ms": done.get("wall_ms"),
+                "request_id": done.get("request_id"),
+                "answer_chars": len(answer),
+                "marker_leaked": "[[refusal" in answer,
+            })
+
         if verbose:
             print(f"    [{where}] status={got_status} reason={got_reason}")
             print(f"    {answer.strip()[:400]}")
@@ -211,6 +265,9 @@ def main() -> int:
     ap.add_argument("--tag", help="run only cases carrying this tag, e.g. injection, multiturn")
     ap.add_argument("--only", help="run a single case id")
     ap.add_argument("--verbose", action="store_true")
+    ap.add_argument("--json", metavar="PATH",
+                    help="write one telemetry record per REQUEST (status, tokens, cache, cost, "
+                         "latency, request_id) — the same fields the playground shows")
     args = ap.parse_args()
 
     url = args.url.rstrip("/")
@@ -228,17 +285,23 @@ def main() -> int:
     print(f"golden set [{args.suite}] — {len(cases)} cases, {turns} requests against {url}")
     print(f"  paced at {PACE_SECONDS}s; expect ~{turns * PACE_SECONDS / 60:.0f} min\n")
     results: list[tuple[Case, list[str]]] = []
+    telemetry: list[dict] | None = [] if args.json else None
 
     for case in cases:
         print(f"  {case.id:>3}  {case.title}")
         try:
-            failures = run_case(url, case, args.verbose)
+            failures = run_case(url, case, args.verbose, telemetry)
         except RateLimited as e:
             print(f"\nABORTED: the rate limiter rejected a turn ({e}).")
             print("This is not a content failure. Wait a minute, or raise RATE_LIMIT_PER_MINUTE.")
             return 2
         except (urllib.error.URLError, TimeoutError) as e:
             failures = [f"transport: {type(e).__name__}: {e}"]
+        finally:
+            # Written after every case, not only at the end: a run aborted by the rate limiter or
+            # a transport error still leaves the requests it did complete on disk.
+            if telemetry is not None:
+                Path(args.json).write_text(json.dumps(telemetry, indent=1), encoding="utf-8")
 
         results.append((case, failures))
         print("       PASS" if not failures else "       FAIL")
@@ -247,6 +310,14 @@ def main() -> int:
 
     failed = [c for c, f in results if f]
     print(f"\n{len(results) - len(failed)}/{len(results)} passed")
+
+    if telemetry:
+        total = sum(t["cost_usd"] for t in telemetry)
+        lat = sorted(t["latency_ms"] for t in telemetry if t["latency_ms"])
+        reads = sum(1 for t in telemetry if t["cache"] == "read")
+        print(f"{len(telemetry)} requests · ${total:.4f} · "
+              f"median {lat[len(lat) // 2]:,} ms · cache read on {reads}/{len(telemetry)}")
+        print(f"telemetry → {args.json}")
 
     if failed:
         print("failed: " + ", ".join(c.id for c in failed))
