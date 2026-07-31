@@ -971,6 +971,18 @@ Adding `cost_usd` and `latency_ms` to `done` is the honest fix. The alternative 
 table to the browser and recomputing — would create a second implementation of the four-rate maths,
 and the whole point of `cost.py` is that there is exactly one.
 
+⚠️ **Compute each of them ONCE, in the `done` branch, and reuse the value in the `finally`.** Today the
+`done` frame is yielded at `chat.py:123` while `latency_ms` is computed at 155 and `cost_usd` at 171 —
+both inside the `finally`, which runs afterwards. The obvious implementation therefore computes each
+twice. `cost_usd` would agree (it is deterministic from `usage`), but **`latency_ms` would not**: the
+frame would report a slightly smaller number than the log, for the same turn.
+
+A playground reporting 1,948 ms beside an `interactions.jsonl` line saying 1,949 ms is worse than it
+sounds. It is small enough to look like rounding and real enough to be a discrepancy, and the first
+person to notice loses confidence in *both* numbers. Bind them to one local variable.
+
+(No conflict for `abandoned` turns — there is no `done` frame at all, so the log's value stands alone.)
+
 #### 9.2 ⚠️ The system prompt is NOT served to the client — decision reversed
 
 An earlier draft of this phase put the assembled prompt in a read-only scrollable window. **That is
