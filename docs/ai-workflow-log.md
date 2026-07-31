@@ -399,3 +399,36 @@ baseline for the checks that cannot run yet.
 `refusal_breakdown` 119 turns, 46.2%, `unexpected_reasons: []` · `spend_today` $0.161 of $5.00 (3.22%) ·
 `bot_stats` 89.1% cache hit, p50 2,418 ms · **golden set 14/14 against the deployed URL** · volume
 attached at `/data`, Ready, 91 MB of 5,000 MB. Nothing has drifted since Phase 7.
+
+---
+
+## Phase 8 part 2 + the two open documentation items
+
+**Asked for:** finish what was left — the midnight checks, `CLAUDE.md`, and a hook.
+
+**Produced:** Phase 8 report completed with part 2 results, a tightened `CLAUDE.md` (249 lines, back
+under its own cap), `.claude/hooks/guard-commit.sh` wired as a PreToolUse hook, and `.claude/README.md`.
+
+**Changed:**
+1. **Both midnight paths verified.** Spend rollover fired eagerly — `/health` alone triggers it, so it
+   rolled to 2026-07-31 with $0.00 and 0 turns before any traffic. Log rotation fired lazily.
+2. **My own test criterion for rotation was wrong, and would have raised a false alarm.** The plan said
+   "still 136 turns tomorrow → rotation did not fire". At 00:25 it read 136 — but `turns_today` was 0,
+   and `TimedRotatingFileHandler` rolls on the next *emit*, not on a timer. The criterion conflated
+   "broken" with "not yet triggered". The discriminating test is to write one record: turns went
+   136 → **1**, not 137, so the file rolled. **Fourth instance of asserting a substring/proxy where I
+   meant a property**, and the worst shape yet because it was falsifiable in the wrong direction.
+3. **`CLAUDE.md` had not been touched since Phase 1** — a miss I recorded rather than quietly fixed.
+   Phase 6's exit criteria said "both documents tightened" and I had only ever updated `plan.md`.
+   Updated the Layout, the 13→14 case count, the four measured prefix sizes, the resolved case-study
+   gate, and six deployed-only defects; then **cut it back under its own 250-line cap** by trimming
+   prose rather than raising the cap, since the file says to fix such things rather than work around
+   them.
+4. **The hook guards what permissions cannot see.** The deny list already covers force-push, hard
+   reset, and reading `.env` — all identifiable from the command. Both incidents this repo actually had
+   were *content* problems: a secret arriving via `git add -A`, and a 9.5 MB PDF swept into history
+   because only the result was checked. Verified against six paths including its own failure modes.
+
+**Verified:** rotation and rollover both confirmed on the deployed instance · 142 tests · ruff clean ·
+`CLAUDE.md` 249 lines · hook blocks a staged secret, a staged `.env`, and a 2 MB file, and passes
+through a clean commit, a non-commit command, and being run outside a git repo.
