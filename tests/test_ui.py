@@ -226,3 +226,105 @@ def test_user_turns_align_right():
     css = code(APP_CSS)
     assert ".turn--user" in css and "text-align: right" in css
     assert "'turn turn--user'" in code(APP), "the modifier must actually be applied"
+
+
+# ── clickable links ──────────────────────────────────────────────────────────────────
+#
+# The chat now turns Cadre URLs into real links. `href` is the one attribute in this renderer
+# that is *live* — `<strong>` is inert, a link is not — so these guard the boundary rather than
+# the appearance.
+
+CADRE_URLS_JS = WEB / "cadre-urls.js"
+
+
+def _corpus_urls() -> set[str]:
+    """Every page `content/raw/` proves the scraper actually fetched, canonicalised."""
+    urls = set()
+    for p in (WEB.parent.parent / "content" / "raw").glob("*.md"):
+        m = re.search(r"^url:\s*(\S+)", p.read_text(encoding="utf-8"), re.M)
+        if m:
+            urls.add(m.group(1).rstrip("/").lower())
+    return urls
+
+
+def test_the_link_allowlist_matches_the_scraped_corpus():
+    """`cadre-urls.js` is generated from `content/raw/` frontmatter and must not drift from it.
+
+    Drift in either direction is a defect: a missing URL silently stops rendering as a link, and
+    an extra one links to a page the provenance record cannot vouch for — which is the whole
+    property the allowlist exists to hold.
+    """
+    in_js = {
+        u.lower().rstrip("/")
+        for u in re.findall(r"'(https?://[^']+)'", code(CADRE_URLS_JS))
+    }
+    corpus = _corpus_urls()
+
+    assert in_js == corpus, (
+        "web/src/cadre-urls.js has drifted from content/raw/.\n"
+        f"  only in js     : {sorted(in_js - corpus)}\n"
+        f"  only in corpus : {sorted(corpus - in_js)}\n"
+        "Regenerate it from the frontmatter rather than hand-editing."
+    )
+
+
+def test_the_href_comes_from_the_allowlist_not_from_the_reply():
+    """The strongest property here, and the reason this is an allowlist rather than a sanitiser.
+
+    A matched URL is used as a KEY to look up the canonical string, and that constant is what
+    reaches the DOM. So an `href` can only ever be one of the 36 values in `cadre-urls.js` — never
+    a substring of model output, however the model was influenced into producing it. There is
+    nothing left to sanitise.
+    """
+    src = code(MARKDOWN)
+    assert "knownCadreUrl" in src, "the renderer must resolve URLs through the allowlist"
+    assert "href={href}" in src, "href must be the looked-up constant"
+    # The matched text is named `bare`; it may be displayed but must never be the href.
+    assert "href={bare}" not in src and "href={piece}" not in src
+
+
+def test_an_unknown_url_renders_as_plain_text():
+    """An invented portal URL must not become a clickable link that looks official — the KB's
+    first rule. Falling back to plain text is the pre-existing behaviour, so the failure mode of
+    the whole feature is a no-op rather than a broken render."""
+    src = code(MARKDOWN)
+    assert "if (!href) return piece" in src
+
+
+def test_blank_targets_carry_noopener():
+    """Without `rel`, the opened page gets a live `window.opener` handle back to this one."""
+    src = code(MARKDOWN)
+    if 'target="_blank"' in src:
+        assert 'rel="noopener noreferrer"' in src
+
+
+def test_trailing_punctuation_is_not_swallowed_into_the_href():
+    """"…see https://www.cadreai.com/contact." — the full stop must stay in the prose.
+
+    This is the most common way a naive linkifier fails, and it fails *silently*: the lookup
+    misses, so the URL renders as plain text and nobody notices the link never appeared.
+    """
+    src = code(MARKDOWN)
+    assert "TRAILING" in src, "trailing sentence punctuation must be trimmed before lookup"
+    assert "{trailing}" in src, "the trimmed punctuation must still be rendered"
+
+
+def test_urls_inside_bold_are_still_linked():
+    """The model emits `**https://www.cadreai.com/contact**`; the eval has caught a bolded
+    `/contact` before. Bold must not defeat the link."""
+    src = code(MARKDOWN)
+    assert "<strong key={i}>{linkify(" in src
+    assert "<em key={i}>{linkify(" in src
+
+
+def test_links_are_black_with_an_underline():
+    """CLAUDE.md: all text is black, de-emphasise with size and weight, never grey — and
+    `--cadre-red` is the one documented colour exception. A link therefore carries its
+    affordance with an underline rather than a colour."""
+    css = code(APP_CSS)
+    block = css.split(".message a {", 1)
+    assert len(block) == 2, "no .message a rule found"
+    rule = block[1].split("}", 1)[0]
+    assert "text-decoration: underline" in rule
+    assert "var(--text)" in rule
+    assert "blue" not in rule.lower()

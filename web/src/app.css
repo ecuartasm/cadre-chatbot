@@ -103,6 +103,22 @@ body {
   white-space: pre-wrap;
 }
 
+/* Links stay black — de-emphasis and emphasis both come from weight and decoration here, never
+   colour (see CLAUDE.md). The underline carries the affordance that blue normally would, matching
+   the footer treatment. Only allowlisted Cadre pages ever render as links; see markdown.jsx. */
+.message a {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  /* A long URL must wrap rather than push the bubble past the viewport on a phone. */
+  overflow-wrap: anywhere;
+}
+
+.message a:hover,
+.message a:focus-visible {
+  text-decoration-thickness: 2px;
+}
+
 /* The one place colour carries meaning rather than decoration: an error must not read as an
    answer. Everything else on this page is black. */
 .message--error {
