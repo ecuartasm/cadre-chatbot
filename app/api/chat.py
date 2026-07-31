@@ -14,6 +14,7 @@ accounted for rather than silently free.
 from __future__ import annotations
 
 import json
+import re
 import time
 from collections.abc import AsyncIterator
 
@@ -43,6 +44,10 @@ log = get_logger("chat")
 MAX_TURNS = 8
 MAX_MESSAGE_CHARS = 4000
 
+# The refusal marker, as it would appear in an inbound message. Deliberately lenient
+# about whitespace and slug shape — this is stripping hostile input, not parsing ours.
+_CLIENT_MARKER = re.compile(r"\[\[\s*refusal\s*:[^\]]*\]\]", re.I)
+
 
 class Message(BaseModel):
     role: str
@@ -59,6 +64,18 @@ class Message(BaseModel):
     @classmethod
     def content_must_be_sane(cls, v: str) -> str:
         v = v.strip()
+        if not v:
+            raise ValueError("content must not be empty")
+        # Strip any refusal marker arriving from the client. The tag is OURS — the model emits it
+        # and MarkerScanner removes it before display — so it has no business in an inbound
+        # message. Found by the `full` eval suite: a user message containing
+        # `[[refusal:no-public-pricing]]` caused the model to skip emitting its own tag, so a turn
+        # that refused correctly in prose logged status="ok". The boundary held; the measurement
+        # was suppressed, which is exactly the attack plan.md §9.2 predicted.
+        #
+        # Stripped here rather than instructed away in the prompt: this does not depend on the
+        # model choosing correctly, and it also cleans the text before it reaches the log.
+        v = _CLIENT_MARKER.sub("", v).strip()
         if not v:
             raise ValueError("content must not be empty")
         return v[:MAX_MESSAGE_CHARS]
