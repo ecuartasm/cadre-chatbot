@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { readSseFrames } from './sse.js'
 import { renderInline } from './markdown.jsx'
 
 /**
@@ -51,34 +52,17 @@ export default function Playground({ config }) {
       })
       if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`)
 
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      while (true) {
-        const { value, done } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-
-        const frames = buffer.split('\n\n')
-        buffer = frames.pop() ?? ''
-
-        for (const frame of frames) {
-          const line = frame.split('\n').find((l) => l.startsWith('data: '))
-          if (!line) continue
-          const evt = JSON.parse(line.slice(6))
-
-          if (evt.type === 'delta') {
-            if (firstTokenMs === null) firstTokenMs = Math.round(performance.now() - started)
-            setAnswer((a) => a + evt.text)
-          } else if (evt.type === 'done') {
-            setMeta({ ...evt, firstTokenMs })
-          } else if (evt.type === 'error') {
-            setAnswer(evt.text)
-            setMeta({ error: true, reason: evt.reason, request_id: evt.request_id, firstTokenMs })
-          }
+      await readSseFrames(res, (evt) => {
+        if (evt.type === 'delta') {
+          if (firstTokenMs === null) firstTokenMs = Math.round(performance.now() - started)
+          setAnswer((a) => a + evt.text)
+        } else if (evt.type === 'done') {
+          setMeta({ ...evt, firstTokenMs })
+        } else if (evt.type === 'error') {
+          setAnswer(evt.text)
+          setMeta({ error: true, reason: evt.reason, request_id: evt.request_id, firstTokenMs })
         }
-      }
+      })
     } catch (err) {
       setAnswer(`Couldn't reach the server (${err.message}).`)
       setMeta({ error: true })

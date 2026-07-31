@@ -93,4 +93,14 @@
   --shadow-card: 0 1px 2px rgb(11 7 7 / 4%), 0 8px 24px rgb(11 7 7 / 6%);
 
   --wrapper: 44rem; /* narrower than the site's 77.5rem — this is reading width, not a landing page */
+
+  /* --- /chat-widget demo ---------------------------------------------------------------
+     The mockup page and the floating widget. Here rather than in widget.css because this file
+     is the only one permitted a literal value — the same rule the rest of the UI follows. */
+  --wrapper-wide: 68rem; /* a landing page IS wide; --wrapper is reading measure and too narrow */
+  --widget-w: 23rem;
+  --widget-h: 34rem;
+  --widget-gap: 1.25rem; /* inset from the viewport corner */
+  --widget-z: 50;
+  --mk-hero-py: 5rem;
 }

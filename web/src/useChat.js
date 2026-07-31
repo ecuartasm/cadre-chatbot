@@ -1,5 +1,7 @@
 import { useState } from 'react'
 
+import { readSseFrames } from './sse.js'
+
 /**
  * The conversation engine, shared by every surface that talks to the bot.
  *
@@ -8,8 +10,8 @@ import { useState } from 'react'
  * likely to drift are the frame-buffering and the shape of the `done` frame — both of which have
  * already changed twice in this project's life.
  *
- * Reads the SSE body with `fetch` + `ReadableStream` rather than `EventSource`, because
- * `EventSource` cannot issue a POST and the conversation has to go in the request body.
+ * The SSE wire format itself lives in `sse.js`, shared with the playground — see that file for why
+ * the parser is shared but the state handling is not.
  *
  * ⚠️ **`send` is behaviour under test, not layout.** It accumulates only the visible delta text
  * into the assistant turn and posts the whole array back, and multi-turn correctness depends on
@@ -51,49 +53,30 @@ export function useChat() {
       })
       if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`)
 
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      while (true) {
-        const { value, done } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-
-        // SSE frames are separated by a blank line. A frame can arrive split across
-        // reads, so only consume complete ones and keep the remainder buffered.
-        const frames = buffer.split('\n\n')
-        buffer = frames.pop() ?? ''
-
-        for (const frame of frames) {
-          const line = frame.split('\n').find((l) => l.startsWith('data: '))
-          if (!line) continue
-          const evt = JSON.parse(line.slice(6))
-
-          if (evt.type === 'delta') {
-            if (!sawFirstToken) {
-              sawFirstToken = true
-              // If this lands close to the total response time, the proxy buffered
-              // the stream — the failure mode this phase exists to catch.
-              setFirstTokenMs(Math.round(performance.now() - started))
-            }
-            setMessages((m) => {
-              const copy = [...m]
-              copy[copy.length - 1] = {
-                role: 'assistant',
-                content: copy[copy.length - 1].content + evt.text,
-              }
-              return copy
-            })
-          } else if (evt.type === 'error') {
-            setMessages((m) => {
-              const copy = [...m]
-              copy[copy.length - 1] = { role: 'assistant', content: evt.text, isError: true }
-              return copy
-            })
+      await readSseFrames(res, (evt) => {
+        if (evt.type === 'delta') {
+          if (!sawFirstToken) {
+            sawFirstToken = true
+            // If this lands close to the total response time, the proxy buffered the stream —
+            // the failure mode Phase 5 exists to catch.
+            setFirstTokenMs(Math.round(performance.now() - started))
           }
+          setMessages((m) => {
+            const copy = [...m]
+            copy[copy.length - 1] = {
+              role: 'assistant',
+              content: copy[copy.length - 1].content + evt.text,
+            }
+            return copy
+          })
+        } else if (evt.type === 'error') {
+          setMessages((m) => {
+            const copy = [...m]
+            copy[copy.length - 1] = { role: 'assistant', content: evt.text, isError: true }
+            return copy
+          })
         }
-      }
+      })
     } catch (err) {
       setMessages((m) => {
         const copy = [...m]

@@ -1,0 +1,379 @@
+/* Styles for /chat-widget only: the Cadre-styled mockup page and the floating support widget.
+ *
+ * Every value is a var(). tokens.css is the only file permitted a literal colour, size or font,
+ * and tests/test_ui.py discovers stylesheets by glob rather than by name, so this file is covered
+ * by the same rules as app.css.
+ *
+ * All text is black. Emphasis comes from weight and size, never colour — --cadre-red stays the one
+ * documented exception, reserved for errors. */
+
+/* --- mockup page -------------------------------------------------------------------- */
+
+.mk {
+  min-height: 100dvh;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-body);
+}
+
+/* The demo notice. It is the reason this page is allowed to look like someone else's site, so it
+   is not dismissible, not `position: fixed` (which mobile browsers can hide), and not subtle. */
+.mk-demo {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--cadre-sand-dark);
+  border-bottom: 1px solid var(--hairline);
+  font-size: var(--size-sm);
+  text-align: center;
+}
+
+.mk-demo a {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.mk-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  max-width: var(--wrapper-wide);
+  margin: 0 auto;
+  padding: var(--space-4);
+}
+
+.mk-mark {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--size-lg);
+  letter-spacing: 0.02em;
+}
+
+/* The one place the brand blue appears. It is a wordmark, not body text, so the black rule is not
+   in play — and it is a var(), so it restyles from tokens.css like everything else. */
+.mk-mark-ai {
+  color: var(--cadre-blue);
+}
+
+.mk-links {
+  display: flex;
+  gap: var(--space-4);
+  margin-right: auto;
+  font-size: var(--size-sm);
+}
+
+.mk-links a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.mk-links a:hover,
+.mk-links a:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.mk-cta {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--black);
+  color: var(--text-on-dark);
+  font-size: var(--size-sm);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.mk-cta--lg {
+  display: inline-block;
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--size-base);
+}
+
+.mk-hero {
+  max-width: var(--wrapper-wide);
+  margin: 0 auto;
+  padding: var(--mk-hero-py) var(--space-4);
+}
+
+.mk-h1 {
+  max-width: var(--wrapper);
+  margin: 0 0 var(--space-4);
+  font-family: var(--font-display);
+  font-size: calc(var(--size-xl) * 1.9);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.02em;
+}
+
+.mk-lede {
+  max-width: var(--wrapper);
+  margin: 0 0 var(--space-5);
+  font-size: var(--size-lg);
+  line-height: var(--leading-normal);
+}
+
+.mk-band {
+  max-width: var(--wrapper-wide);
+  margin: 0 auto;
+  padding: var(--space-7) var(--space-4);
+}
+
+.mk-band--sand {
+  max-width: none;
+  background: var(--bg);
+}
+
+.mk-band--sand > * {
+  max-width: var(--wrapper-wide);
+  margin-inline: auto;
+}
+
+.mk-h2 {
+  margin: 0 0 var(--space-4);
+  font-family: var(--font-display);
+  font-size: var(--size-xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+}
+
+.mk-h3 {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--size-lg);
+  font-weight: var(--weight-semibold);
+}
+
+.mk-body {
+  margin: 0;
+  font-size: var(--size-base);
+  line-height: var(--leading-normal);
+}
+
+.mk-body--wide {
+  max-width: var(--wrapper);
+  margin-bottom: var(--space-5);
+}
+
+.mk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--space-4);
+}
+
+.mk-card {
+  padding: var(--space-5);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.mk-stat {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--size-xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+}
+
+.mk-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mk-chips a {
+  display: inline-block;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--size-sm);
+  text-decoration: none;
+}
+
+.mk-chips a:hover,
+.mk-chips a:focus-visible {
+  border-color: var(--text);
+}
+
+.mk-foot {
+  max-width: var(--wrapper-wide);
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+  border-top: 1px solid var(--hairline);
+  font-size: var(--size-sm);
+}
+
+.mk-foot a {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* --- floating widget ---------------------------------------------------------------- */
+
+.wg {
+  position: fixed;
+  right: var(--widget-gap);
+  bottom: var(--widget-gap);
+  z-index: var(--widget-z);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.wg-launcher {
+  padding: var(--space-3) var(--space-5);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--black);
+  color: var(--text-on-dark);
+  box-shadow: var(--shadow-card);
+  font-family: var(--font-body);
+  font-size: var(--size-base);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.wg-panel {
+  display: flex;
+  flex-direction: column;
+  width: var(--widget-w);
+  /* svh, never vh: the iOS keyboard shrinks the visual viewport and vh does not follow, which puts
+     the composer under the keyboard. Capped against the viewport so the panel never overflows. */
+  height: min(var(--widget-h), calc(100svh - var(--space-7)));
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.wg-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.wg-title {
+  font-family: var(--font-display);
+  font-size: var(--size-base);
+  font-weight: var(--weight-semibold);
+}
+
+.wg-close {
+  padding: var(--space-1) var(--space-2);
+  border: none;
+  background: none;
+  color: var(--text);
+  font-size: var(--size-base);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.wg-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4);
+  font-size: var(--size-sm);
+  line-height: var(--leading-normal);
+}
+
+.wg-empty {
+  margin: 0;
+  font-size: var(--size-sm);
+  line-height: var(--leading-normal);
+}
+
+.wg-turn {
+  margin: 0 0 var(--space-4);
+}
+
+/* Same treatment as the full page: the user's own turns sit right, so the two speakers are
+   distinguishable by position rather than by colour. */
+.wg-turn--user {
+  text-align: right;
+}
+
+.wg-who {
+  display: block;
+  font-size: var(--size-xs);
+  font-weight: var(--weight-semibold);
+}
+
+.wg-composer {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: 1px solid var(--hairline);
+}
+
+.wg-input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-body);
+  /* 16px minimum. Anything smaller makes iOS Safari zoom the page on focus. */
+  font-size: var(--size-input);
+}
+
+.wg-send {
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--black);
+  color: var(--text-on-dark);
+  font-family: var(--font-body);
+  font-size: var(--size-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.wg-send:disabled,
+.wg-launcher:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* --- narrow viewports --------------------------------------------------------------- */
+
+@media (width <= 30rem) {
+  .wg {
+    right: var(--space-2);
+    bottom: var(--space-2);
+    left: var(--space-2);
+    align-items: stretch;
+  }
+
+  /* Full-bleed rather than a floating card: a 23rem panel on a 20rem phone is a scrollbar. */
+  .wg-panel {
+    width: auto;
+    height: min(var(--widget-h), calc(100svh - var(--space-7)));
+  }
+
+  .mk-h1 {
+    font-size: calc(var(--size-xl) * 1.3);
+  }
+
+  .mk-nav {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .mk-hero {
+    padding-block: var(--space-7);
+  }
+}

@@ -26,7 +26,13 @@ APP_CSS = WEB / "app.css"
 # hardcoded to App.jsx: adding Playground.jsx would have left them passing while covering nothing —
 # a guard that silently narrows is worse than one that fails, because it still reports green.
 COMPONENTS = sorted(WEB.glob("*.jsx"))
-STYLED = COMPONENTS + [APP_CSS]
+
+# Every stylesheet except tokens.css, discovered rather than listed — tokens.css is the ONE file
+# permitted a literal colour, size or font, so it is the thing these rules measure against rather
+# than a member of the set. A hardcoded [APP_CSS] would have stopped covering the UI the moment
+# widget.css appeared, which is the same narrowing that has cost this project coverage repeatedly.
+STYLESHEETS = sorted(p for p in WEB.glob("*.css") if p != TOKENS)
+STYLED = COMPONENTS + STYLESHEETS
 APP = WEB / "App.jsx"  # the chat view specifically, for layout-only assertions
 
 # Every file that can hold behaviour, discovered rather than listed. Guards that assert on logic
