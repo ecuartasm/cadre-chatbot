@@ -4,8 +4,6 @@ Onboarding for a fast, context-limited engineer. **Hard cap: under 250 lines** �
 so it holds only what is needed *every* time. Background is in `analysis/` (**never load those in a
 build session**); per-phase detail is in `reports/`.
 
----
-
 ## What this is
 
 A customer-support chatbot for **Cadre AI**, an AI strategy and implementation consultancy, answering
@@ -14,8 +12,6 @@ common inbound questions so the human team can focus on high-value conversations
 questions accurately and **refuses, then routes to `https://www.cadreai.com/contact`**, for everything
 else. A confident wrong answer is far worse here than "I don't know — here's who can help." Build the
 refusals first.
-
----
 
 ## Stack
 
@@ -29,8 +25,6 @@ Python + FastAPI (backend) · React + Vite (frontend) · Anthropic API · deploy
 | Token counting | `client.messages.count_tokens` | **Never `tiktoken`** — it's OpenAI's tokenizer and undercounts Claude by ~15–20%. |
 | Deploy | Railway + mounted Volume | The volume is for `logs/`. Serverless is ruled out: ephemeral FS loses the logs. |
 | Serving | **One deployable** | FastAPI serves the built React bundle as static files. Avoids CORS and two ways to break one deadline. |
-
----
 
 ## Layout
 
@@ -61,8 +55,6 @@ docs/  reports/        Per-phase workflow log; per-phase narrative + TECHNICAL-R
 observability cutting across. Swapping the model, editing a fact, restyling the UI, or changing where
 logs go must touch exactly one. If a change touches two, the seam is wrong.
 
----
-
 ## Commands
 
 ```bash
@@ -75,8 +67,6 @@ python eval/golden.py --url <deployed> [--suite lite|full]   # lite=14/~$0.03, f
 uv run python mcp_server/server.py       # MCP tools over the deployed bot's observability
 railway up
 ```
-
----
 
 ## Knowledge-base rules — NON-NEGOTIABLE
 
@@ -113,8 +103,6 @@ the tag records what you did, not where you sent them. Broken twice in Phase 3, 
 - **Count with `count_tokens`; don't estimate.** Current: 4,028 corpus; full prefix is per-model
   (5,383 Haiku / 7,415 Sonnet — same bytes, different tokenisers).
 
----
-
 ## System prompt rules
 
 Lives in `app/llm/prompt.py`, versioned (`SYSTEM_PROMPT_VERSION`, currently **1.8**), logged per turn.
@@ -150,8 +138,6 @@ The floor inverts the usual instinct: trimming the prompt *costs* ~6× here, bec
 $0.00120 against $0.00627 uncached. **Bump `SYSTEM_PROMPT_VERSION` on every change** — log lines from
 two prompts are otherwise indistinguishable, which makes any before/after comparison impossible.
 
----
-
 ## Conventions
 
 - **`client.py` is the only file importing `anthropic`; `models.py` is the only place a per-model
@@ -161,24 +147,25 @@ two prompts are otherwise indistinguishable, which makes any before/after compar
 - **Cost math needs four rates, not two:** input, output, cache-write (1.25×), cache-read (0.1×).
   Two-rate math is wrong the moment caching engages and makes the spend cap throttle on money never
   spent. An unpriced model **raises** rather than defaulting. Compute it in `cost.py`, nowhere else.
-- **Log `user_message_redacted`, never the raw message.** **Retention: 7 days**, enforced by the
-  rotation config — the config *is* the policy. The bot discusses Cadre's data-security posture; its
-  own logging must not be the counterexample. (Rotation verified; *deletion* needs day 8.)
-- **Bound conversation history server-side** — 8 turns in the Pydantic model; the array arrives from
-  the browser, so don't trust the client.
+- **Log `user_message_redacted`, never the raw message.** **Retention: 7 days** — the rotation config
+  *is* the policy. The bot discusses Cadre's data-security posture; its own logging must not be the
+  counterexample. (Rotation verified; *deletion* needs day 8.)
+- **Bound conversation history server-side** — 8 turns in the Pydantic model; the array comes from
+  the browser, so don't trust it.
 - **Every log line carries `request_id`** — but *carry* it, don't read the ContextVar late: the
-  middleware resets it before its own log call, and `call_next` returns at headers, so an SSE body is
-  iterated after the reset.
+  middleware resets it before its own log call, and `call_next` returns at headers, so an SSE body
+  is iterated after it.
 - **Secrets:** API key server-side only, never in the React bundle — Vite inlines anything prefixed
   `VITE_` at build time. `.env` is gitignored before the first commit.
+- ⚠️ **`.env` loads in `app/__init__.py`, never an entry point.** Below `main.py`'s imports it ran
+  *after* `client.py` resolved `ANTHROPIC_MODEL`, so editing `.env` did nothing — invisible because
+  the file and `DEFAULT_MODEL` agreed. Test a switch with a value ≠ the default, via the user's path.
 - Styling: **plain CSS with custom properties** (`tokens.css` holds every literal). No CSS-in-JS, no
   component kit, no router. **All text is black** (`#0b0707`, Cadre's own); de-emphasise with size and
   weight, never grey. Errors keep `--cadre-red` — the one documented exception. Shell in **`dvh`/`svh`,
   not `vh`** (iOS keyboard), input **≥16px** (less triggers iOS auto-zoom), **fonts self-hosted**.
   ⚠️ Only the grey check in `tests/test_ui.py` globs `web/src`; **seven others are pinned to
   `App.jsx`/`app.css`** and silently stop covering the UI if a component moves. Widen them.
-
----
 
 ## Verification
 
@@ -187,7 +174,7 @@ two prompts are otherwise indistinguishable, which makes any before/after compar
   eval runs against the *deployed* URL, where `interactions.jsonl` sits on a volume it cannot read.
 - ⚠️ **The refusal tag is stripped from INBOUND messages** (`chat.py`) — a client-supplied
   `[[refusal:…]]` made the model skip its own, suppressing the classification. Server-side, so it
-  doesn't depend on the model choosing correctly.
+  never depends on the model choosing right.
 - **Two suites.** `--suite lite` = 14, the **deploy gate**; `--suite full` = 71, adding oblique routes
   (pricing eight ways, injection, multi-turn) — run after a prompt edit or a model swap. **`full` is
   not 100% by design:** a *boundary* failure (price, URL, client name, leak) is a defect; a *tagging*
@@ -196,17 +183,16 @@ two prompts are otherwise indistinguishable, which makes any before/after compar
 - **Absence beats presence.** "No dollar figure" survives rewording; "contains 'individually'" breaks
   on the first synonym. Test an invented URL by membership in the pages `content/raw/` proves were
   fetched — matching `/contact` fails correct citations.
-- ⚠️ **Seven times a test asserted something narrower than the property meant** — `grey` matched its
+- ⚠️ **Eight times a test asserted something narrower than the property meant** — `grey` matched its
   own comment, `open(` matched `urlopen(`, a route walk missed every sub-router path, and a
-  leading-only marker check passed while Sonnet leaked one mid-answer. **Name the property first.**
+  `load_dotenv()` substring check matched the comment forbidding it. **Name the property first**, and
+  parse rather than grep when the property is a syntax question.
 - Unit-test the knowledge layer, integration-test the API error path, assert `cache_read > 0` across
   two identical-prefix requests. **Never test the LLM itself.**
 - **Local green is weaker evidence than it feels.** Six defects were found *only* on deploy: missing
   `COPY content/`, the volume mount path, request-id plumbing, limiter bucketing, the woff2 mimetype,
   a price anchor the eval had just passed locally. **A model swap is the same kind of environment
   change** — 171 unit tests passed while Sonnet printed the refusal tag into the chat.
-
----
 
 ## Out of scope — deliberately
 
@@ -222,8 +208,6 @@ CMS** · **i18n** · **voice** · **OTel/Prometheus/Grafana** (JSONL + `/stats` 
 **And never:** invent pricing (or cite a case-study saving *beside* a cost question — the eval caught
 that), invent a portal URL, summarize podcast content, or name a case-study client.
 
----
-
 ## Working agreement
 
 **Repo:** `https://github.com/ecuartasm/cadre-chatbot` (private) · `origin` · `main`.
@@ -236,8 +220,8 @@ taught** → commit → push → redeploy and verify the live URL. `plan.md` has
   with no KB, all local tests green), Phase 4's scope already being built, and MCP missing from the
   brief. Ask what this phase taught that changes the next.
 - **Two records per phase.** `docs/ai-workflow-log.md` is a terse four-field entry; the phase report
-  is the narrative. Write both *as you go*, from measured values and real hashes — never recollection.
-  Post-phase work goes in `reports/testing_adjusting.md`.
+  is the narrative. Write both *as you go*, from measured values — never recollection. Post-phase
+  work goes in `reports/testing_adjusting.md`.
 - **Push at the end of every phase** — work that exists only locally isn't safe, the repo *is* the
   deliverable, and batching phases into one push defeats it.
 - ✅ **The gate is closed** — Phase 6 answered all six scenarios on the deployed URL, which gated MCP

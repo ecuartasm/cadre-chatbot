@@ -170,8 +170,10 @@ def build_system_blocks() -> list[dict]:
     A list (not a bare string) so `cache_control` can be attached to the final block —
     render order is tools -> system -> messages, so one breakpoint covers the whole prefix.
 
-    Measured at 5,383 tokens against a 4,096 floor — caching engages, with 1287 tokens of margin.
-    `test_prompt_clears_the_cache_floor` guards that margin.
+    The same bytes are a different number of tokens per model, so the margin is per-model too:
+    **5,383 against Haiku 4.5's 4,096 floor (+1,287); 7,415 against Sonnet 5's 1,024 (+6,391)** —
+    a 38% tokeniser gap on identical text. `test_prompt_clears_the_cache_floor` guards the active
+    model's margin; `measure-prefix.py` checks every model in the registry.
 
     Section order is deliberate: `_FACTS` sits second so the corpus dominates the prefix, and the
     behavioral rules that reference it (`_BOUNDARY`, `_MARKER`) come after, where "the table in

@@ -15,19 +15,21 @@ import os
 import time
 from pathlib import Path
 
-from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+# ⚠️ `.env` is loaded by `app/__init__.py`, which Python runs before any of these imports. It is NOT
+# loaded here: a `load_dotenv()` below the import block runs *after* `app.llm.client` has already
+# resolved ANTHROPIC_MODEL, which silently pinned the app to the default model no matter what `.env`
+# said. See the docstring in `app/__init__.py`.
 from app.api.chat import router as chat_router
 from app.api.stats import router as stats_router
+from app.llm import client as llm_client
 from app.obs import spend
 from app.obs.log import get_logger, new_request_id, request_id_var
 from app.obs.sink import SINK
 
 log = get_logger("app")
-
-load_dotenv()
 
 # `StaticFiles` derives Content-Type from the stdlib `mimetypes` database, which is seeded from the
 # host OS. macOS knows `.woff2`; the slim Debian image does not — so the self-hosted fonts served as
@@ -37,7 +39,6 @@ load_dotenv()
 mimetypes.add_type("font/woff2", ".woff2")
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
-MODEL = os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5")
 WEB_DIST = Path(__file__).parent.parent / "web" / "dist"
 
 app = FastAPI(
@@ -122,10 +123,13 @@ def health() -> dict[str, object]:
     Reports whether the key is CONFIGURED, never whether it is valid: validating would mean
     a billed API call on every healthcheck.
     """
+    # Read from the client rather than resolving ANTHROPIC_MODEL a second time here. A private
+    # copy agreed with the real one only by coincidence, and this is the endpoint you check to
+    # answer "what model is actually deployed?" — the one place a stale answer is worst.
     return {
         "status": "ok",
         "environment": ENVIRONMENT,
-        "model": MODEL,
+        "model": llm_client.MODEL,
         "anthropic_key_configured": bool(os.getenv("ANTHROPIC_API_KEY")),
         "web_bundle_present": WEB_DIST.is_dir(),
         # Answers "are my logs actually persisting?" without needing a shell on the container.
