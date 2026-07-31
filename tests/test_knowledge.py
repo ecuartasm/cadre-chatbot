@@ -102,16 +102,26 @@ def test_prompt_has_not_shrunk_since_it_was_measured():
     """Cheap proxy that runs offline on every commit: if the corpus is trimmed substantially,
     this trips and tells you to re-measure rather than letting the cache quietly stop."""
     chars = len(build_system_blocks()[0]["text"])
-    assert chars >= 16_000, (
-        f"assembled prompt is {chars} chars; it was 17,336 when measured at "
+    assert chars >= 20_000, (
+        f"assembled prompt is {chars} chars; it was 23,569 when measured at "
         f"{MEASURED_SYSTEM_TOKENS} tokens. Re-run the count_tokens measurement before shipping."
     )
 
 
 @pytest.mark.skipif(not os.getenv("ANTHROPIC_API_KEY"), reason="needs an API key")
+@pytest.mark.skipif(
+    bool(os.getenv("ANTHROPIC_BASE_URL")),
+    reason="count_tokens is 404 on a gateway; prefix measurement needs Anthropic direct",
+)
 def test_real_token_count_matches_the_recorded_measurement():
     """The authoritative check. `count_tokens` is free, so there is no excuse for guessing —
-    and this is what catches the recorded number drifting from reality."""
+    and this is what catches the recorded number drifting from reality.
+
+    ⚠️ **Skipped when `ANTHROPIC_BASE_URL` is set.** The SDK reads that variable *itself*, so
+    `Anthropic()` below silently follows it — and `count_tokens` does not exist on OpenRouter, so
+    the test failed with a bare `404 Not Found` naming nothing. Measuring the prefix is a
+    build-time job against Anthropic directly; the gateway only serves runtime traffic.
+    """
     from anthropic import Anthropic
 
     n = (

@@ -16,7 +16,6 @@ measurement and its live test have to keep talking to Anthropic directly.
 from __future__ import annotations
 
 import importlib
-import os
 
 import pytest
 
@@ -109,11 +108,18 @@ def test_the_model_id_needs_no_translation():
         )
 
 
-@pytest.mark.skipif(
-    os.getenv("ANTHROPIC_BASE_URL") not in (None, ""),
-    reason="count_tokens is 404 on OpenRouter — prefix measurement needs Anthropic directly",
-)
-def test_count_tokens_is_only_expected_without_a_gateway():
-    """Documents the one capability a gateway does not provide, as a skip rather than a comment —
-    so running the suite against a gateway reports it instead of failing mysteriously."""
-    assert True
+def test_the_live_token_count_skips_under_a_gateway():
+    """`count_tokens` is 404 on OpenRouter, and the SDK reads ANTHROPIC_BASE_URL *itself* — so the
+    live measurement test follows the gateway without being asked and fails with a bare 404.
+
+    An earlier version of this file carried a no-op placeholder that skipped itself, which proved
+    nothing: the test that actually calls the API was still unguarded. The guard belongs on the
+    real test, and this asserts it is there."""
+    from pathlib import Path
+
+    src = (Path(__file__).parent / "test_knowledge.py").read_text(encoding="utf-8")
+    i = src.index("def test_real_token_count_matches_the_recorded_measurement")
+    decorators = src[max(0, i - 500):i]
+    assert "ANTHROPIC_BASE_URL" in decorators, (
+        "the live count_tokens test is not guarded against a gateway; it will 404"
+    )
