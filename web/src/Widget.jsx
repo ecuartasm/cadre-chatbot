@@ -82,8 +82,7 @@ export default function Widget() {
           <div className="wg-log" role="log" aria-live="polite" aria-label="Conversation">
             {messages.length === 0 && (
               <p className="wg-empty">
-                Ask about Cadre&rsquo;s services, industries, or how to book a call. Anything that
-                isn&rsquo;t public routes to the team rather than getting a guess.
+                Ask about Cadre&rsquo;s services, industries, or how to book a call.
               </p>
             )}
             {messages.map((m, i) => (
