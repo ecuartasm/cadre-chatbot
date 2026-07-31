@@ -946,12 +946,14 @@ All eight phases are complete and deployed. Four things remain, none of them blo
 system. Recorded here rather than left in a conversation, since this file is where the open items
 live.
 
-| # | Item | Blocked on | Est. |
-|---|---|---|---|
-| 1 | **Phase 8 part 2** — did log rotation and the spend rollover fire? | UTC midnight (2026-07-31 00:00) | 5 min |
-| 2 | **Phase 5 visual sign-off** — hierarchy, spacing, 375px on the live page | A human's eyes; I cannot see the rendered page | — |
-| 3 | **Tighten `CLAUDE.md`** | Nothing | ~15 min |
-| 4 | **Add a guardrail hook to `.claude/`** | Nothing | ~10 min |
+| # | Item | Status |
+|---|---|---|
+| 1 | **Phase 8 part 2** — did rotation and the spend rollover fire? | ✅ **Both fired**, verified 2026-07-31 00:25 UTC. See `reports/phase-8-report.md` §4 |
+| 2 | **Phase 5 visual sign-off** — hierarchy, spacing, 375px | ⏳ **Open** — needs a human's eyes; I cannot see the rendered page |
+| 3 | **Tighten `CLAUDE.md`** | ✅ Done — refreshed and cut back under its own 250-line cap (249) |
+| 4 | **Add a guardrail hook to `.claude/`** | ✅ Done — `hooks/guard-commit.sh`, verified against six paths |
+
+**One item remains, and it is the one I cannot do.**
 
 **On (1):** exact commands and the meaning of each outcome are in `reports/phase-8-report.md` §4.
 Baseline to compare against: **136 turns · $0.186995 · `spend.date: 2026-07-30`**. If `/api/stats`
