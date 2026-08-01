@@ -56,18 +56,19 @@ which pages changed, and read the diffs of those pages only.
 | Cosmetic — nav, CTA copy, image URLs, whitespace | Report as noise. Propose nothing. |
 
 **4. Check the token floor.** The corpus is part of a cached prompt prefix with a **hard minimum of
-4,096 tokens** on `claude-haiku-4-5`; below it, caching fails silently at ~11× the input cost. If your
-proposal would remove content, measure the result:
+4,096 tokens** on `claude-haiku-4-5` (1,024 on `claude-sonnet-5` — floors are non-monotonic and live
+in `app/llm/models.py`). Below the floor caching fails **silently**:
+`cache_creation_input_tokens` simply stays `0` and every turn costs **~3.6×** more, forever. If your
+proposal would remove content, measure it — for **every** model, since the same bytes tokenise 38%
+apart:
 
 ```bash
-uv run python -c "
-from anthropic import Anthropic
-from app.llm.prompt import build_system_blocks
-print(Anthropic().messages.count_tokens(model='claude-haiku-4-5',
-  system=build_system_blocks(), messages=[{'role':'user','content':'x'}]).input_tokens)"
+uv run python .claude/skills/edit-system-prompt/measure-prefix.py
 ```
 
-Report the before/after number. If it would drop below ~4,200, say so prominently.
+Report the before/after number per model. If any model would drop below its floor, or land within
+~200 tokens of it, say so prominently — clearing a floor by one paragraph means the next edit breaks
+caching.
 
 **5. Report.** Structure your output as:
 
@@ -86,16 +87,90 @@ TOKEN IMPACT        current → proposed, against the 4,096 floor
   a **phone/email/address**, or an **article publication date**.
 - Never restate a fact without its caveat. If the caveat is awkward to carry, propose omitting the fact.
 - Every proposed section keeps its `disclosure` tag and, where relevant, `refusal_reason`.
-- ⚠️ **The `## Site map` section must survive a refresh, and must be REGENERATED from the new
-  scrape.** It lists every real page path, and it exists because the bot was inventing them —
-  slugifying service *names* into `/ai-strategy`, `/ai-agents` and
-  `/ai-leadership-and-facilitation`, none of which resolve. Three of the four service lines have a
-  path that differs from their title, so the paths cannot be derived and must be copied from the
-  `url:` frontmatter in `content/raw/`. Dropping or stale-ing this section silently reintroduces a
-  boundary defect: invented URLs.
-- If a page is added or removed upstream, say so explicitly — `web/src/cadre-urls.js` is generated
-  from the same frontmatter and would need regenerating too, or the chat will stop linking a real
-  page (or keep linking a dead one).
+- Never propose a URL or a page path you have not read out of `url:` frontmatter in
+  `content/raw/`. See §URLs below — this is the one category where a plausible guess is worse than
+  no answer, because the bot will print it and a user will click it.
 - If the live page and the corpus disagree and you cannot tell which is right from the raw file alone,
   **say so and stop.** "I don't know which is correct" is the correct output. Guessing is how the
   Griffin Funding error happened.
+
+## 🔗 URLs — the failure this project already had
+
+**A page added or removed upstream breaks links in TWO places, and neither announces itself.** Treat
+this as a mandatory step of every refresh, not an afterthought.
+
+### Why
+
+Three of the four service lines have a path that does **not** match their name:
+
+| Service line | The obvious guess | The real path |
+|---|---|---|
+| AI Strategy | `/ai-strategy` | **`/strategy`** |
+| AI Agents | `/ai-agents` | **`/agents`** |
+| AI Leadership & Facilitation | `/ai-leadership-and-facilitation` | **`/leadership-facilitation`** |
+| AI Engineering | `/ai-engineering` | ✅ correct **by coincidence** |
+
+The bot was slugifying the *title* and producing three dead URLs per answer. The fourth being right
+by luck is why nobody noticed — it looked like proof the pattern worked. **Paths cannot be derived.
+They must be copied.**
+
+### The two artefacts that must move together
+
+| Artefact | If it goes stale |
+|---|---|
+| `## Site map` in `content/knowledge-base.md` | The bot cites a dead path, or omits a real page |
+| `web/src/cadre-urls.js` | The chat stops linking a real page, or keeps linking a removed one |
+
+### What to run
+
+**a. Get the authoritative path list** — the only source is the frontmatter:
+
+```bash
+grep -h '^url:' content/raw/*.md \
+  | sed 's|^url: *||; s|/$||; s|https://www.cadreai.com||; s|^$|/|' | sort -u
+```
+
+**b. Check the corpus Site map covers every one of them:**
+
+```bash
+uv run python -c "
+import re, pathlib
+raw = {re.search(r'^url:\s*(\S+)', p.read_text(), re.M).group(1)
+        .replace('https://www.cadreai.com','').rstrip('/') or '/'
+       for p in pathlib.Path('content/raw').glob('*.md')}
+kb = pathlib.Path('content/knowledge-base.md').read_text()
+sm = kb[kb.index('## Site map'):kb.index('# NEGATIVE KNOWLEDGE')]
+missing = sorted(p for p in raw if p.rsplit('/',1)[-1] not in sm and p not in sm)
+print(f'paths: {len(raw)} · missing from Site map: {missing or \"none\"}')"
+```
+
+**c. Check the link allowlist** — a test already does this, so just run it:
+
+```bash
+uv run pytest tests/test_ui.py::test_the_link_allowlist_matches_the_scraped_corpus -q
+```
+
+It fails with the exact diff in both directions — *only in js* / *only in corpus*. **If it fails,
+`web/src/cadre-urls.js` must be regenerated from the frontmatter and that is part of your proposal,
+not a follow-up.**
+
+**d. Confirm rendering still holds:**
+
+```bash
+node web/scripts/link-audit.mjs      # 102 checks: every page both forms, 20 shapes, 11 negatives
+```
+
+### Add this to your report
+
+```
+🔗 URLS
+  paths in content/raw/    n  (was m)
+  added / removed          the actual paths
+  Site map covers all      yes / NO — list what is missing
+  allowlist drift test     pass / FAIL — paste the diff
+  link audit               102/102 or the failures
+```
+
+If pages were added or removed, **say plainly that `web/src/cadre-urls.js` needs regenerating** and
+include the new list. A human merging a corpus edit without it ships a bot that either cannot link a
+real page or links a dead one — and the chat will look fine either way.
