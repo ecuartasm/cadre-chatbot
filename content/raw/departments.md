@@ -1,7 +1,7 @@
 ---
 url: https://www.cadreai.com/departments
 title: "AI Solutions by Department"
-scraped_at: 2026-07-29
+scraped_at: 2026-07-31
 content_sha256: f7c54322c48a4f85c0a7230266db615a5913215f02df8280936c6d44661bf67f
 ---
 

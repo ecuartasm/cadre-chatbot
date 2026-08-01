@@ -1,7 +1,7 @@
 ---
 url: https://www.cadreai.com/case-studies
 title: "Case Studies | AI Implementation Success Stories"
-scraped_at: 2026-07-29
+scraped_at: 2026-07-31
 content_sha256: 65b6b8ed311b026421512a66c1c60d46baba87d2db8cedd6d61d7fd66665b33e
 ---
 

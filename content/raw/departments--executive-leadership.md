@@ -1,8 +1,8 @@
 ---
 url: https://www.cadreai.com/departments/executive-leadership
 title: "AI for Executive Leadership - Make faster, better decisions with AI that synthesizes intelligence from across the business and delivers insights without waiting for reports."
-scraped_at: 2026-07-29
-content_sha256: 504033b624d2a31210d41538a05c3863377e6be0e54fc5e4265f2640644d3e6a
+scraped_at: 2026-07-31
+content_sha256: 2458c08ef7d2c2b78594793646229d5cbcfb7b8ebf9ce1f96c22ae674590a88d
 ---
 
 ### AI that works for
@@ -73,34 +73,6 @@ The most effective executives aren't just making faster decisions—they're maki
 
 Browse agents that can deliver results for you below
 
-Meeting Prep Briefing Generator
-
-![Meeting Prep Briefing Generator - Generate executive briefings instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a4019c5657f8d32150880_693a4017fd943f6e49ba4418_meeting-prep-briefing-generator.avif)
-
-Executive Leadership
-
-Agent Capabilities
-
-Generates executive briefings for upcoming meetings from CRM, emails, and Slack.
-
-Provides context and relevant information for productive meetings.
-
-Saves significant prep time for important conversations.
-
-And more...
-
-No items found.
-
-[Talk to an AI Strategist](/contact)
-
-![Meeting Prep Briefing Generator - Generate executive briefings instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a4019c5657f8d32150880_693a4017fd943f6e49ba4418_meeting-prep-briefing-generator.avif)
-
-Executive Leadership
-
-Meeting Prep Briefing Generator
-
-Generate executive briefings instantly
-
 Business Metrics Explainer
 
 ![Business Metrics Explainer - Translate complex KPIs into plain language](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a3c51755b67c115901ef6_693a3c50ee2e6fd94aeb64ae_business-metrics-explainer.avif)
@@ -128,34 +100,6 @@ Executive Leadership
 Business Metrics Explainer
 
 Translate complex KPIs into plain language
-
-Executive Coach
-
-![Executive Coach - Get leadership coaching on-demand](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a3e78380fb53032173717_693a3e77c5657f8d3213ff78_executive-coach.avif)
-
-Executive Leadership
-
-Agent Capabilities
-
-Provides executive coaching and leadership development guidance on demand.
-
-Offers frameworks for leadership challenges and decisions.
-
-Acts as always-available executive advisor.
-
-And more...
-
-No items found.
-
-[Talk to an AI Strategist](/contact)
-
-![Executive Coach - Get leadership coaching on-demand](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a3e78380fb53032173717_693a3e77c5657f8d3213ff78_executive-coach.avif)
-
-Executive Leadership
-
-Executive Coach
-
-Get leadership coaching on-demand
 
 Investment Committee Prep
 
@@ -186,6 +130,62 @@ Executive Leadership
 Investment Committee Prep
 
 Auto-create IC memos and decision decks
+
+Meeting Prep Briefing Generator
+
+![Meeting Prep Briefing Generator - Generate executive briefings instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a4019c5657f8d32150880_693a4017fd943f6e49ba4418_meeting-prep-briefing-generator.avif)
+
+Executive Leadership
+
+Agent Capabilities
+
+Generates executive briefings for upcoming meetings from CRM, emails, and Slack.
+
+Provides context and relevant information for productive meetings.
+
+Saves significant prep time for important conversations.
+
+And more...
+
+No items found.
+
+[Talk to an AI Strategist](/contact)
+
+![Meeting Prep Briefing Generator - Generate executive briefings instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a4019c5657f8d32150880_693a4017fd943f6e49ba4418_meeting-prep-briefing-generator.avif)
+
+Executive Leadership
+
+Meeting Prep Briefing Generator
+
+Generate executive briefings instantly
+
+Executive Coach
+
+![Executive Coach - Get leadership coaching on-demand](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a3e78380fb53032173717_693a3e77c5657f8d3213ff78_executive-coach.avif)
+
+Executive Leadership
+
+Agent Capabilities
+
+Provides executive coaching and leadership development guidance on demand.
+
+Offers frameworks for leadership challenges and decisions.
+
+Acts as always-available executive advisor.
+
+And more...
+
+No items found.
+
+[Talk to an AI Strategist](/contact)
+
+![Executive Coach - Get leadership coaching on-demand](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a3e78380fb53032173717_693a3e77c5657f8d3213ff78_executive-coach.avif)
+
+Executive Leadership
+
+Executive Coach
+
+Get leadership coaching on-demand
 
 ### Track your AI results
 

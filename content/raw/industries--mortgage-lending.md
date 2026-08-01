@@ -1,8 +1,8 @@
 ---
 url: https://www.cadreai.com/industries/mortgage-lending
 title: "AI for Mortgage & Lending"
-scraped_at: 2026-07-29
-content_sha256: 18d96d86cd9ccf93a9309ce66f35583d62fdad7ba0d26c62da20e00630243551
+scraped_at: 2026-07-31
+content_sha256: f173a902ba52183690bad8768b13adc1cdfae1a86fdb1476847e5973d2d831ad
 ---
 
 ### AI that works for
@@ -73,62 +73,6 @@ The winning lenders aren't just processing loans faster—they're delivering cer
 
 Browse agents that can deliver results for you below
 
-Automated Underwriter
-
-![Automated Underwriter - Underwrite loans in minutes not days](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbe0c98de21e79b9c7329_693cbe0b0ad129ddfb1bff00_automated-underwriter.png)
-
-Operations
-
-Agent Capabilities
-
-Reviews loan applications verifies income and assets and generates underwriting decisions automatically.
-
-Applies lending criteria consistently.
-
-Accelerates approvals while maintaining quality.
-
-And more...
-
-Mortgage & Lending
-
-[Talk to an AI Strategist](/contact)
-
-![Automated Underwriter - Underwrite loans in minutes not days](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbe0c98de21e79b9c7329_693cbe0b0ad129ddfb1bff00_automated-underwriter.png)
-
-Operations
-
-Automated Underwriter
-
-Underwrite loans in minutes not days
-
-Document Verification Accelerator
-
-![Document Verification Accelerator - Verify income and assets instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbe225bbc870472f16cca_693cbe21a5cfcf357ddb600f_document-verification-accelerator.jpeg)
-
-Operations
-
-Agent Capabilities
-
-Extracts data from pay stubs tax returns and bank statements to verify borrower financials.
-
-Flags discrepancies and missing documentation immediately.
-
-Eliminates verification back-and-forth.
-
-And more...
-
-Mortgage & Lending
-
-[Talk to an AI Strategist](/contact)
-
-![Document Verification Accelerator - Verify income and assets instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbe225bbc870472f16cca_693cbe21a5cfcf357ddb600f_document-verification-accelerator.jpeg)
-
-Operations
-
-Document Verification Accelerator
-
-Verify income and assets instantly
-
 Loan Validator
 
 ![Loan Validator - Validate loan quality before submission](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbe5d9bd740eb37753794_693cbe5ca5cfcf357ddb8f6c_loan-validator.png)
@@ -185,6 +129,34 @@ Client Update Notifier
 
 Keep borrowers informed at every milestone
 
+Document Verification Accelerator
+
+![Document Verification Accelerator - Verify income and assets instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbe225bbc870472f16cca_693cbe21a5cfcf357ddb600f_document-verification-accelerator.jpeg)
+
+Operations
+
+Agent Capabilities
+
+Extracts data from pay stubs tax returns and bank statements to verify borrower financials.
+
+Flags discrepancies and missing documentation immediately.
+
+Eliminates verification back-and-forth.
+
+And more...
+
+Mortgage & Lending
+
+[Talk to an AI Strategist](/contact)
+
+![Document Verification Accelerator - Verify income and assets instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbe225bbc870472f16cca_693cbe21a5cfcf357ddb600f_document-verification-accelerator.jpeg)
+
+Operations
+
+Document Verification Accelerator
+
+Verify income and assets instantly
+
 Rate Lock Optimizer
 
 ![Rate Lock Optimizer - Price competitively in real-time](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbe3f3e5ca50622980dbd_693cbe3ddd1820a1ed1777d4_rate-lock-optimizer.png)
@@ -212,6 +184,34 @@ Sales
 Rate Lock Optimizer
 
 Price competitively in real-time
+
+Automated Underwriter
+
+![Automated Underwriter - Underwrite loans in minutes not days](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbe0c98de21e79b9c7329_693cbe0b0ad129ddfb1bff00_automated-underwriter.png)
+
+Operations
+
+Agent Capabilities
+
+Reviews loan applications verifies income and assets and generates underwriting decisions automatically.
+
+Applies lending criteria consistently.
+
+Accelerates approvals while maintaining quality.
+
+And more...
+
+Mortgage & Lending
+
+[Talk to an AI Strategist](/contact)
+
+![Automated Underwriter - Underwrite loans in minutes not days](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbe0c98de21e79b9c7329_693cbe0b0ad129ddfb1bff00_automated-underwriter.png)
+
+Operations
+
+Automated Underwriter
+
+Underwrite loans in minutes not days
 
 [1](#)
 

@@ -1,7 +1,7 @@
 ---
 url: https://www.cadreai.com/careers
 title: "Careers in AI"
-scraped_at: 2026-07-29
+scraped_at: 2026-07-31
 content_sha256: 461babb61dd9154616a1028e5f3d9619ec6f6b34834ad785988b4557d5001e24
 ---
 

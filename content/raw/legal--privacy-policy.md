@@ -1,7 +1,7 @@
 ---
 url: https://www.cadreai.com/legal/privacy-policy
 title: "Privacy Policy"
-scraped_at: 2026-07-29
+scraped_at: 2026-07-31
 content_sha256: 8ec30fa47bca345e02eb5dbd4fbcf7b3db83c16d742175bd73d08676520f2072
 ---
 

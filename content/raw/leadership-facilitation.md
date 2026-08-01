@@ -1,7 +1,7 @@
 ---
 url: https://www.cadreai.com/leadership-facilitation
 title: "AI Leadership & Facilitation"
-scraped_at: 2026-07-29
+scraped_at: 2026-07-31
 content_sha256: 1f65b7d9dbca3420822f3abcdf224390a20e4a421b9ce45cb571fd83e719c655
 ---
 

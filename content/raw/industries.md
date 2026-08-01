@@ -1,7 +1,7 @@
 ---
 url: https://www.cadreai.com/industries
 title: "Industries We've Transformed with AI"
-scraped_at: 2026-07-29
+scraped_at: 2026-07-31
 content_sha256: b903d53e55ec0084d14705386f4f18429a47bd9ba7d7fe2eaf1b2c4365255eaa
 ---
 

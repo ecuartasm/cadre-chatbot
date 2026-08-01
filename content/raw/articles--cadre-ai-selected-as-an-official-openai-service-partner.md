@@ -1,8 +1,8 @@
 ---
 url: https://www.cadreai.com/articles/cadre-ai-selected-as-an-official-openai-service-partner
 title: "Cadre AI Selected as an Official OpenAI Service Partner"
-scraped_at: 2026-07-29
-content_sha256: 0664bf52512e4e3e321f65d31771c59aef12a7bb40d5ea761172d29c7b788198
+scraped_at: 2026-07-31
+content_sha256: 327a0f1282c759a361c567c92e647a0ccb152956ec74e5352e44375d2fff3621
 ---
 
 ## Cadre AI Selected as an Official OpenAI Service Partner
@@ -71,35 +71,35 @@ Riley Stricklin is Founder & Chief Strategy Officer at Cadre AI, bringing a deca
 
 ### Read More Blogs
 
-[![Voice Agents Reduce Call Center Costs for Bilingual Customer Bases](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/6a1e054116f3f874430f4596_16R3oy0Om8tjJQhjz-g0-z6x0eQTtGmuA.jpeg)
-
-AI Agents & Automation
-
-Voice Agents Reduce Call Center Costs for Bilingual Customer Bases
-
-June 2, 2026
-
-June 1, 2026](/articles/ai-voice-agent-call-center)
-
-[![AI Training Isn't an Option Anymore...](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/6938eadfd89d9b6a38e7e28c_Screenshot%202025-12-09%20at%207.36.55%E2%80%AFPM.avif)
-
-AI Implementation & Tools
-
-AI Training Isn't an Option Anymore...
-
-December 9, 2025
-
-July 15, 2025](/articles/ai-training-isnt-an-option-anymore)
-
-[![The State of AI in Business: Why 72% of Companies Are Investing in AI](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/692f3dba7179c2031f7f2059_Screenshot%202025-12-02%20at%2011.27.47%E2%80%AFAM.avif)
+[![Why Most AI Initiatives Fail (and How to Avoid Common Pitfalls)](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/692f32d8494535daf3533049_Screenshot%202025-12-02%20at%2010.41.18%E2%80%AFAM.avif)
 
 AI Strategy & Adoption
 
-The State of AI in Business: Why 72% of Companies Are Investing in AI
+Why Most AI Initiatives Fail (and How to Avoid Common Pitfalls)
+
+January 5, 2026
+
+February 13, 2025](/articles/why-most-ai-initiatives-fail-and-how-to-avoid-common-pitfalls)
+
+[![From Manual to Magical: How AI Transforms Operational Efficiency](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/6938e9c59308eb6196fed524_Screenshot%202025-12-09%20at%207.32.07%E2%80%AFPM.avif)
+
+AI Agents & Automation
+
+From Manual to Magical: How AI Transforms Operational Efficiency
+
+January 5, 2026
+
+January 16, 2025](/articles/from-manual-to-magical-how-ai-transforms-operational-efficiency)
+
+[![Top 5 Ways to Get the Most Out of AI Notetakers](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/6938e4d443fdf4cd365b9054_Screenshot%202025-12-09%20at%207.11.04%E2%80%AFPM.avif)
+
+AI Implementation & Tools
+
+Top 5 Ways to Get the Most Out of AI Notetakers
 
 December 9, 2025
 
-November 29, 2024](/articles/the-state-of-ai-in-business-why-72-of-companies-are-investing-in-ai)
+April 9, 2025](/articles/top-5-ways-to-get-the-most-out-of-ai-notetakers)
 
 ### Track your AI results
 

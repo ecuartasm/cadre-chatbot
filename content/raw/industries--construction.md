@@ -1,8 +1,8 @@
 ---
 url: https://www.cadreai.com/industries/construction
 title: "AI for Construction"
-scraped_at: 2026-07-29
-content_sha256: d730b674e38b1360a32a66b21c80b1da6f9fd6360a1792fe23abe515831df228
+scraped_at: 2026-07-31
+content_sha256: ca730c676ea710c28dda3865135dc102e52dab7bf82a250e482536ce9a8ef452
 ---
 
 ### AI that works for
@@ -73,62 +73,6 @@ The most profitable contractors aren't just building faster—they're protecting
 
 Browse agents that can deliver results for you below
 
-Automated Takeoff Generator
-
-![Automated Takeoff Generator - Extract quantities from plans instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbce29bd740eb377456f4_693cbce13e5ca50622974ebf_automated-takeoff-generator.jpeg)
-
-Sales
-
-Agent Capabilities
-
-Analyzes construction plans to extract material quantities and measurements automatically.
-
-Generates detailed takeoff reports with line-item breakdowns.
-
-Reduces estimating time from days to hours.
-
-And more...
-
-Construction
-
-[Talk to an AI Strategist](/contact)
-
-![Automated Takeoff Generator - Extract quantities from plans instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbce29bd740eb377456f4_693cbce13e5ca50622974ebf_automated-takeoff-generator.jpeg)
-
-Sales
-
-Automated Takeoff Generator
-
-Extract quantities from plans instantly
-
-Bid Estimator
-
-![Bid Estimator - Price jobs accurately in hours not days](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbd02f978a448ec96d301_693cbd018c755289e3162b31_bid-estimator.png)
-
-Sales
-
-Agent Capabilities
-
-Combines takeoff data with historical cost data and current pricing to generate accurate estimates.
-
-Applies markup rules and identifies margin opportunities.
-
-Accelerates bid turnaround while improving accuracy.
-
-And more...
-
-Construction
-
-[Talk to an AI Strategist](/contact)
-
-![Bid Estimator - Price jobs accurately in hours not days](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbd02f978a448ec96d301_693cbd018c755289e3162b31_bid-estimator.png)
-
-Sales
-
-Bid Estimator
-
-Price jobs accurately in hours not days
-
 Change Order Tracker
 
 ![Change Order Tracker - Capture scope changes and protect margin](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbd359bd740eb37748406_693cbd349a067f6d367559e5_change-order-tracker.png)
@@ -185,6 +129,34 @@ Resource Scheduler
 
 Optimize crew and equipment allocation
 
+Bid Estimator
+
+![Bid Estimator - Price jobs accurately in hours not days](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbd02f978a448ec96d301_693cbd018c755289e3162b31_bid-estimator.png)
+
+Sales
+
+Agent Capabilities
+
+Combines takeoff data with historical cost data and current pricing to generate accurate estimates.
+
+Applies markup rules and identifies margin opportunities.
+
+Accelerates bid turnaround while improving accuracy.
+
+And more...
+
+Construction
+
+[Talk to an AI Strategist](/contact)
+
+![Bid Estimator - Price jobs accurately in hours not days](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbd02f978a448ec96d301_693cbd018c755289e3162b31_bid-estimator.png)
+
+Sales
+
+Bid Estimator
+
+Price jobs accurately in hours not days
+
 Project Health Monitor
 
 ![Project Health Monitor - Flag issues before they delay schedule](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbd17e0528d58ea3156db_693cbd16e0528d58ea315613_project-health-monitor.jpeg)
@@ -212,6 +184,34 @@ Operations
 Project Health Monitor
 
 Flag issues before they delay schedule
+
+Automated Takeoff Generator
+
+![Automated Takeoff Generator - Extract quantities from plans instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbce29bd740eb377456f4_693cbce13e5ca50622974ebf_automated-takeoff-generator.jpeg)
+
+Sales
+
+Agent Capabilities
+
+Analyzes construction plans to extract material quantities and measurements automatically.
+
+Generates detailed takeoff reports with line-item breakdowns.
+
+Reduces estimating time from days to hours.
+
+And more...
+
+Construction
+
+[Talk to an AI Strategist](/contact)
+
+![Automated Takeoff Generator - Extract quantities from plans instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbce29bd740eb377456f4_693cbce13e5ca50622974ebf_automated-takeoff-generator.jpeg)
+
+Sales
+
+Automated Takeoff Generator
+
+Extract quantities from plans instantly
 
 [1](#)
 

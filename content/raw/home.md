@@ -1,13 +1,13 @@
 ---
 url: https://www.cadreai.com/
 title: "Cadre AI | AI Strategy & Implementation for Business Growth & EBITDA Improvement"
-scraped_at: 2026-07-29
-content_sha256: b5599e6cec115a98a8888c22152d6dcde1f3d30a3a979de12ab82a94b6c71f5f
+scraped_at: 2026-07-31
+content_sha256: e955dcd1fb18319ea6fe36ad7207100f24f3e844a1b85bead56dd573e2da2806
 ---
 
 [Cadre AI
 
-Official OpenAI Service Partner](/articles/cadre-ai-selected-as-an-official-openai-service-partner)
+Anthropic & OpenAI Partner](/articles/cadre-ai-selected-as-an-official-openai-service-partner)
 
 ## From AI Confusion to AI Confidence.
 

@@ -1,7 +1,7 @@
 ---
 url: https://www.cadreai.com/strategy
 title: "AI Strategy & Transformation"
-scraped_at: 2026-07-29
+scraped_at: 2026-07-31
 content_sha256: 82a841d71d1fdbf2188798da9fdffd71541160070364d278f23914765f5cd63b
 ---
 

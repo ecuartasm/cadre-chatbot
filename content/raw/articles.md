@@ -1,7 +1,7 @@
 ---
 url: https://www.cadreai.com/articles
 title: "AI News"
-scraped_at: 2026-07-29
+scraped_at: 2026-07-31
 content_sha256: 568c6dc6e3a59eec4050212000dd6a25240231d00af18aa61e022e691d8eeec1
 ---
 

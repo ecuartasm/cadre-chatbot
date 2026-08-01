@@ -1,7 +1,7 @@
 ---
 url: https://www.cadreai.com/ai-transformation-intensive
 title: "AI Transformation Intensive"
-scraped_at: 2026-07-29
+scraped_at: 2026-07-31
 content_sha256: 58fcd6f0628ff039bce53ec37b1cf23f8f804a10c1810d6dce9dae923c281404
 ---
 

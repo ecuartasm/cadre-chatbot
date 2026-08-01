@@ -1,7 +1,7 @@
 ---
 url: https://www.cadreai.com/contact
 title: "Contact Cadre AI | AI Strategy & Implementation Partner"
-scraped_at: 2026-07-29
+scraped_at: 2026-07-31
 content_sha256: 51a43c41fe1b8b75a2c0d6f9fa1365cfd601a92cf2c615bfaaddbbfccb905564
 ---
 

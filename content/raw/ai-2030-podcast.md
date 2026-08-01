@@ -1,8 +1,8 @@
 ---
 url: https://www.cadreai.com/ai-2030-podcast
 title: "Podcasts About AI"
-scraped_at: 2026-07-29
-content_sha256: 20df48030ca5c039cc5971f518674d775c1029cd2d77d369690094bd983e7194
+scraped_at: 2026-07-31
+content_sha256: 80ce802d83c22685acf571fb0c0fee877aaae3308ff334fafad745d608adbdee
 ---
 
 New
@@ -14,6 +14,20 @@ AI 2030 Podcast
 Get insider perspectives on AI's evolution from the CTOs, founders, and innovators building tomorrow's technology.
 
 Episodes
+
+[![](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/6a6b568982f91c9426f10af2_%231%20-%20Alex%20Lirtsman.png)
+
+July 30, 2026
+
+•
+
+28:08
+
+## How Will AI Change Marketing Analytics? [Ft. Alex Lirtsman, CorralData]
+
+Most attribution setups reward the click and the form fill. Alex Lirtsman, founder and CEO of CorralData, built his platform to reward the person who actually shows up and pays, then feeds that signal back to the ad platforms so bidding optimizes toward revenue instead of cheap leads.
+
+Play Episode](/podcasts/corraldata)
 
 [![](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/6a4d159d4de961cb712fe172_%231%20-%20Rohit%20Sharma%20(1).png)
 

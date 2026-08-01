@@ -1,7 +1,7 @@
 ---
 url: https://www.cadreai.com/2030-podcast
 title: "2030 Podcast"
-scraped_at: 2026-07-29
+scraped_at: 2026-07-31
 content_sha256: 35f9b85b6cb725f657adfe92c6cceb2df8fcdadbe45235622ac56e40f23058be
 ---
 

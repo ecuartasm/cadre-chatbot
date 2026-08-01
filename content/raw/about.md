@@ -1,7 +1,7 @@
 ---
 url: https://www.cadreai.com/about
 title: "About Us"
-scraped_at: 2026-07-29
+scraped_at: 2026-07-31
 content_sha256: fa2ae2cdb1bfddfce54c07eda14d1f9f201b7f05027164233c98a1045312fd62
 ---
 

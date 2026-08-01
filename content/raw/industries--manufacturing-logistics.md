@@ -1,8 +1,8 @@
 ---
 url: https://www.cadreai.com/industries/manufacturing-logistics
 title: "AI for Manufacturing & Logistics"
-scraped_at: 2026-07-29
-content_sha256: 9d504e2a4053a0aef4a43bcd1dced37d216e2afc038b91a1fa951234c82b49d3
+scraped_at: 2026-07-31
+content_sha256: df5eb5f0f03cea15818c319f803e38f3d66a0539df07727b542b61dafb08e845
 ---
 
 ### AI that works for
@@ -73,62 +73,6 @@ The most competitive manufacturers aren't just reducing costs—they're deliveri
 
 Browse agents that can deliver results for you below
 
-Predictive Maintenance Scheduler
-
-![Predictive Maintenance Scheduler - Prevent failures before they cause downtime](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbc649bd740eb37741c17_693cbc62e0528d58ea3107c5_predictive-maintenance-scheduler.png)
-
-Operations
-
-Agent Capabilities
-
-Analyzes equipment sensor data and maintenance history to predict failures before they happen.
-
-Schedules preventive maintenance at optimal times to minimize production impact.
-
-Reduces unplanned downtime by 60%.
-
-And more...
-
-Manufacturing & Logistics
-
-[Talk to an AI Strategist](/contact)
-
-![Predictive Maintenance Scheduler - Prevent failures before they cause downtime](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbc649bd740eb37741c17_693cbc62e0528d58ea3107c5_predictive-maintenance-scheduler.png)
-
-Operations
-
-Predictive Maintenance Scheduler
-
-Prevent failures before they cause downtime
-
-Smart Inventory Optimizer
-
-![Smart Inventory Optimizer - Optimize inventory to actual demand](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbc8168cc93ccc9fa2501_693cbc7f17875bfd8bdf6ce0_smart-inventory-optimizer.png)
-
-Operations
-
-Agent Capabilities
-
-Predicts inventory needs based on production schedules order patterns and lead times.
-
-Auto-generates purchase orders when stock levels approach optimal reorder points.
-
-Eliminates stockouts and reduces excess inventory.
-
-And more...
-
-Manufacturing & Logistics
-
-[Talk to an AI Strategist](/contact)
-
-![Smart Inventory Optimizer - Optimize inventory to actual demand](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbc8168cc93ccc9fa2501_693cbc7f17875bfd8bdf6ce0_smart-inventory-optimizer.png)
-
-Operations
-
-Smart Inventory Optimizer
-
-Optimize inventory to actual demand
-
 Supplier Performance Tracker
 
 ![Supplier Performance Tracker - Track vendor reliability and optimize sourcing](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbcb5b8e078c9b26a5117_693cbcb45bbc870472f142bf_supplier-performance-tracker.png)
@@ -185,6 +129,34 @@ Waste Reduction Tracker
 
 Minimize scrap and material waste
 
+Smart Inventory Optimizer
+
+![Smart Inventory Optimizer - Optimize inventory to actual demand](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbc8168cc93ccc9fa2501_693cbc7f17875bfd8bdf6ce0_smart-inventory-optimizer.png)
+
+Operations
+
+Agent Capabilities
+
+Predicts inventory needs based on production schedules order patterns and lead times.
+
+Auto-generates purchase orders when stock levels approach optimal reorder points.
+
+Eliminates stockouts and reduces excess inventory.
+
+And more...
+
+Manufacturing & Logistics
+
+[Talk to an AI Strategist](/contact)
+
+![Smart Inventory Optimizer - Optimize inventory to actual demand](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbc8168cc93ccc9fa2501_693cbc7f17875bfd8bdf6ce0_smart-inventory-optimizer.png)
+
+Operations
+
+Smart Inventory Optimizer
+
+Optimize inventory to actual demand
+
 Production Schedule Optimizer
 
 ![Production Schedule Optimizer - Adapt schedules to real-time conditions](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbc9ad3fe25ca7214f50e_693cbc99b8e078c9b26a47ea_production-schedule-optimizer.jpeg)
@@ -212,6 +184,34 @@ Operations
 Production Schedule Optimizer
 
 Adapt schedules to real-time conditions
+
+Predictive Maintenance Scheduler
+
+![Predictive Maintenance Scheduler - Prevent failures before they cause downtime](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbc649bd740eb37741c17_693cbc62e0528d58ea3107c5_predictive-maintenance-scheduler.png)
+
+Operations
+
+Agent Capabilities
+
+Analyzes equipment sensor data and maintenance history to predict failures before they happen.
+
+Schedules preventive maintenance at optimal times to minimize production impact.
+
+Reduces unplanned downtime by 60%.
+
+And more...
+
+Manufacturing & Logistics
+
+[Talk to an AI Strategist](/contact)
+
+![Predictive Maintenance Scheduler - Prevent failures before they cause downtime](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbc649bd740eb37741c17_693cbc62e0528d58ea3107c5_predictive-maintenance-scheduler.png)
+
+Operations
+
+Predictive Maintenance Scheduler
+
+Prevent failures before they cause downtime
 
 [1](#)
 

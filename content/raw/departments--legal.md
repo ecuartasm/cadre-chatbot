@@ -1,8 +1,8 @@
 ---
 url: https://www.cadreai.com/departments/legal
 title: "AI for Legal - Accelerate contract review and stay compliant with AI that automates legal research, flags risks instantly, and scales expertise across the business."
-scraped_at: 2026-07-29
-content_sha256: 6a2764ad8d1b089cd78c52f29e79687afa79564d4b50f48ce2ea25bc1ec8a3ed
+scraped_at: 2026-07-31
+content_sha256: bcd55880cc44976ed99b0d3790b117ec00ad1943b974e1561b986d209ac99977
 ---
 
 ### AI that works for
@@ -73,6 +73,34 @@ The best legal teams aren't just reviewing faster—they're spending time on str
 
 Browse agents that can deliver results for you below
 
+Contract Clause Library
+
+![Contract Clause Library - Pull pre-approved clauses instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a403153eceae5e3a0a9d3_693a4030199b77d1ca3c0e3b_contract-clause-library.avif)
+
+Legal
+
+Agent Capabilities
+
+Provides approved contract language, clauses, and templates on demand.
+
+Considers contract type, jurisdiction, and business context.
+
+Accelerates contract drafting with consistency.
+
+And more...
+
+No items found.
+
+[Talk to an AI Strategist](/contact)
+
+![Contract Clause Library - Pull pre-approved clauses instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a403153eceae5e3a0a9d3_693a4030199b77d1ca3c0e3b_contract-clause-library.avif)
+
+Legal
+
+Contract Clause Library
+
+Pull pre-approved clauses instantly
+
 NDA Analyst
 
 ![NDA Analysis - Auto-redline NDAs to firm standards](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a42893e435b6444cc475e_693a4288f9d601a5a196ecf9_nda-analysis.avif)
@@ -130,34 +158,6 @@ Legal
 Compliance Policy Guide
 
 Answer compliance questions without legal delays
-
-Contract Clause Library
-
-![Contract Clause Library - Pull pre-approved clauses instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a403153eceae5e3a0a9d3_693a4030199b77d1ca3c0e3b_contract-clause-library.avif)
-
-Legal
-
-Agent Capabilities
-
-Provides approved contract language, clauses, and templates on demand.
-
-Considers contract type, jurisdiction, and business context.
-
-Accelerates contract drafting with consistency.
-
-And more...
-
-No items found.
-
-[Talk to an AI Strategist](/contact)
-
-![Contract Clause Library - Pull pre-approved clauses instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a403153eceae5e3a0a9d3_693a4030199b77d1ca3c0e3b_contract-clause-library.avif)
-
-Legal
-
-Contract Clause Library
-
-Pull pre-approved clauses instantly
 
 ### Track your AI results
 

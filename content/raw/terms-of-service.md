@@ -1,7 +1,7 @@
 ---
 url: https://www.cadreai.com/terms-of-service
 title: "Terms of Service"
-scraped_at: 2026-07-29
+scraped_at: 2026-07-31
 content_sha256: 75830d52171185586716ddddc9ac4a41f067b57c68f4edd6c759ef7a4ea1f9ef
 ---
 

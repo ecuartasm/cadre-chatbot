@@ -1,8 +1,8 @@
 ---
 url: https://www.cadreai.com/industries/private-equity
 title: "AI for Private Equity"
-scraped_at: 2026-07-29
-content_sha256: 25f92d92003726f32f525a3cfa7e9d3b8797f2a743d87b86c5e7e1d586211109
+scraped_at: 2026-07-31
+content_sha256: e554dc43466f000283c33668b6fa18b4a3b5805fecc1f40da54ddda7c79b5838
 ---
 
 ### AI that works for
@@ -73,6 +73,96 @@ The best firms aren't just using AI to work faster. They're using it to see oppo
 
 Browse agents that can deliver results for you below
 
+Market Research Analyst
+
+![Market Research Intelligence - Condense market research into actionable intelligence](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a59a369acf0edf419de4d_693a59a1dca751f8ff3b9138_market-research-intelligence.avif)
+
+Finance
+
+Agent Capabilities
+
+Condense market research into actionable intelligence.
+
+Aggregates data from industry reports, filings, news, and academic sources.
+
+Tracks competitor positioning and macro trends.
+
+Produces clean, structured insights on new sectors.
+
+And more...
+
+Private Equity
+
+[Talk to an AI Strategist](/contact)
+
+![Market Research Intelligence - Condense market research into actionable intelligence](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a59a369acf0edf419de4d_693a59a1dca751f8ff3b9138_market-research-intelligence.avif)
+
+Finance
+
+Market Research Analyst
+
+Condense market research into actionable intelligence
+
+CIM Analyst
+
+![CIM Analysis - Parse CIMs and surface risks in minutes](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a5951e5a9c18fdb5e8fcb_693a59507a1932444bc793f6_cim-analysis.avif)
+
+Sales
+
+Agent Capabilities
+
+Parse CIMs and surface risks in minutes.
+
+Pulls key financial metrics, identifies red flags, and highlights market positioning.
+
+Benchmarks against past deals to avoid repeated mistakes.
+
+Produces investment-ready summaries for faster evaluation.
+
+And more...
+
+Private Equity
+
+[Talk to an AI Strategist](/contact)
+
+![CIM Analysis - Parse CIMs and surface risks in minutes](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a5951e5a9c18fdb5e8fcb_693a59507a1932444bc793f6_cim-analysis.avif)
+
+Sales
+
+CIM Analyst
+
+Parse CIMs and surface risks in minutes
+
+Due Diligence Analyst
+
+![Due Diligence Analysis - Automate contract and financial document review](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a5557f2125c495338ed6d_693a555653eceae5e3a5385c_due-diligence-analysis.avif)
+
+Finance
+
+Agent Capabilities
+
+Automate contract and financial document review.
+
+Uses OCR and NLP to flag red flags, obligations, and off-market terms.
+
+Benchmarks financial metrics and legal language.
+
+Provides consistent, thorough review across document types.
+
+And more...
+
+Private Equity
+
+[Talk to an AI Strategist](/contact)
+
+![Due Diligence Analysis - Automate contract and financial document review](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a5557f2125c495338ed6d_693a555653eceae5e3a5385c_due-diligence-analysis.avif)
+
+Finance
+
+Due Diligence Analyst
+
+Automate contract and financial document review
+
 Data Room Analyst
 
 ![Data Room Analysis - Automate data-room extraction and red-flagging](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a421a1e3b55a7c7e4d44f_693a4219199b77d1ca3c9c05_data-room-analysis.avif)
@@ -133,21 +223,21 @@ NDA Analyst
 
 Auto-redline NDAs to firm standards
 
-Predictive Portco Performance
+CRM Analyst
 
-![Predictive Portco Performance - Predict company trajectories and intervention needs](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a44eaf9d601a5a1983773_693a44e947771c9db59e4100_predictive-portco-performance.avif)
+![CRM Intelligence - Map relationships and optimize deal outreach](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a598c305aa08c3f23e91e_693a598a5a5153e831d9d47e_crm-intelligence.avif)
 
-Finance
+Sales
 
 Agent Capabilities
 
-Predict company trajectories and intervention needs.
+Map relationships and optimize deal outreach.
 
-Tracks operational, financial, and external indicators.
+Analyzes emails, meetings, and notes for relationship health.
 
-Flags risk 3 to 6 months in advance.
+Suggests optimal follow-up timing and warm introductions.
 
-Suggests operational playbooks and exit timing guidance.
+Automatically updates CRM records.
 
 And more...
 
@@ -155,43 +245,13 @@ Private Equity
 
 [Talk to an AI Strategist](/contact)
 
-![Predictive Portco Performance - Predict company trajectories and intervention needs](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a44eaf9d601a5a1983773_693a44e947771c9db59e4100_predictive-portco-performance.avif)
+![CRM Intelligence - Map relationships and optimize deal outreach](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a598c305aa08c3f23e91e_693a598a5a5153e831d9d47e_crm-intelligence.avif)
 
-Finance
+Sales
 
-Predictive Portco Performance
+CRM Analyst
 
-Predict company trajectories and intervention needs
-
-Due Diligence Analyst
-
-![Due Diligence Analysis - Automate contract and financial document review](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a5557f2125c495338ed6d_693a555653eceae5e3a5385c_due-diligence-analysis.avif)
-
-Finance
-
-Agent Capabilities
-
-Automate contract and financial document review.
-
-Uses OCR and NLP to flag red flags, obligations, and off-market terms.
-
-Benchmarks financial metrics and legal language.
-
-Provides consistent, thorough review across document types.
-
-And more...
-
-Private Equity
-
-[Talk to an AI Strategist](/contact)
-
-![Due Diligence Analysis - Automate contract and financial document review](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a5557f2125c495338ed6d_693a555653eceae5e3a5385c_due-diligence-analysis.avif)
-
-Finance
-
-Due Diligence Analyst
-
-Automate contract and financial document review
+Map relationships and optimize deal outreach
 
 Deal Sourcer
 
@@ -223,111 +283,21 @@ Deal Sourcer
 
 Surface pre-market targets from broad signals
 
-Investment Committee Prep
+Predictive Portco Performance
 
-![Investment Committee Prep - Auto-create IC memos and decision decks](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a423421cc2e27f833f9a6_693a4232755b67c11591186b_investment-committee-prep.avif)
-
-Executive Leadership
-
-Agent Capabilities
-
-Auto-create IC memos and decision decks.
-
-Synthesizes all workstreams into decision-ready materials.
-
-Applies IC format and standard evaluation criteria.
-
-Highlights open issues and comparable investments.
-
-And more...
-
-Private Equity
-
-[Talk to an AI Strategist](/contact)
-
-![Investment Committee Prep - Auto-create IC memos and decision decks](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a423421cc2e27f833f9a6_693a4232755b67c11591186b_investment-committee-prep.avif)
-
-Executive Leadership
-
-Investment Committee Prep
-
-Auto-create IC memos and decision decks
-
-CRM Analyst
-
-![CRM Intelligence - Map relationships and optimize deal outreach](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a598c305aa08c3f23e91e_693a598a5a5153e831d9d47e_crm-intelligence.avif)
-
-Sales
-
-Agent Capabilities
-
-Map relationships and optimize deal outreach.
-
-Analyzes emails, meetings, and notes for relationship health.
-
-Suggests optimal follow-up timing and warm introductions.
-
-Automatically updates CRM records.
-
-And more...
-
-Private Equity
-
-[Talk to an AI Strategist](/contact)
-
-![CRM Intelligence - Map relationships and optimize deal outreach](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a598c305aa08c3f23e91e_693a598a5a5153e831d9d47e_crm-intelligence.avif)
-
-Sales
-
-CRM Analyst
-
-Map relationships and optimize deal outreach
-
-CIM Analyst
-
-![CIM Analysis - Parse CIMs and surface risks in minutes](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a5951e5a9c18fdb5e8fcb_693a59507a1932444bc793f6_cim-analysis.avif)
-
-Sales
-
-Agent Capabilities
-
-Parse CIMs and surface risks in minutes.
-
-Pulls key financial metrics, identifies red flags, and highlights market positioning.
-
-Benchmarks against past deals to avoid repeated mistakes.
-
-Produces investment-ready summaries for faster evaluation.
-
-And more...
-
-Private Equity
-
-[Talk to an AI Strategist](/contact)
-
-![CIM Analysis - Parse CIMs and surface risks in minutes](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a5951e5a9c18fdb5e8fcb_693a59507a1932444bc793f6_cim-analysis.avif)
-
-Sales
-
-CIM Analyst
-
-Parse CIMs and surface risks in minutes
-
-Market Research Analyst
-
-![Market Research Intelligence - Condense market research into actionable intelligence](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a59a369acf0edf419de4d_693a59a1dca751f8ff3b9138_market-research-intelligence.avif)
+![Predictive Portco Performance - Predict company trajectories and intervention needs](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a44eaf9d601a5a1983773_693a44e947771c9db59e4100_predictive-portco-performance.avif)
 
 Finance
 
 Agent Capabilities
 
-Condense market research into actionable intelligence.
+Predict company trajectories and intervention needs.
 
-Aggregates data from industry reports, filings, news, and academic sources.
+Tracks operational, financial, and external indicators.
 
-Tracks competitor positioning and macro trends.
+Flags risk 3 to 6 months in advance.
 
-Produces clean, structured insights on new sectors.
+Suggests operational playbooks and exit timing guidance.
 
 And more...
 
@@ -335,13 +305,13 @@ Private Equity
 
 [Talk to an AI Strategist](/contact)
 
-![Market Research Intelligence - Condense market research into actionable intelligence](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a59a369acf0edf419de4d_693a59a1dca751f8ff3b9138_market-research-intelligence.avif)
+![Predictive Portco Performance - Predict company trajectories and intervention needs](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a44eaf9d601a5a1983773_693a44e947771c9db59e4100_predictive-portco-performance.avif)
 
 Finance
 
-Market Research Analyst
+Predictive Portco Performance
 
-Condense market research into actionable intelligence
+Predict company trajectories and intervention needs
 
 LP/Industry Monitor
 
@@ -372,6 +342,36 @@ Finance
 LP/Industry Monitor
 
 Continuously monitor for news for portcos & industries
+
+Investment Committee Prep
+
+![Investment Committee Prep - Auto-create IC memos and decision decks](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a423421cc2e27f833f9a6_693a4232755b67c11591186b_investment-committee-prep.avif)
+
+Executive Leadership
+
+Agent Capabilities
+
+Auto-create IC memos and decision decks.
+
+Synthesizes all workstreams into decision-ready materials.
+
+Applies IC format and standard evaluation criteria.
+
+Highlights open issues and comparable investments.
+
+And more...
+
+Private Equity
+
+[Talk to an AI Strategist](/contact)
+
+![Investment Committee Prep - Auto-create IC memos and decision decks](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a423421cc2e27f833f9a6_693a4232755b67c11591186b_investment-committee-prep.avif)
+
+Executive Leadership
+
+Investment Committee Prep
+
+Auto-create IC memos and decision decks
 
 [1](#)
 

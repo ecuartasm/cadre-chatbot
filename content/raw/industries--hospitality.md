@@ -1,8 +1,8 @@
 ---
 url: https://www.cadreai.com/industries/hospitality
 title: "AI for Hospitality"
-scraped_at: 2026-07-29
-content_sha256: bf669c03f623d4a1d3c61bbeec3d6688ae0635c0f56da6f6b54dec359cef8b77
+scraped_at: 2026-07-31
+content_sha256: 751cda9e98490c3abca69c54f0376fc5aaf1dd492a5e520b899fae2a6435d9d1
 ---
 
 ### AI that works for
@@ -73,62 +73,6 @@ The best properties aren't just running more efficiently—they're creating memo
 
 Browse agents that can deliver results for you below
 
-Demand Forecasting Optimizer
-
-![Demand Forecasting Optimizer - Predict occupancy and optimize staffing](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbe94ff7115e251d8c4c8_693cbe920ad129ddfb1c2e0f_demand-forecasting-optimizer.png)
-
-Operations
-
-Agent Capabilities
-
-Predicts occupancy patterns based on bookings events and seasonal trends.
-
-Recommends staffing levels to match predicted demand.
-
-Optimizes labor cost while maintaining service quality.
-
-And more...
-
-Hospitality
-
-[Talk to an AI Strategist](/contact)
-
-![Demand Forecasting Optimizer - Predict occupancy and optimize staffing](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbe94ff7115e251d8c4c8_693cbe920ad129ddfb1c2e0f_demand-forecasting-optimizer.png)
-
-Operations
-
-Demand Forecasting Optimizer
-
-Predict occupancy and optimize staffing
-
-Dynamic Pricing Optimizer
-
-![Dynamic Pricing Optimizer - Maximize revenue with real-time pricing](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbeab31b8a29bce9e8f74_693cbeaae0528d58ea323816_dynamic-pricing-optimizer.jpeg)
-
-Finance
-
-Agent Capabilities
-
-Adjusts room rates in real-time based on demand competition and market conditions.
-
-Maximizes revenue per available room through dynamic pricing.
-
-Responds to market faster than manual revenue management.
-
-And more...
-
-Hospitality
-
-[Talk to an AI Strategist](/contact)
-
-![Dynamic Pricing Optimizer - Maximize revenue with real-time pricing](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbeab31b8a29bce9e8f74_693cbeaae0528d58ea323816_dynamic-pricing-optimizer.jpeg)
-
-Finance
-
-Dynamic Pricing Optimizer
-
-Maximize revenue with real-time pricing
-
 Upsell Opportunity Detector
 
 ![Upsell Opportunity Detector - Identify upgrade and ancillary revenue](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbedea5cfcf357ddbc758_693cbedc5bbc870472f17c34_upsell-opportunity-detector.png)
@@ -185,6 +129,34 @@ Review Response Generator
 
 Respond to reviews professionally at scale
 
+Dynamic Pricing Optimizer
+
+![Dynamic Pricing Optimizer - Maximize revenue with real-time pricing](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbeab31b8a29bce9e8f74_693cbeaae0528d58ea323816_dynamic-pricing-optimizer.jpeg)
+
+Finance
+
+Agent Capabilities
+
+Adjusts room rates in real-time based on demand competition and market conditions.
+
+Maximizes revenue per available room through dynamic pricing.
+
+Responds to market faster than manual revenue management.
+
+And more...
+
+Hospitality
+
+[Talk to an AI Strategist](/contact)
+
+![Dynamic Pricing Optimizer - Maximize revenue with real-time pricing](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbeab31b8a29bce9e8f74_693cbeaae0528d58ea323816_dynamic-pricing-optimizer.jpeg)
+
+Finance
+
+Dynamic Pricing Optimizer
+
+Maximize revenue with real-time pricing
+
 Guest Preference Manager
 
 ![Guest Preference Manager - Remember and act on guest preferences](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbec098de21e79b9cd491_693cbebf98de21e79b9cd419_guest-preference-manager.jpeg)
@@ -212,6 +184,34 @@ Customer Success
 Guest Preference Manager
 
 Remember and act on guest preferences
+
+Demand Forecasting Optimizer
+
+![Demand Forecasting Optimizer - Predict occupancy and optimize staffing](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbe94ff7115e251d8c4c8_693cbe920ad129ddfb1c2e0f_demand-forecasting-optimizer.png)
+
+Operations
+
+Agent Capabilities
+
+Predicts occupancy patterns based on bookings events and seasonal trends.
+
+Recommends staffing levels to match predicted demand.
+
+Optimizes labor cost while maintaining service quality.
+
+And more...
+
+Hospitality
+
+[Talk to an AI Strategist](/contact)
+
+![Demand Forecasting Optimizer - Predict occupancy and optimize staffing](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbe94ff7115e251d8c4c8_693cbe920ad129ddfb1c2e0f_demand-forecasting-optimizer.png)
+
+Operations
+
+Demand Forecasting Optimizer
+
+Predict occupancy and optimize staffing
 
 [1](#)
 

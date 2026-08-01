@@ -1,8 +1,8 @@
 ---
 url: https://www.cadreai.com/agents
 title: "Custom AI Agents for Every Team"
-scraped_at: 2026-07-29
-content_sha256: 7c8215b91dce950ef515163dbc2579f8412351dceb7233d8f1c531e53bdad273
+scraped_at: 2026-07-31
+content_sha256: 17972e0c9efe52553add2676eea80e0a277c3a74c628f8256598a33927ef3de0
 ---
 
 Cadre AI
@@ -65,33 +65,61 @@ Thank you! Your submission has been received!
 
 Oops! Something went wrong while submitting the form.
 
-Guest Preference Manager
+Deployment Announcement Publisher
 
-![Guest Preference Manager - Remember and act on guest preferences](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbec098de21e79b9cd491_693cbebf98de21e79b9cd419_guest-preference-manager.jpeg)
+![Deployment Announcement Publisher - Auto-announce releases across all channels](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a44d473a57f2ed2c71d55_693a44d3199b77d1ca3dc14a_deployment-announcement-publisher.avif)
 
-Customer Success
+Technology
 
 Agent Capabilities
 
-Tracks guest preferences from past stays and proactively applies them to future reservations.
+Automatically announces production deployments across stakeholder channels.
 
-Coordinates special requests across departments.
+Posts release notes and updates documentation sites.
 
-Delivers personalized service at scale.
+Ensures consistent deployment communication.
 
 And more...
 
-Hospitality
+No items found.
 
 [Talk to an AI Strategist](/contact)
 
-![Guest Preference Manager - Remember and act on guest preferences](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbec098de21e79b9cd491_693cbebf98de21e79b9cd419_guest-preference-manager.jpeg)
+![Deployment Announcement Publisher - Auto-announce releases across all channels](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a44d473a57f2ed2c71d55_693a44d3199b77d1ca3dc14a_deployment-announcement-publisher.avif)
 
-Customer Success
+Technology
 
-Guest Preference Manager
+Deployment Announcement Publisher
 
-Remember and act on guest preferences
+Auto-announce releases across all channels
+
+Offer Letter Generator
+
+![Offer Letter Generator - Generate compliant offer letters instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a4b64f9d601a5a19b3a72_693a4b63380fb530321b557b_offer-letter-generator.avif)
+
+Operations
+
+Agent Capabilities
+
+Creates customized offer letters from approved templates.
+
+Ensures compliance with company standards and legal requirements.
+
+Generates professional offers quickly.
+
+And more...
+
+No items found.
+
+[Talk to an AI Strategist](/contact)
+
+![Offer Letter Generator - Generate compliant offer letters instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a4b64f9d601a5a19b3a72_693a4b63380fb530321b557b_offer-letter-generator.avif)
+
+Operations
+
+Offer Letter Generator
+
+Generate compliant offer letters instantly
 
 Data Room Analyst
 
@@ -123,90 +151,6 @@ Data Room Analyst
 
 Automate data-room extraction and red-flagging
 
-Dynamic Pricing Optimizer
-
-![Dynamic Pricing Optimizer - Maximize revenue with real-time pricing](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbeab31b8a29bce9e8f74_693cbeaae0528d58ea323816_dynamic-pricing-optimizer.jpeg)
-
-Finance
-
-Agent Capabilities
-
-Adjusts room rates in real-time based on demand competition and market conditions.
-
-Maximizes revenue per available room through dynamic pricing.
-
-Responds to market faster than manual revenue management.
-
-And more...
-
-Hospitality
-
-[Talk to an AI Strategist](/contact)
-
-![Dynamic Pricing Optimizer - Maximize revenue with real-time pricing](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbeab31b8a29bce9e8f74_693cbeaae0528d58ea323816_dynamic-pricing-optimizer.jpeg)
-
-Finance
-
-Dynamic Pricing Optimizer
-
-Maximize revenue with real-time pricing
-
-Transcript to Flowchart Generator
-
-![Transcript to Mermaid Generator - Turn transcripts into visual workflows instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a5938e5a9c18fdb5e84a7_693a5937cd07b384324b46c9_transcript-to-mermaid-generator.avif)
-
-Technology
-
-Agent Capabilities
-
-Converts meeting transcripts and process descriptions into visual Mermaid diagrams.
-
-Transforms conversations into flowcharts and workflow visualizations instantly.
-
-Makes complex processes easier to understand and share.
-
-And more...
-
-No items found.
-
-[Talk to an AI Strategist](/contact)
-
-![Transcript to Mermaid Generator - Turn transcripts into visual workflows instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a5938e5a9c18fdb5e84a7_693a5937cd07b384324b46c9_transcript-to-mermaid-generator.avif)
-
-Technology
-
-Transcript to Flowchart Generator
-
-Turn transcripts into visual workflows instantly
-
-Content Campaign Planner
-
-![Content Campaign Planner - Plan and launch campaigns from a single prompt](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a4373199b77d1ca3d60f7_693a437265f055fb139e3c80_content-campaign-planner.avif)
-
-Marketing
-
-Agent Capabilities
-
-Plans and executes content campaigns from single prompt.
-
-Develops campaign strategy, calendar, and assets.
-
-Launches campaigns efficiently end-to-end.
-
-And more...
-
-No items found.
-
-[Talk to an AI Strategist](/contact)
-
-![Content Campaign Planner - Plan and launch campaigns from a single prompt](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a4373199b77d1ca3d60f7_693a437265f055fb139e3c80_content-campaign-planner.avif)
-
-Marketing
-
-Content Campaign Planner
-
-Plan and launch campaigns from a single prompt
-
 Incident Retrospective Summarizer
 
 ![Incident Retrospective Summarizer - Turn incident chaos into clear action items](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a4aab201a3d4c58de231e_693a4aa947771c9db59e9a9a_incident-retrospective-summarizer.avif)
@@ -235,49 +179,19 @@ Incident Retrospective Summarizer
 
 Turn incident chaos into clear action items
 
-NDA Analyst
+Compliance Policy Guide
 
-![NDA Analysis - Auto-redline NDAs to firm standards](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a42893e435b6444cc475e_693a4288f9d601a5a196ecf9_nda-analysis.avif)
+![Compliance Policy Guide - Answer compliance questions without legal delays](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a3ea9380fb53032174c89_693a3ea89be4e4b6343bdef0_compliance-policy-guide.avif)
 
 Legal
 
 Agent Capabilities
 
-Auto-redline NDAs to firm standards.
+Answers employee questions about compliance policies and data privacy regulations.
 
-Flags key terms like confidentiality scope and liability language.
+Provides guidance on GDPR, CCPA, export controls, and governance.
 
-Suggests edits aligned with historic positions.
-
-Categorizes NDAs by risk and complexity.
-
-And more...
-
-Private Equity
-
-[Talk to an AI Strategist](/contact)
-
-![NDA Analysis - Auto-redline NDAs to firm standards](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a42893e435b6444cc475e_693a4288f9d601a5a196ecf9_nda-analysis.avif)
-
-Legal
-
-NDA Analyst
-
-Auto-redline NDAs to firm standards
-
-Meeting Insights Extractor
-
-![Meeting Insights Extractor - Extract insights from recorded meetings](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a4a526c6b68916dc00dae_693a4a51380fb530321ae128_meeting-insights-extractor.avif)
-
-Operations
-
-Agent Capabilities
-
-Analyzes meeting transcripts to extract action items and key insights.
-
-Identifies important decisions and commitments from discussions.
-
-Ensures meeting outcomes are captured.
+Reduces legal inquiry volume.
 
 And more...
 
@@ -285,27 +199,27 @@ No items found.
 
 [Talk to an AI Strategist](/contact)
 
-![Meeting Insights Extractor - Extract insights from recorded meetings](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a4a526c6b68916dc00dae_693a4a51380fb530321ae128_meeting-insights-extractor.avif)
+![Compliance Policy Guide - Answer compliance questions without legal delays](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a3ea9380fb53032174c89_693a3ea89be4e4b6343bdef0_compliance-policy-guide.avif)
 
-Operations
+Legal
 
-Meeting Insights Extractor
+Compliance Policy Guide
 
-Extract insights from recorded meetings
+Answer compliance questions without legal delays
 
-Dashboard Monitor
+Auto-Scheduler
 
-![Dashboard Monitor - Track metrics and auto-alert on anomalies](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a474f2236e745cf103406_693a474e21cc2e27f837185e_dashboard-monitor.avif)
+![Auto-Scheduler - Coordinate meetings automatically](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a4646ee2e6fd94af05a95_693a4645f9d601a5a198c61a_auto-scheduler.avif)
 
 Operations
 
 Agent Capabilities
 
-Monitors dashboards for unusual patterns and metric anomalies.
+Automatically finds meeting times that work for all attendees.
 
-Automatically alerts relevant stakeholders of significant changes.
+Considers calendar availability, time zones, and preferences.
 
-Provides proactive visibility into key metrics.
+Books meetings without coordination back-and-forth.
 
 And more...
 
@@ -313,27 +227,27 @@ No items found.
 
 [Talk to an AI Strategist](/contact)
 
-![Dashboard Monitor - Track metrics and auto-alert on anomalies](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a474f2236e745cf103406_693a474e21cc2e27f837185e_dashboard-monitor.avif)
+![Auto-Scheduler - Coordinate meetings automatically](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a4646ee2e6fd94af05a95_693a4645f9d601a5a198c61a_auto-scheduler.avif)
 
 Operations
 
-Dashboard Monitor
+Auto-Scheduler
 
-Track metrics and auto-alert on anomalies
+Coordinate meetings automatically
 
-Discovery Prep Assistant
+Quote Approval Router
 
-![Discovery Prep Assistant - Generate discovery questions from prospect research](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a5652cfe71582f5c342b3_693a5650a629bf936d827fca_discovery-prep-assistant.avif)
+![Quote Approval Router - Accelerate quote approvals with auto-routing](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a575647771c9db5a0a438_693a5754bab9d2dbb547eec9_quote-approval-router.avif)
 
 Sales
 
 Agent Capabilities
 
-Researches prospects and prepares customized discovery call guides.
+Automatically routes quote approvals to correct stakeholders based on discount levels and deal parameters.
 
-Generates relevant questions based on prospect's industry and business model.
+Follows approval hierarchies and escalation rules.
 
-Ensures productive discovery conversations.
+Reduces quote turnaround time significantly.
 
 And more...
 
@@ -341,27 +255,27 @@ No items found.
 
 [Talk to an AI Strategist](/contact)
 
-![Discovery Prep Assistant - Generate discovery questions from prospect research](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a5652cfe71582f5c342b3_693a5650a629bf936d827fca_discovery-prep-assistant.avif)
+![Quote Approval Router - Accelerate quote approvals with auto-routing](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a575647771c9db5a0a438_693a5754bab9d2dbb547eec9_quote-approval-router.avif)
 
 Sales
 
-Discovery Prep Assistant
+Quote Approval Router
 
-Generate discovery questions from prospect research
+Accelerate quote approvals with auto-routing
 
-Financial Forecasting Advisor
+Operations Orchestrator
 
-![Financial Forecasting Advisor - Build scenarios and forecasts at board-ready speed](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a3d5e222a780d0895f77c_693a3d5dd3748755db8d2b4a_financial-forecasting-advisor.avif)
+![Operations Orchestrator - Streamline operations with centralized automation](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a4bd76c6b68916dc06156_693a4bd67a1932444bc4726c_operations-orchestrator.avif)
 
-Finance
+Operations
 
 Agent Capabilities
 
-Provides scenario analysis and forecasting insights based on historical trends.
+Manages operational processes and workflows from central command.
 
-Models different business scenarios with pipeline and market data.
+Coordinates activities across departments.
 
-Accelerates financial planning and board preparation.
+Streamlines operations with automation.
 
 And more...
 
@@ -369,13 +283,41 @@ No items found.
 
 [Talk to an AI Strategist](/contact)
 
-![Financial Forecasting Advisor - Build scenarios and forecasts at board-ready speed](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a3d5e222a780d0895f77c_693a3d5dd3748755db8d2b4a_financial-forecasting-advisor.avif)
+![Operations Orchestrator - Streamline operations with centralized automation](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a4bd76c6b68916dc06156_693a4bd67a1932444bc4726c_operations-orchestrator.avif)
 
-Finance
+Operations
 
-Financial Forecasting Advisor
+Operations Orchestrator
 
-Build scenarios and forecasts at board-ready speed
+Streamline operations with centralized automation
+
+Incident Response Coordinator
+
+![Incident Response Coordinator - Orchestrate incident response instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a58a7cfe71582f5c57687_693a58a4f9d601a5a19dd036_incident-response-coordinator.avif)
+
+Technology
+
+Agent Capabilities
+
+Detects production incidents from monitoring alerts and orchestrates immediate response.
+
+Creates incident tickets, posts to Slack channels, and pages on-call engineers.
+
+Ensures consistent incident management in the critical first minutes.
+
+And more...
+
+No items found.
+
+[Talk to an AI Strategist](/contact)
+
+![Incident Response Coordinator - Orchestrate incident response instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a58a7cfe71582f5c57687_693a58a4f9d601a5a19dd036_incident-response-coordinator.avif)
+
+Technology
+
+Incident Response Coordinator
+
+Orchestrate incident response instantly
 
 Knowledge Base Auto-updater
 
@@ -404,6 +346,62 @@ Customer Success
 Knowledge Base Auto-updater
 
 Auto-identify gaps and fix docs continuously
+
+Comp Analysis Automator
+
+![Comp Analysis Automator - Generate property comps in seconds](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbbe268cc93ccc9fa0f4f_693cbbe1020002b9db6faec3_comp-analysis-automator.png)
+
+Sales
+
+Agent Capabilities
+
+Pulls comparable sales data analyzes market positioning and generates professional comp reports automatically.
+
+Adjusts for property features location factors and market trends.
+
+Delivers analysis that used to take hours in under a minute.
+
+And more...
+
+Real Estate
+
+[Talk to an AI Strategist](/contact)
+
+![Comp Analysis Automator - Generate property comps in seconds](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbbe268cc93ccc9fa0f4f_693cbbe1020002b9db6faec3_comp-analysis-automator.png)
+
+Sales
+
+Comp Analysis Automator
+
+Generate property comps in seconds
+
+IT Ticket Triager
+
+![IT Ticket Triage Bot - Route IT tickets instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a4afef2125c495336427e_693a4afd47771c9db59ea9e3_it-ticket-triage-bot.avif)
+
+Operations
+
+Agent Capabilities
+
+Categorizes incoming IT tickets by issue type and assigns priority levels.
+
+Routes tickets to appropriate support teams based on expertise.
+
+Improves ticket resolution time with intelligent routing.
+
+And more...
+
+No items found.
+
+[Talk to an AI Strategist](/contact)
+
+![IT Ticket Triage Bot - Route IT tickets instantly](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693a4afef2125c495336427e_693a4afd47771c9db59ea9e3_it-ticket-triage-bot.avif)
+
+Operations
+
+IT Ticket Triager
+
+Route IT tickets instantly
 
 [1](#)
 

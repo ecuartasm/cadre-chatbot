@@ -1,8 +1,8 @@
 ---
 url: https://www.cadreai.com/industries/financial-services
 title: "AI for Financial Services"
-scraped_at: 2026-07-29
-content_sha256: 739d983744b3960d51d2b27f60b5c4c8338484ff847e18a90776b44c5b86c37d
+scraped_at: 2026-07-31
+content_sha256: a8fc5d3387fd1ad226622dc8958337cf6a6ccf1cc9ad16cc7e551ba1c692faa1
 ---
 
 ### AI that works for
@@ -73,34 +73,6 @@ The best firms aren't just moving faster—they're catching fraud before losses 
 
 Browse agents that can deliver results for you below
 
-KYC Automation Accelerator
-
-![KYC Automation Accelerator - Complete client verification in minutes](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbd6898de21e79b9c0d0c_693cbd6717875bfd8bdff427_kyc-automation-accelerator.png)
-
-Operations
-
-Agent Capabilities
-
-Automates Know Your Customer verification by pulling data from trusted sources and validating identity.
-
-Generates compliance documentation and audit trails automatically.
-
-Compresses onboarding from weeks to hours.
-
-And more...
-
-Financial Services
-
-[Talk to an AI Strategist](/contact)
-
-![KYC Automation Accelerator - Complete client verification in minutes](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbd6898de21e79b9c0d0c_693cbd6717875bfd8bdff427_kyc-automation-accelerator.png)
-
-Operations
-
-KYC Automation Accelerator
-
-Complete client verification in minutes
-
 Client Retention Predictor
 
 ![Client Retention Predictor - Identify at-risk clients early](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbdbb3022a335c3c65b6a_693cbdba9a067f6d36759999_client-retention-predictor.png)
@@ -128,62 +100,6 @@ Finance
 Client Retention Predictor
 
 Identify at-risk clients early
-
-Regulatory Change Tracker
-
-![Regulatory Change Tracker - Stay ahead of compliance requirements](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbd86020002b9db70c2fb_693cbd85020002b9db70c2bb_regulatory-change-tracker.jpeg)
-
-Operations
-
-Agent Capabilities
-
-Monitors regulatory updates and alerts on upcoming compliance deadlines.
-
-Identifies policy changes affecting client portfolios or operations.
-
-Ensures proactive compliance management.
-
-And more...
-
-Financial Services
-
-[Talk to an AI Strategist](/contact)
-
-![Regulatory Change Tracker - Stay ahead of compliance requirements](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbd86020002b9db70c2fb_693cbd85020002b9db70c2bb_regulatory-change-tracker.jpeg)
-
-Operations
-
-Regulatory Change Tracker
-
-Stay ahead of compliance requirements
-
-Portfolio Recommendation Advisor
-
-![Portfolio Recommendation Advisor - Deliver personalized advice at scale](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbdda98de21e79b9c53f0_693cbdd90ad129ddfb1be45b_portfolio-recommendation-advisor.png)
-
-Finance
-
-Agent Capabilities
-
-Analyzes client portfolios risk profiles and market conditions to generate personalized investment recommendations.
-
-Delivers proactive advice based on client goals.
-
-Scales advisory capacity without adding advisors.
-
-And more...
-
-Financial Services
-
-[Talk to an AI Strategist](/contact)
-
-![Portfolio Recommendation Advisor - Deliver personalized advice at scale](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbdda98de21e79b9c53f0_693cbdd90ad129ddfb1be45b_portfolio-recommendation-advisor.png)
-
-Finance
-
-Portfolio Recommendation Advisor
-
-Deliver personalized advice at scale
 
 Client Risk Assessor
 
@@ -213,6 +129,62 @@ Client Risk Assessor
 
 Assess risk profiles automatically
 
+Portfolio Recommendation Advisor
+
+![Portfolio Recommendation Advisor - Deliver personalized advice at scale](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbdda98de21e79b9c53f0_693cbdd90ad129ddfb1be45b_portfolio-recommendation-advisor.png)
+
+Finance
+
+Agent Capabilities
+
+Analyzes client portfolios risk profiles and market conditions to generate personalized investment recommendations.
+
+Delivers proactive advice based on client goals.
+
+Scales advisory capacity without adding advisors.
+
+And more...
+
+Financial Services
+
+[Talk to an AI Strategist](/contact)
+
+![Portfolio Recommendation Advisor - Deliver personalized advice at scale](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbdda98de21e79b9c53f0_693cbdd90ad129ddfb1be45b_portfolio-recommendation-advisor.png)
+
+Finance
+
+Portfolio Recommendation Advisor
+
+Deliver personalized advice at scale
+
+Regulatory Change Tracker
+
+![Regulatory Change Tracker - Stay ahead of compliance requirements](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbd86020002b9db70c2fb_693cbd85020002b9db70c2bb_regulatory-change-tracker.jpeg)
+
+Operations
+
+Agent Capabilities
+
+Monitors regulatory updates and alerts on upcoming compliance deadlines.
+
+Identifies policy changes affecting client portfolios or operations.
+
+Ensures proactive compliance management.
+
+And more...
+
+Financial Services
+
+[Talk to an AI Strategist](/contact)
+
+![Regulatory Change Tracker - Stay ahead of compliance requirements](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbd86020002b9db70c2fb_693cbd85020002b9db70c2bb_regulatory-change-tracker.jpeg)
+
+Operations
+
+Regulatory Change Tracker
+
+Stay ahead of compliance requirements
+
 Client Communication Scheduler
 
 ![Client Communication Scheduler - Automate timely client touchpoints](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbd9e98de21e79b9c3395_693cbd9d3e5ca5062297b57f_client-communication-scheduler.jpeg)
@@ -240,6 +212,34 @@ Customer Success
 Client Communication Scheduler
 
 Automate timely client touchpoints
+
+KYC Automation Accelerator
+
+![KYC Automation Accelerator - Complete client verification in minutes](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbd6898de21e79b9c0d0c_693cbd6717875bfd8bdff427_kyc-automation-accelerator.png)
+
+Operations
+
+Agent Capabilities
+
+Automates Know Your Customer verification by pulling data from trusted sources and validating identity.
+
+Generates compliance documentation and audit trails automatically.
+
+Compresses onboarding from weeks to hours.
+
+And more...
+
+Financial Services
+
+[Talk to an AI Strategist](/contact)
+
+![KYC Automation Accelerator - Complete client verification in minutes](https://cdn.prod.website-files.com/6910dd227f94a50bd2e30991/693cbd6898de21e79b9c0d0c_693cbd6717875bfd8bdff427_kyc-automation-accelerator.png)
+
+Operations
+
+KYC Automation Accelerator
+
+Complete client verification in minutes
 
 [1](#)
 
