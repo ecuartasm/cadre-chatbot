@@ -42,12 +42,20 @@ properties are under test.
 | Tool | Answers |
 |---|---|
 | `bot_health()` | Is it up, which prompt version is live, is the log sink writable |
-| `bot_stats()` | Turns, cost, cache hit rate, latency percentiles |
+| `bot_stats()` | Turns, cost, cache hit rate, refusal rate, mean latency |
 | `refusal_breakdown()` | Refusal rate **by reason**, and whether any reason is outside the corpus vocabulary |
 | `spend_today()` | Spend against the daily cap |
 
 Each reports `available: false` with a reason when the bot is unreachable or its log cannot be read —
 never zeros. "No traffic" and "cannot tell" are different claims.
+
+**Latency is reported as a mean and a count — never percentiles.** A p50/p95 claims a distribution
+shape this sample cannot support: it counts `ok` turns only and on real traffic produced p50 == p95
+over one measurement. It also frames latency as a tail to engineer against, which it is not here —
+with the corpus in the cached prompt there is no retrieval step, so this is overwhelmingly the
+provider's response time. The latency with a real diagnosis attached is time to first token (if it
+lands close to the total, a proxy buffered the stream); only a client can measure it, so it is
+per-turn in the playground and the eval's `--json` telemetry.
 
 ## Running it
 

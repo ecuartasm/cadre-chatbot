@@ -97,7 +97,7 @@ async def stats() -> dict[str, object]:
         1 for r in rows if int((r.get("usage") or {}).get("cache_creation_input_tokens") or 0) > 0
     )
 
-    latencies = sorted(int(r.get("latency_ms") or 0) for r in rows if r.get("status") == "ok")
+    latencies = [int(r.get("latency_ms") or 0) for r in rows if r.get("status") == "ok"]
 
     return {
         "available": True,
@@ -128,10 +128,27 @@ async def stats() -> dict[str, object]:
                 "hit rate on low traffic is expected"
             ),
         },
+        # ⚠️ **A mean and a count — never percentiles.** A p50/p95 describes the *shape of a
+        # distribution*, which is a claim this data cannot support: the sample is small, it counts
+        # `ok` turns only, and on real traffic it produced p50 == p95 over a single measurement —
+        # a statistic that looks authoritative and says nothing.
+        #
+        # It also frames latency as an SLO to optimise, which it is not here. This bot has no
+        # retrieval step — the corpus is in the cached prompt — so end-to-end latency is
+        # overwhelmingly the model provider's response time. A mean is an honest summary of what
+        # was observed; a percentile implies a tail worth engineering against, and that tail is not
+        # ours to move.
+        #
+        # The latency with a real diagnosis attached is **time to first token**: if it lands close
+        # to the total, a proxy buffered the stream. Only a client can measure it, so it is
+        # per-turn in the playground and the eval's `--json` telemetry rather than aggregated here.
         "latency_ms": {
-            "p50": _percentile(latencies, 50),
-            "p95": _percentile(latencies, 95),
+            "mean": round(sum(latencies) / len(latencies)) if latencies else None,
             "n": len(latencies),
+            "note": (
+                "mean over `ok` turns; no percentiles — the sample cannot support a distribution "
+                "claim, and with no retrieval step this is the provider's response time"
+            ),
         },
         "model_rates_per_mtok": _rates(rows),
     }
@@ -139,15 +156,6 @@ async def stats() -> dict[str, object]:
 
 def _pct(part: int, whole: int) -> float:
     return round(100 * part / whole, 1) if whole else 0.0
-
-
-def _percentile(values: list[int], p: int) -> int | None:
-    """Nearest-rank. Deliberately not interpolated — with a handful of turns an interpolated
-    percentile invents precision the sample does not have."""
-    if not values:
-        return None
-    k = max(0, min(len(values) - 1, round(p / 100 * len(values) + 0.5) - 1))
-    return values[k]
 
 
 def _rates(rows: list[dict]) -> dict[str, object]:

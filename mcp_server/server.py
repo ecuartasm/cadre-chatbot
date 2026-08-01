@@ -98,8 +98,11 @@ def bot_health() -> dict:
 
 @mcp.tool(
     description=(
-        "Traffic, cost, cache efficiency and latency for the Cadre chatbot today. Returns "
-        "available=false with a reason when the log cannot be read, rather than reporting zeros."
+        "Traffic, cost, cache efficiency, refusal rate and mean latency for the Cadre chatbot "
+        "today. Returns available=false with a reason when the log cannot be read, rather than "
+        "reporting zeros. Latency is a mean and a count, never percentiles: the sample cannot "
+        "support a distribution claim, and with no retrieval step it is the provider's response "
+        "time rather than a tail this system can engineer against."
     )
 )
 def bot_stats() -> dict:
@@ -108,6 +111,10 @@ def bot_stats() -> dict:
         return {"available": False, **stats}
     # Passed through as-is when available: /api/stats is already explicit about the difference
     # between "no traffic" and "cannot tell", and flattening that here would lose it.
+    #
+    # ⚠️ The latency it carries is a mean and a count, never percentiles. See app/api/stats.py: a
+    # p50/p95 claims a distribution shape this sample cannot support, and frames the provider's
+    # response time as a tail this system could engineer against.
     return stats
 
 

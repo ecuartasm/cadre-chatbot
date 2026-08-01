@@ -463,11 +463,35 @@ def test_stats_survives_a_torn_final_line(tmp_path, monkeypatch):
     assert len(rows) == 1
 
 
-def test_percentile_is_nearest_rank_not_interpolated():
-    """With a handful of turns, interpolation invents precision the sample does not have."""
-    from app.api.stats import _percentile
+def test_stats_reports_latency_without_percentiles():
+    """⚠️ **A mean and a count, never a p50/p95 — and this asserts the percentiles stay gone.**
 
-    assert _percentile([], 50) is None
-    assert _percentile([10], 50) == 10
-    assert _percentile([10, 20, 30, 40], 50) in (20, 30)
-    assert _percentile([10, 20, 30, 40], 95) == 40
+    This replaced a test for a nearest-rank percentile helper. The helper was correct; reporting a
+    *percentile* was the category error.
+
+    A percentile claims the *shape of a distribution*, which this sample cannot support: it counts
+    `ok` turns only, and on real traffic it reported p50 == p95 over a single measurement — a
+    statistic that looks authoritative and says nothing. It also frames latency as a tail worth
+    engineering against, and with no retrieval step that tail is the model provider's, not ours.
+
+    A mean over `n` observed turns is an honest summary of what happened. That stays.
+
+    The latency that IS meaningful is **time to first token** — only a client can measure it, and it
+    carries a real diagnosis: if it lands close to the total, a proxy buffered the stream. It is
+    surfaced per turn in the playground and in the eval's `--json` telemetry, where a single
+    measurement against a known cause belongs, rather than as an aggregate implying a trend.
+
+    Per-turn `latency_ms` on the `done` frame and in `interactions.jsonl` is untouched — one turn's
+    duration is a fact about that turn.
+    """
+    from pathlib import Path
+
+    from app.api import stats as stats_mod
+
+    src = Path(stats_mod.__file__).read_text(encoding="utf-8")
+    assert "_percentile" not in src, "the percentile helper is back"
+
+    payload = src.split("return {", 1)[1]
+    assert '"p50"' not in payload and '"p95"' not in payload, "percentiles reappeared"
+    assert '"latency_ms"' in payload, "the mean latency should still be reported"
+    assert '"mean"' in payload and '"n"' in payload

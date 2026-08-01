@@ -819,7 +819,7 @@ Tools, kept few and answerable:
 | Tool | Answers |
 |---|---|
 | `bot_health()` | Is it up, which prompt version, is the log sink writable |
-| `bot_stats()` | Turns, cost, cache hit rate, latency percentiles |
+| `bot_stats()` | Turns, cost, cache hit rate, refusal rate, mean latency (never percentiles) |
 | `refusal_breakdown()` | Refusal rate **by reason** — the number this bot is judged on |
 | `spend_today()` | Spend against the daily cap |
 

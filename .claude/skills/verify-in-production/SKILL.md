@@ -46,7 +46,9 @@ Three traps, each of which cost real time during the build:
   matching corpus sha is what proves `COPY content/` worked; that check exists because it once didn't.
 - **Log sink** — if `writable` is false, every number after it is stale or missing.
 - **Spend** — against the daily cap.
-- **Behaviour aggregates** — turns, refusal rate by reason, cache hit rate, p50.
+- **Behaviour aggregates** — turns, refusal rate by reason, cache hit rate, mean latency.
+  ⚠️ No percentiles: with no retrieval step, latency is the provider's response time, and a
+  p50/p95 over this sample claims a distribution shape it cannot support.
 
 An unavailable `/api/stats` reports *why*. That is an honest "cannot tell", not "no traffic" — the two
 are different claims and the endpoint refuses to conflate them.
