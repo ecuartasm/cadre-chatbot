@@ -288,9 +288,18 @@ since there is no proxy in front of uvicorn), and `X-Request-Id`.
 ### `GET /api/stats`
 
 Reads `interactions.jsonl` and aggregates. Keys: `available`, `log_sink`, `retention_days`,
-`spend`, `turns`, `by_status`, `refusal_rate`, `refusals_by_reason`, `cost`, `cache`, `latency_ms`,
+`spend`, `turns`, `by_status`, `refusal_rate`, `refusals_by_reason`, `cost`, `cache`, `latency_ms`
+(**a mean and a count — deliberately no percentiles**; see below),
 `model_rates_per_mtok`. When the log is unreadable it returns `available: false` with a `reason`
 rather than zeros.
+
+⚠️ **No latency percentiles, deliberately.** A p50/p95 claims the shape of a distribution this
+sample cannot support — it counts `ok` turns only, and on real traffic reported p50 == p95 over a
+single measurement. It also frames latency as a tail worth engineering against, and with no
+retrieval step that is the model provider's response time rather than a property of this system.
+`tests/test_obs.py::test_stats_reports_latency_without_percentiles` keeps them out. The latency with
+a real diagnosis attached — time to first token — is per-turn in the playground and the eval's
+`--json` telemetry, since only a client can measure it.
 
 ⚠️ **Unauthenticated.** It exposes redacted user messages, cost and refusal data. `plan.md:799`
 records this concern explicitly; the mitigation is operational (the service is kept offline except
