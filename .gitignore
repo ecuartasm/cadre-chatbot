@@ -30,16 +30,19 @@ dist/
 # OS
 .DS_Store
 
-# Personal working notes — raw prompts, not part of the deliverable
-analysis/prompt.md
-analysis/Cadre_AI_Chatbot_Take_Home_Candidate.docx.pdf
-analysis/Cadre_AI_Candidate_Interview_Guide.pdf
-
-# Page captures used as Phase 5 design reference. The 9.5MB PDF is a screenshot, and the saved
-# HTML duplicates what content/raw/ already records as the provenance trail. The values actually
-# needed are extracted into analysis/brand-tokens-extracted.txt, which IS committed.
-analysis/screencapture-*.pdf
-analysis/*.html
+# Background research and the material Cadre supplied — the take-home brief, the candidate
+# interview guide, raw prompts, page captures, and the derived analysis written from them. None of
+# it is part of the deliverable, and the two Cadre PDFs are their confidential hiring material,
+# which is not ours to publish. Previously this ignored the source files one by one while keeping
+# the derived .md files tracked; the whole directory is now excluded, since the derived documents
+# quote the brief closely enough that excluding only the PDFs was a distinction without a
+# difference. Untracked with `git rm -r --cached analysis/`.
+#
+# ⚠️ The versions committed before this point remain reachable in history. This keeps them out of
+# the working repo; it is NOT a purge, and it would not protect them if the repo were made public.
+# tokens.css and Mockup.jsx cite analysis/brand-tokens-extracted.txt for provenance — those
+# comments now point at a local-only file, deliberately.
+analysis/
 
 # Corpus backups taken by /update-kb before it overwrites knowledge-base.md. Git is the durable
 # history; these are the immediate undo, and they work even when the corpus had uncommitted edits —
