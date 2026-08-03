@@ -122,7 +122,7 @@ stays the escalation path, one `.env` line away.
 ## Testing
 
 ```bash
-pytest && ruff check .                                        # 249 tests
+pytest && ruff check .                                        # 256 tests
 python eval/golden.py --url http://127.0.0.1:8000 --suite lite   # 14 cases — the deploy gate
 python eval/golden.py --url http://127.0.0.1:8000 --suite full   # 71 cases — after a prompt edit
 node web/scripts/link-audit.mjs                               # 102 link-rendering checks

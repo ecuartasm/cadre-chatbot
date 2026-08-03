@@ -180,8 +180,8 @@ two prompts are otherwise indistinguishable, which makes any before/after compar
   component kit, no router. **All text is black** (`#0b0707`, Cadre's own); de-emphasise with size and
   weight, never grey. Errors keep `--cadre-red` — the one documented exception. Shell in **`dvh`/`svh`,
   not `vh`** (iOS keyboard), input **≥16px** (less triggers iOS auto-zoom), **fonts self-hosted**.
-  ⚠️ Only the grey check in `tests/test_ui.py` globs `web/src`; **seven others are pinned to
-  `App.jsx`/`app.css`** and silently stop covering the UI if a component moves. Widen them.
+  ⚠️ `tests/test_ui.py` checks **glob `web/src`** — three pinned to `App.jsx` stopped covering the UI
+  when the widget arrived. Keep it so, bar the turn-renderer check: pinned on purpose, and guarded.
 
 ## Verification
 

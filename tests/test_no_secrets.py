@@ -102,3 +102,44 @@ def test_the_detector_actually_detects():
     # …and does NOT fire on the bare prefixes this repo legitimately documents.
     assert not CREDENTIAL.search("keys look like `sk-ant-…` and `sk-or-v1-…`")
     assert not CREDENTIAL.search("ANTHROPIC_API_KEY=sk-ant-...")
+
+
+def test_claude_md_stays_under_its_own_line_cap():
+    """`CLAUDE.md` declares a hard cap of under 250 lines because it loads on every turn, and a file
+    that quietly grows past its budget stops being the thing it claims to be.
+
+    ⚠️ **The cap was stated for months with nothing enforcing it.** A one-line documentation edit
+    pushed the file to exactly 250 — breaking the rule in the same commit that fixed a different
+    documentation defect — and it was caught by hand rather than by the suite. That is the failure
+    mode this repo keeps recording: a rule written down is not a rule checked.
+    """
+    lines = (ROOT / "CLAUDE.md").read_text(encoding="utf-8").splitlines()
+    assert len(lines) < 250, (
+        f"CLAUDE.md is {len(lines)} lines; the cap is under 250. Cut something rather than "
+        "raising it — the cap is what keeps the file loadable every turn."
+    )
+
+
+def test_the_commit_guard_does_not_fire_on_env_example():
+    """`.env.example` is tracked on purpose, holds no values, and `.gitignore` negates it with
+    `!.env.example`. The guard's pattern matched it anyway, so it would block a commit touching the
+    one env file the repo deliberately ships — reporting that the file "is gitignored" when it is
+    not. A guard that fires on a legitimate change teaches people to bypass it.
+    """
+    hook = (ROOT / ".claude" / "hooks" / "guard-commit.sh").read_text(encoding="utf-8")
+    assert r"\.env\.example$" in hook, "the commit guard has no exception for .env.example"
+
+    # The property, not the wording: run the guard's own filter over real paths.
+    import re
+
+    keep = re.compile(r"(^|/)\.env\.example$")
+    block = re.compile(r"(^|/)\.env($|\.)")
+
+    def blocked(path: str) -> bool:
+        return not keep.search(path) and bool(block.search(path))
+
+    assert blocked(".env"), "a real .env must still be blocked"
+    assert blocked(".env.local")
+    assert blocked(".env.production")
+    assert blocked("app/.env")
+    assert not blocked(".env.example"), ".env.example must be allowed through"

@@ -63,7 +63,12 @@ ${SECRETS}
 If this is a real key: unstage it, rotate the key, and do not simply remove it in a later commit."
 fi
 
-if git diff --cached --name-only 2>/dev/null | grep -qE '(^|/)\.env($|\.)'; then
+# `.env.example` is the ONE exception: it is tracked on purpose, carries no values, and
+# `.gitignore` already negates it with `!.env.example`. Without this the guard fires on a file the
+# repo deliberately ships, tells you it "is gitignored" when it is not, and blocks its own fix.
+if git diff --cached --name-only 2>/dev/null \
+   | grep -vE '(^|/)\.env\.example$' \
+   | grep -qE '(^|/)\.env($|\.)'; then
   FAIL="${FAIL}
 .env IS STAGED. It is gitignored for a reason; unstage it."
 fi
