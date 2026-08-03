@@ -380,7 +380,7 @@ request path was untouched.
 **Asked for:** the post-submission health check — re-hit the live URL, confirm spend, volume, and that
 nothing has drifted.
 
-**Produced:** `reports/phase-8-report.md` with part 1 complete and part 2 specified, plus a recorded
+**Produced:** the Phase 8 report with part 1 complete and part 2 specified, plus a recorded
 baseline for the checks that cannot run yet.
 
 **Changed:**

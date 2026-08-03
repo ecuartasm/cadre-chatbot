@@ -537,8 +537,8 @@ Grounded in what the code shows.
 5. **Abandoned turns record `$0`** (§7). The spend ledger under-counts.
 6. **Soft-refusal tagging under-reports.** A turn can refuse correctly in prose while logging
    `status="ok"`. Measured at ~7% on Haiku; on Sonnet the client-portal case tagged **0/5**, because
-   Sonnet reads `acknowledge-only` corpus entries as answerable. `reports/models-test.md` documents
-   this. **The prose is safe under both readings; only the classification moves.**
+   Sonnet reads `acknowledge-only` corpus entries as answerable. Measured over the full 71-case suite
+   on both models. **The prose is safe under both readings; only the classification moves.**
 7. **The eval has no check for an invented page *path*.** It tests invented URLs by membership in
    `content/raw/`, but only for absolute URLs in cases tagged `foreign-url`. A bare path in an answer
    was never examined — which is how the bot shipped for a period emitting `/ai-strategy`,
@@ -565,8 +565,8 @@ Grounded in what the code shows.
     knowledge layer. **The model itself is never tested** — that is what the eval is for, and the
     eval costs money and requires a live key.
 14. Source-text assertions are inherently fragile: they verify a string exists, not that behaviour is
-    correct. `reports/TECHNICAL-REPORT.md` §16.9 records **nine** occasions where such a test asserted
-    something narrower than the property it stood for and kept reporting green.
+    correct. **Nine** occasions in this build are on record where such a test asserted something
+    narrower than the property it stood for and kept reporting green.
 
 ---
 
@@ -604,14 +604,13 @@ Stated as uncertainties rather than facts.
 - **The upstream provider behind OpenRouter is not determinable from this repo.** OpenRouter can
   route Claude via Anthropic, Bedrock or Vertex; which one serves a given request affects whose data
   terms apply. I attempted to query their `/generation` endpoint and it returned 404.
-- **`analysis/` is gitignored** for `*.html` and PDFs, so the specification cannot describe the
-  source material those files contain.
+- **The background research and the material Cadre supplied are kept outside this repository**, so
+  the specification cannot describe the source material they contain.
 - **Production deployment state at time of writing is unknown to the code.** `railway.toml` describes
   how it deploys, not whether it is running.
 - **Frontend behaviour under a real browser is not covered by any automated test.** The keyboard and
   visual behaviour of `Widget.jsx` was confirmed manually by the project owner, not by CI.
 - **`content/backups/`** contains only `.gitkeep`; the backup mechanism referenced by
   `.claude/commands/update-kb.md` is a workflow instruction, and I did not verify it has ever run.
-- **Token and cost figures** in this document were read from the code and from
-  `reports/models-test.md`. They were measured on 2026-07-31 at prompt v1.9 and will drift with any
-  corpus edit.
+- **Token and cost figures** in this document were read from the code and from the head-to-head model
+  run. They were measured on 2026-07-31 at prompt v1.9 and will drift with any corpus edit.

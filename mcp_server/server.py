@@ -183,7 +183,7 @@ def spend_today() -> dict:
         "persisted": spend.get("persisted"),
         "note": (
             "the ledger under-counts abandoned turns, whose token usage never arrives — "
-            "see reports/phase-2-report.md"
+            "such a turn records $0 beside a non-zero assistant_chars, so the gap is greppable"
         ),
     }
 

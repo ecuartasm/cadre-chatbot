@@ -3,7 +3,7 @@
  * Everything else consumes these variables. That is what makes a restyle a one-file change.
  *
  * Values are Cadre's own, taken from the custom properties the live site declares in its served
- * stylesheet (see analysis/brand-tokens-extracted.txt), not approximated from a screenshot. Where a
+ * stylesheet — fetched and read, not approximated from a screenshot. Where a
  * name is Cadre's, it is kept as-is so the two can be compared — except `--colors--primary-backgroud`,
  * which is misspelled at source and is corrected here rather than propagated.
  *

@@ -1,8 +1,8 @@
 # CLAUDE.md — Cadre AI Support Chatbot
 
 Onboarding for a fast, context-limited engineer. **Hard cap: under 250 lines** — it loads every turn,
-so it holds only what is needed *every* time. Background is in `analysis/` (**never load those in a
-build session**); per-phase detail is in `reports/`.
+so it holds only what is needed *every* time. Background research and the per-phase narrative are kept
+outside this repository; **never load them in a build session** — this file is the contract.
 
 ## What this is
 
@@ -49,7 +49,7 @@ web/src/tokens.css     Design tokens — the ONLY file allowed a literal colour,
 web/src/app.css        Component styles; every value a var(). No inline styles in any component
 web/src/fonts/         Self-hosted Inter + Inter Tight woff2 (no CDN — see "Conventions")
 logs/                  JSONL, on the Railway volume. Gitignored.
-docs/  reports/        Per-phase workflow log; per-phase narrative + TECHNICAL-REPORT.md
+docs/                  Per-phase workflow log — the terse four-field record
 ```
 
 **Five seams, each independently replaceable:** UI → API → LLM client → knowledge layer, plus
@@ -236,8 +236,8 @@ taught** → commit → push → redeploy and verify the live URL. `plan.md` has
   with no KB, all local tests green), Phase 4's scope already being built, and MCP missing from the
   brief. Ask what this phase taught that changes the next.
 - **Two records per phase.** `docs/ai-workflow-log.md` is a terse four-field entry; the phase report
-  is the narrative. Write both *as you go*, from measured values — never recollection. Post-phase
-  work goes in `reports/testing_adjusting.md`.
+  is the narrative. Write both *as you go*, from measured values — never recollection. Post-phase work
+  gets its own running log, kept with the phase reports.
 - **Push at the end of every phase** — work that exists only locally isn't safe, the repo *is* the
   deliverable, and batching phases into one push defeats it.
 - ✅ **The gate is closed** — Phase 6 answered all six scenarios on the deployed URL, which gated MCP

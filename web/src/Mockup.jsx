@@ -4,10 +4,10 @@ import { CADRE_URLS } from './cadre-urls'
  * A Cadre-styled marketing page, built to show the support bot as an embedded widget rather than
  * as a full-page app.
  *
- * ⚠️ **This is a mockup, not a clone.** `analysis/` holds a saved copy of the real page; it was
- * evaluated and rejected — 94 absolute external URLs (81 to Webflow's CDN), 74 hotlinked images,
- * 12 external scripts and two third-party trackers. It does not render offline, and it is
- * gitignored so it cannot ship. Everything here is drawn from `tokens.css`, whose palette was taken
+ * ⚠️ **This is a mockup, not a clone.** A saved copy of the real page was evaluated and rejected —
+ * 94 absolute external URLs (81 to Webflow's CDN), 74 hotlinked images, 12 external scripts and two
+ * third-party trackers. It does not render offline, and it is not part of this repository.
+ * Everything here is drawn from `tokens.css`, whose palette was taken
  * from the real declared Webflow custom properties, so the colours are accurate rather than guessed.
  *
  * ⚠️ **It must never be mistakable for the real site.** Three rules, all guarded by

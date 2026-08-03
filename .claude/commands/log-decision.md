@@ -14,4 +14,4 @@ rather than from a plausible-sounding reconstruction:
   that; a log of only smooth successes is a log nobody will trust.
 - **Verified** — how it was confirmed to work, with real numbers or commands
 
-Keep it terse. The narrative belongs in `reports/phase-<n>-report.md`, not here.
+Keep it terse. The narrative belongs in the phase report, not here.

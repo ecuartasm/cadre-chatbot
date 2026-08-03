@@ -30,18 +30,14 @@ dist/
 # OS
 .DS_Store
 
-# Background research and the material Cadre supplied — the take-home brief, the candidate
-# interview guide, raw prompts, page captures, and the derived analysis written from them. None of
-# it is part of the deliverable, and the two Cadre PDFs are their confidential hiring material,
-# which is not ours to publish. Previously this ignored the source files one by one while keeping
-# the derived .md files tracked; the whole directory is now excluded, since the derived documents
-# quote the brief closely enough that excluding only the PDFs was a distinction without a
-# difference. Untracked with `git rm -r --cached analysis/`.
+# Background research, page captures, and the material the client supplied. None of it is part of
+# the deliverable, and the supplied material is confidential and not ours to publish. An earlier
+# version of this rule excluded the source files one by one while keeping the derived notes tracked;
+# the whole directory is excluded now, because the derived notes quote the source closely enough
+# that the distinction did not hold.
 #
-# ⚠️ The versions committed before this point remain reachable in history. This keeps them out of
-# the working repo; it is NOT a purge, and it would not protect them if the repo were made public.
-# tokens.css and Mockup.jsx cite analysis/brand-tokens-extracted.txt for provenance — those
-# comments now point at a local-only file, deliberately.
+# ⚠️ Ignoring is not purging. Anything committed before a rule like this stays reachable in history
+# and must be removed with a history rewrite, which is what was done here.
 analysis/
 
 # Corpus backups taken by /update-kb before it overwrites knowledge-base.md. Git is the durable
@@ -54,8 +50,7 @@ content/backups/*
 # Local-only run artifacts (per-model log dirs from eval runs)
 .localdata/
 
-# Per-phase narrative reports, the technical report, the model comparison and the review prep.
-# Working notes for the author, not part of the deliverable. SPECIFICATION.md is the one document
-# the README points at. Untracked with `git rm -r --cached reports/` — note that the versions
-# committed before this line remain reachable in history.
+# Working notes kept by the author — per-phase narrative, the technical write-up, the model
+# comparison. Not part of the deliverable; SPECIFICATION.md is the one document the README points
+# at. Same caveat as above: ignoring a directory does nothing about what is already in history.
 reports/

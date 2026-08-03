@@ -17,7 +17,7 @@ A phase is not done until all eight are true. This is the loop, not a formality.
 2. **The phase's own exit criterion met** (stated per phase below).
 3. **`docs/ai-workflow-log.md` appended** — one entry: *phase / what I asked for / what Claude produced
    / what I changed and why*. Write it now, not later.
-4. **`reports/phase-<n>-report.md` written** — the detailed record of the phase: what shipped, the
+4. **The phase report written** — the detailed record of the phase: what shipped, the
    decisions and their reasoning, problems hit and how they were resolved, verification evidence with
    real numbers, what was deliberately deferred, and what comes next. The workflow log is a terse
    four-field entry; the report is the narrative a reader can reconstruct the phase from.
@@ -523,7 +523,7 @@ So this is **restyling, not construction**, and three things constrain it:
    rather than the approximation originally planned:
    - The site is **Webflow**, which declares its tokens as CSS custom properties in the served
      stylesheet rather than only computing them. Fetching it yielded the real declared values —
-     colours, fonts, weights, spacing, radii — saved to `analysis/brand-tokens-extracted.txt`.
+     colours, fonts, weights, spacing, radii — extracted and recorded in `web/src/tokens.css`.
    - The requester supplied a full-page screenshot, which corrected how those tokens are actually
      *used* (see the table below). Declared values alone would have produced a red-headed, blue-buttoned
      widget that matched no page on the site.
@@ -744,8 +744,8 @@ JSONL, and it's what Phase 8 reads).
 
 **Audit before starting — three facts that change what this phase should be.**
 
-**1. MCP appears nowhere in the brief.** Zero mentions of "MCP" or "Model Context Protocol" in
-`analysis/Cadre-chatbot-insturctions.md`. What the brief asks for is a chatbot handling six scenarios,
+**1. MCP appears nowhere in the brief.** Zero mentions of "MCP" or "Model Context Protocol" anywhere
+in the challenge instructions. What the brief asks for is a chatbot handling six scenarios,
 a deployed URL, a repo, `CLAUDE.md` and `plan.md` — all delivered and verified as of Phase 6. This
 phase is self-imposed scope.
 
@@ -889,7 +889,7 @@ unverified, and should be reported that way rather than as "retention confirmed"
 **Two items carried in rather than dropped:**
 
 1. **Phase 5's visual sign-off.** Hierarchy, spacing, and the 375px layout still need a human's eyes
-   on the rendered page. Recorded in `reports/phase-5-report.md` §7 as explicitly unverified.
+   on the rendered page. Recorded at the time as explicitly unverified.
 2. **Deploy times degraded during Phases 6–7** — ~20 minutes, and one deployment sat in `DEPLOYING`
    behind a 502 before recovering on its own. Not acted on, because nothing is broken and the cause
    is on Railway's side, but worth a look if it persists.
@@ -1144,9 +1144,6 @@ Everything after Phase 9. Not planned as a phase — it began as ad-hoc probing 
 earned the number, because it changed the product more than several planned phases did and found the
 defects the plan had not thought to look for.
 
-The narrative, entry by entry with measurements, is in `reports/testing_adjusting.md` (local-only —
-see 10.9). This section is the plan-level record.
-
 **The through-line: every serious defect in this phase was silent, and four were found by *auditing*
 rather than by anything failing.** No test went red, no exception was raised, no user saw an error.
 That is the opposite of how Phases 0–9 found things, and it is why this phase exists.
@@ -1275,7 +1272,7 @@ service line, *where the slugification happens*.
 
 #### 10.7 `/chat-widget` — the bot as a floating widget
 
-Built to `reports/plan-chat-widget.md`, outside the graded brief. **Zero backend changes:**
+Built to its own written plan, outside the graded brief. **Zero backend changes:**
 `StaticFiles(html=True)` resolves a Vite multi-page build to `/chat-widget` with no route, no router,
 no ordering change — pinned by a test. `/api/chat` untouched, so the 8-turn bound, rate limiter, spend
 cap, marker stripping and cost logging apply identically. **That is the seam paying off, not luck.**
@@ -1295,14 +1292,16 @@ dressed as a distribution the sample cannot support. Mean and `n` remain.
 #### 10.9 Repository hygiene, ahead of publishing
 
 `content/raw/` re-scraped (36 pages, 2026-07-31) and committed as provenance; the corpus was **not**
-edited. `reports/` and `analysis/` untracked and gitignored — then removed from **history** with
-`git-filter-repo`, because untracking is not purging and Cadre's take-home brief and Candidate
-Interview Guide were still recoverable by SHA. Force-pushing alone left the objects served by GitHub,
-so the repository was deleted and recreated. Verified from an anonymous client: **404 on the blob, the
-commits, and both paths.** The repo is now public.
+edited.
 
-⚠️ This makes **`reports/` local-only**. The narrative log this section summarises is not in the
-published repository; `SPECIFICATION.md` is the single document the README points at.
+The working notes and the background research — including the material Cadre supplied, which is
+theirs and not ours to publish — were untracked, gitignored, and then removed from **history** with
+`git-filter-repo`. **Untracking is not purging:** the files stayed recoverable by SHA, and
+force-pushing alone left the objects still served by GitHub, so the repository was deleted and
+recreated. Verified from an anonymous client with no credentials: **404 on the blobs, the commits and
+the paths.**
+
+The repo is now public, and `SPECIFICATION.md` is the single document the README points at.
 
 #### 10.10 Where it landed
 
@@ -1321,7 +1320,7 @@ failures · links restricted to pages the scrape proves exist · the corpus froz
 `b76e58eff516` · confidential material unreachable from the published repository, verified anonymously.
 
 **Not in scope:** editing the knowledge base further (frozen by decision) · a third model · auth on
-`/api/stats` · rewriting the phase reports for publication.
+`/api/stats` · rewriting the working notes for publication.
 
 **What this phase taught that the plan did not:** **nine times a test asserted something narrower
 than the property it stood for** — `grey` matched its own comment, `open(` matched `urlopen(`, a route
@@ -1338,7 +1337,7 @@ this file is where the open items live.
 
 | # | Item | Status |
 |---|---|---|
-| 1 | **Phase 8 part 2** — did rotation and the spend rollover fire? | ✅ **Both fired**, verified 2026-07-31 00:25 UTC. See `reports/phase-8-report.md` §4 |
+| 1 | **Phase 8 part 2** — did rotation and the spend rollover fire? | ✅ **Both fired**, verified 2026-07-31 00:25 UTC |
 | 2 | **Phase 5 visual sign-off** — hierarchy, spacing, 375px | ⏳ **Open** — needs a human's eyes; I cannot see the rendered page |
 | 3 | **Tighten `CLAUDE.md`** | ✅ Done — refreshed and cut back under its own 250-line cap (249) |
 | 4 | **Add a guardrail hook to `.claude/`** | ✅ Done — `hooks/guard-commit.sh`, verified against six paths |
@@ -1347,7 +1346,7 @@ this file is where the open items live.
 
 **One item still needs a human; the other is queued work.**
 
-**On (1):** exact commands and the meaning of each outcome are in `reports/phase-8-report.md` §4.
+**On (1):** the exact commands and the meaning of each outcome were recorded with the phase.
 Baseline to compare against: **136 turns · $0.186995 · `spend.date: 2026-07-30`**. If `/api/stats`
 still reports 136 tomorrow, rotation did not fire and retention is silently unenforced — the most
 valuable finding this phase could produce.
