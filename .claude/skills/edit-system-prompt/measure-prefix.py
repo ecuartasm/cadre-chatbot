@@ -13,12 +13,19 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+# Repo root, three levels up from .claude/skills/<name>/. Computed rather than hardcoded so the
+# script works whatever directory it is invoked from.
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
 THIN_MARGIN = 200  # a margin under this is one prose trim away from breaking caching
 
 
+# Measure the assembled prefix against every model in the registry and report what to update.
+#   out: exit code -- 0 when every model clears its floor with margin, 1 when something needs
+#        attention (below the floor, or drifted from the recorded value).
+# ⚠️ Counts against Anthropic DIRECTLY: count_tokens 404s through a gateway, and the SDK reads
+# ANTHROPIC_BASE_URL itself, so measuring through OpenRouter would silently fail.
 def main() -> int:
     from dotenv import load_dotenv
 

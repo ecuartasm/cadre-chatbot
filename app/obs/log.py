@@ -42,6 +42,9 @@ _STD_ATTRS = frozenset(
 )
 
 
+# Mint an id for one request.
+#   out: 16 hex chars. Short enough for a user to read back over the phone, wide enough
+#        (64 bits) that a collision inside a 7-day log window is not a practical concern.
 def new_request_id() -> str:
     return uuid.uuid4().hex[:16]
 
@@ -50,6 +53,11 @@ class JsonFormatter(logging.Formatter):
     """One JSON object per line. Every record carries the request id, so a single grep reconstructs
     a whole turn across the middleware, the LLM client, and the cost layer."""
 
+    # Render one log record as a single-line JSON object.
+    #   in : record -- a stdlib LogRecord; anything passed via extra={} is merged in
+    #   out: the JSON string written to the handler
+    # `request_id` prefers the record's own attribute over the ContextVar, because a record
+    # written from a generator's `finally` may run outside the request's context.
     def format(self, record: logging.LogRecord) -> str:
         payload: dict[str, object] = {
             "ts": datetime.fromtimestamp(record.created, tz=UTC).isoformat(),
@@ -69,6 +77,11 @@ class JsonFormatter(logging.Formatter):
 _listener: logging.handlers.QueueListener | None = None
 
 
+# Construct the handler set for the resolved sink.
+#   in : nothing -- reads SINK, decided once at import by sink.py
+#   out: [stdout] when stdout-only, or [stdout, app, interactions, errors] on disk.
+# stdout is ALWAYS included: on Railway it is what `railway logs` shows, so the same lines are
+# both streamed and persisted rather than one or the other.
 def _build_handlers() -> list[logging.Handler]:
     fmt = JsonFormatter()
 
@@ -100,10 +113,15 @@ class _StreamFilter(logging.Filter):
     """Routes records to the right file. A record's `stream` extra picks the file; anything
     without one lands in app.jsonl."""
 
+    #   in : stream -- the stream name this filter admits ('app' | 'interactions' | 'errors')
     def __init__(self, stream: str) -> None:
         super().__init__()
         self.stream = stream
 
+    # Decide whether a record belongs in this handler's file.
+    #   in : record -- checked for a `stream` extra
+    #   out: True to admit. Records with no `stream` default to 'app', so a forgotten extra
+    #        lands somewhere greppable instead of being dropped.
     def filter(self, record: logging.LogRecord) -> bool:
         return getattr(record, "stream", "app") == self.stream
 
@@ -129,6 +147,8 @@ def configure() -> None:
     atexit.register(_shutdown)
 
 
+# Stop the background QueueListener at interpreter exit so buffered records are flushed.
+#   out: None. Idempotent -- safe if configure() was never called.
 def _shutdown() -> None:
     global _listener
     if _listener is not None:
@@ -143,7 +163,12 @@ def get_logger(name: str = "cadre") -> logging.LoggerAdapter:
     return _RequestAdapter(base, {})
 
 
+# Wraps a stdlib Logger so callers never have to pass the request id by hand.
 class _RequestAdapter(logging.LoggerAdapter):
+    # Stamp the current request id onto every record.
+    #   in : msg, kwargs -- the stdlib logging call as written
+    #   out: the same pair, with extra['request_id'] filled from the ContextVar
+    # setdefault, not assignment: an explicit request_id passed by the caller always wins.
     def process(self, msg, kwargs):  # noqa: ANN001, ANN201 — stdlib signature
         extra = kwargs.setdefault("extra", {})
         extra.setdefault("request_id", request_id_var.get())

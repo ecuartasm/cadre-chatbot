@@ -30,17 +30,23 @@ from bs4 import BeautifulSoup
 from markdownify import markdownify
 
 BASE = "https://www.cadreai.com"
+# Destination for the byte-faithful record. Written ONLY by this script -- never hand-edited,
+# because it is the provenance trail every corpus fact is supposed to trace back to.
 OUT = Path(__file__).parent.parent / "content" / "raw"
 
 # Identify honestly. robots.txt (checked 2026-07-29) is `User-agent: * / Disallow:` — everything
 # permitted — but a real UA and a delay are the courtesy regardless.
 UA = "CadreSupportBotScraper/0.1 (+build-time corpus fetch for a Cadre AI support chatbot)"
+# Politeness gap between fetches. Not a rate limit we are subject to -- a courtesy so a build-time
+# scrape of 36 pages never looks like a burst to the site being read.
 DELAY_S = 1.0
 TIMEOUT_S = 30
 
 # Prioritised inventory. The sitemap lists 101 URLs; this is the subset the six support scenarios
 # actually need. What is skipped, and why, is recorded in SKIPPED below — an unexplained omission in
 # a provenance record is worse than no record.
+# The explicit fetch list. Enumerated by hand rather than crawled: a crawler's output changes
+# silently when the site adds a page, and the corpus needs a fixed, reviewable set.
 PAGES: list[str] = [
     # Core
     "/",
@@ -88,6 +94,8 @@ PAGES: list[str] = [
     "/articles/cadre-ai-selected-as-an-official-openai-service-partner",
 ]
 
+# Paths deliberately NOT fetched, each with the reason. Recorded rather than omitted, so the gap
+# is a decision someone can review instead of an oversight nobody notices.
 SKIPPED = {
     "/authors/*": "9 pages. Author bios; no support scenario asks for them.",
     "/podcasts/*": "22 episode pages. Metadata comes from the two landing pages; fetching "
@@ -100,6 +108,8 @@ SKIPPED = {
 }
 
 # Chrome that carries no information: nav, footer, cookie banners, repeated CTAs.
+# Elements removed before conversion -- nav, footer, cookie banners. Chrome that repeats on every
+# page adds tokens without adding facts.
 STRIP_SELECTORS = [
     "nav", "header", "footer", "script", "style", "noscript", "svg", "form",
     '[class*="nav"]', '[class*="footer"]', '[class*="cookie"]', '[class*="banner"]',
@@ -107,12 +117,20 @@ STRIP_SELECTORS = [
 ]
 
 
+# Fetch one page over HTTP.
+#   in : url -- absolute URL
+#   out: the raw HTML as text
+#   raises: on any HTTP or network error -- a partial scrape must fail loudly, because a silently
+#           missing page becomes a silently missing fact in the corpus.
 def fetch(url: str) -> str:
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "text/html"})
     with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:  # noqa: S310 — fixed https host
         return r.read().decode("utf-8", errors="replace")
 
 
+# Convert one page to markdown.
+#   in : html -- the raw response body
+#   out: (title, markdown_body) with STRIP_SELECTORS removed
 def to_markdown(html: str) -> tuple[str, str]:
     """Return (title, markdown). Title comes from <h1>, falling back to <title>."""
     soup = BeautifulSoup(html, "html.parser")
@@ -136,11 +154,21 @@ def to_markdown(html: str) -> tuple[str, str]:
     return title, md.strip()
 
 
+# Derive the output filename from a URL path.
+#   in : path -- e.g. '/industries/construction'
+#   out: 'industries--construction' -- a flat name, so content/raw/ stays one directory that can
+#        be diffed and counted at a glance.
 def slug_for(path: str) -> str:
     s = path.strip("/").replace("/", "--") or "home"
     return f"{s}.md"
 
 
+# Fetch, convert and write every page.
+#   in : paths -- the list to fetch
+#   out: (written, unchanged) counts
+# Each file carries url / scraped_at / content_sha256 in frontmatter. The hash is what makes
+# drift detectable later -- though it is ORDER-SENSITIVE, so a rotating carousel reports a change
+# where the content is identical (~77% of flagged pages on the last refresh).
 def scrape(paths: list[str]) -> tuple[int, int]:
     OUT.mkdir(parents=True, exist_ok=True)
     ok = fail = 0
@@ -178,6 +206,10 @@ def scrape(paths: list[str]) -> tuple[int, int]:
     return ok, fail
 
 
+# CLI entry point.
+#   flags: --only <substring> to re-fetch a subset
+#   out: exit code, 0 on success. Must stay re-runnable: this script is the first link in the
+#        provenance chain, and a scrape nobody can reproduce is not evidence.
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", help="substring filter on the path")

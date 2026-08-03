@@ -18,6 +18,8 @@ from anthropic import AsyncAnthropic
 from app.llm.models import DEFAULT_MODEL, spec_for
 from app.llm.prompt import SYSTEM_PROMPT_VERSION, build_system_blocks
 
+# The model this process talks to. Resolved ONCE at import -- which is why .env must be loaded
+# by app/__init__.py, before any app.* module runs. Editing .env needs a restart.
 MODEL = os.getenv("ANTHROPIC_MODEL", DEFAULT_MODEL)
 
 # Optional gateway. Unset — the default — means talking to api.anthropic.com exactly as before, so
@@ -33,17 +35,23 @@ MODEL = os.getenv("ANTHROPIC_MODEL", DEFAULT_MODEL)
 # ⚠️ **Do NOT include `/v1`.** The SDK appends `/v1/messages` itself, so a base of
 # `https://openrouter.ai/api/v1` requests `/api/v1/v1/messages` and gets a 404 HTML page — an
 # error that names nothing useful. The correct value is `https://openrouter.ai/api`.
+# `or None` so an empty string is treated as unset rather than as a broken URL.
 BASE_URL = os.getenv("ANTHROPIC_BASE_URL") or None
 
 # Support answers are short. A low ceiling bounds cost and keeps latency honest — it is not a limit
 # we expect to hit (the longest observed answer was 150 output tokens). Clamped to the model's own
 # maximum so a swap to a model with a lower ceiling fails loudly here rather than at the API.
+# Output ceiling per turn. min() rather than a bare 1024, so a model with a lower ceiling than
+# ours is respected instead of producing an API error.
 MAX_TOKENS = min(1024, spec_for(MODEL).max_output)
 
 # Fail fast rather than leaving a user watching a dead stream.
+# Wall-clock budget for one model call. Long enough for a slow first token, short enough that a
+# hung upstream surfaces as a readable error rather than a browser spinning indefinitely.
 REQUEST_TIMEOUT_S = 30.0
 
 
+# The four token counters, mirrored from the SDK response so nothing upstream imports an SDK type.
 @dataclass
 class Usage:
     input_tokens: int = 0
@@ -81,6 +89,8 @@ _MARKER_OPEN: Final = "[[refusal:"
 _MARKER_ANYWHERE: Final = re.compile(r"\[\[refusal:([a-z0-9-]{1,40})\]\]")
 # Longest real slug is 29 chars, so a well-formed marker is ~42. Past this the model is writing
 # prose that merely began like a marker; stop holding it back.
+# How many trailing characters the scanner holds back while deciding whether they are the start
+# of a marker. Bounded: an unterminated '[[refusal:' must not buffer the whole reply forever.
 _MARKER_MAX: Final = 64
 
 
@@ -104,6 +114,7 @@ class MarkerScanner:
     enough (`[[refusal:` + lowercase slug + `]]`) that prose cannot produce it by accident.
     """
 
+    # State for one stream. A scanner is single-use -- one per turn, never shared.
     def __init__(self) -> None:
         self._buf = ""
         # False until the first visible character has been emitted. Until then, leading whitespace
@@ -115,6 +126,11 @@ class MarkerScanner:
         # suppression is greppable rather than a silent deletion of model output.
         self.truncated_marker: str | None = None
 
+    # Consume one delta from the model.
+    #   in : text -- the raw fragment as it arrived
+    #   out: the portion SAFE to display now, with any complete marker removed. May be "" while
+    #        the scanner is holding a possible partial tag.
+    #   side effect: sets self.reason when a complete marker is found.
     def feed(self, text: str) -> str:
         """Return the portion safe to emit, holding back a tail that might be a partial tag."""
         self._buf += text
@@ -134,6 +150,9 @@ class MarkerScanner:
             self._started = True
         return out
 
+    # Flush at end of stream.
+    #   out: whatever remained in the buffer, marker-stripped. Called exactly once, after the
+    #        last feed(), so a marker at the very end of a reply is still caught.
     def finish(self) -> str:
         """Flush the held tail when the stream ends.
 
@@ -273,6 +292,9 @@ async def stream_reply(messages: list[dict]) -> AsyncIterator[Chunk]:
         yield Chunk(type="error", text="Something went wrong. Please try again.")
 
 
+# Non-secret description of the configured model, for /api/config and /health.
+#   out: model id, window, max_tokens, thinking, api_base, via_gateway.
+#        Reports WHICH gateway, never the key -- api_base is a hostname, not a credential.
 def model_info() -> dict[str, object]:
     spec = spec_for(MODEL)
     return {

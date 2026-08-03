@@ -33,8 +33,12 @@ import urllib.request
 
 from mcp.server.mcpserver import MCPServer
 
+# Where the tools look when CADRE_BOT_URL is unset. A URL, never a filesystem path: this server
+# reads the bot's PUBLIC endpoints and has no access to the log volume.
 DEFAULT_URL = "https://cadre-chatbot-production.up.railway.app"
 BOT_URL = os.getenv("CADRE_BOT_URL", DEFAULT_URL).rstrip("/")
+# Per-request budget. Short, because an MCP client is waiting on a human's question -- a hung
+# call should report "unreachable" quickly rather than stall the conversation.
 TIMEOUT_S = 20
 
 mcp = MCPServer(
@@ -47,6 +51,10 @@ mcp = MCPServer(
 )
 
 
+# Fetch one JSON endpoint from the running bot.
+#   in : path -- '/health' or '/api/stats'
+#   out: parsed JSON, or {"error": ...} -- never raises, so an unreachable bot is REPORTED
+#        rather than surfacing as a tool crash the model has to interpret.
 def _get(path: str) -> dict:
     """Fetch a JSON endpoint. Returns an `error` dict rather than raising, so a tool call reports
     an unreachable bot as a fact instead of a stack trace."""
@@ -60,6 +68,8 @@ def _get(path: str) -> dict:
         return {"error": f"{type(e).__name__}: {e}", "url": BOT_URL}
 
 
+# MCP tool: is the bot up, and what is it configured with?
+#   out: liveness, model, log sink mode, spend snapshot. Read-only.
 @mcp.tool(
     description=(
         "Is the Cadre chatbot up, which system-prompt version is live, and is its log sink "
@@ -96,6 +106,8 @@ def bot_health() -> dict:
     }
 
 
+# MCP tool: today's traffic and economics.
+#   out: turns, cost, cache hit rate, refusal rate, mean latency. Read-only.
 @mcp.tool(
     description=(
         "Traffic, cost, cache efficiency, refusal rate and mean latency for the Cadre chatbot "
@@ -118,6 +130,9 @@ def bot_stats() -> dict:
     return stats
 
 
+# MCP tool: which boundaries actually fired, by reason.
+#   out: counts per refusal_reason, the overall rate, and a flag for any reason NOT in the
+#        corpus -- an unknown slug means the model invented one, which is worth surfacing.
 @mcp.tool(
     description=(
         "How often the Cadre chatbot refused to answer, broken down by reason. This is the number "
@@ -159,6 +174,9 @@ def refusal_breakdown() -> dict:
     }
 
 
+# MCP tool: spend against the daily cap.
+#   out: today's total, the cap, percent used, and whether it is persisted to disk.
+#        Includes a note that the ledger under-counts abandoned turns.
 @mcp.tool(
     description=(
         "Spend so far today against the Cadre chatbot's daily cap, and how close it is to "

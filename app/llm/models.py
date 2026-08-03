@@ -27,6 +27,10 @@ import os
 from dataclasses import dataclass
 
 
+# One immutable row of per-model facts. Frozen so a spec cannot be mutated at runtime — these
+# values feed pricing and the cache floor, and a mutated copy would be a silent wrong number.
+# Fields: id (the API model string) · context_window / max_output (token ceilings) ·
+# cache_floor (minimum cacheable prefix) · rates (4 prices, USD per MTok) · thinking (or None).
 @dataclass(frozen=True)
 class ModelSpec:
     id: str
@@ -47,6 +51,7 @@ class ModelSpec:
     thinking: dict[str, str] | None = None
 
 
+# The default. Cheapest tier, and — counter-intuitively — the HIGHEST cache floor of the two.
 HAIKU_4_5 = ModelSpec(
     id="claude-haiku-4-5",
     context_window=200_000,
@@ -56,6 +61,8 @@ HAIKU_4_5 = ModelSpec(
     thinking=None,  # not supported; sending it is an error
 )
 
+# The escalation path, selected by ANTHROPIC_MODEL in .env. 3x the price, 5x the context window,
+# and a floor 4x LOWER than Haiku's — which is why the floor is stored rather than inferred.
 SONNET_5 = ModelSpec(
     id="claude-sonnet-5",
     context_window=1_000_000,
@@ -67,8 +74,11 @@ SONNET_5 = ModelSpec(
     thinking={"type": "disabled"},
 )
 
+# The registry: model id -> spec. Every lookup in the codebase goes through this dict, so adding
+# a model means adding a row here (and measuring its prefix in prompt.py).
 MODELS: dict[str, ModelSpec] = {m.id: m for m in (HAIKU_4_5, SONNET_5)}
 
+# Used when ANTHROPIC_MODEL is unset. Deliberately a real spec, never a bare string.
 DEFAULT_MODEL = HAIKU_4_5.id
 
 
@@ -77,6 +87,11 @@ class UnknownModelError(KeyError):
     disables caching silently and a wrong rate corrupts the only control that costs money."""
 
 
+# Look up a spec by model id.
+#   in : model_id -- the API model string, e.g. "claude-haiku-4-5"
+#   out: ModelSpec
+#   raises: UnknownModelError. Deliberately no default -- falling back to another model's numbers
+#           is exactly how a wrong cache floor or a 3x price error ships unnoticed.
 def spec_for(model_id: str) -> ModelSpec:
     try:
         return MODELS[model_id]
@@ -87,6 +102,9 @@ def spec_for(model_id: str) -> ModelSpec:
         ) from e
 
 
+# The spec for whichever model THIS process is configured to run.
+#   in : nothing -- reads ANTHROPIC_MODEL from the environment
+#   out: ModelSpec (falls back to DEFAULT_MODEL when the variable is unset)
 def active() -> ModelSpec:
     """The model this process is configured to use. Resolved from the environment at call time so
     a test can monkeypatch `ANTHROPIC_MODEL` without reimporting."""

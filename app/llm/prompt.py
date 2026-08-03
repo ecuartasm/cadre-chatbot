@@ -176,6 +176,13 @@ when there is a natural one.
 """
 
 
+# Assemble the system prompt.
+#   in : nothing -- the seven sections are module constants, the corpus arrives from loader.py
+#   out: a ONE-element list of content blocks:
+#        [{"type": "text", "text": <23.5k chars>, "cache_control": {"type": "ephemeral"}}]
+#        A list rather than a bare string because cache_control can only attach to a block.
+# Byte-stable by construction: no arguments, no interpolation, no clock. Anything per-request
+# would break the prefix match and silently disable caching for every turn.
 def build_system_blocks() -> list[dict]:
     """Return the `system` parameter as content blocks.
 

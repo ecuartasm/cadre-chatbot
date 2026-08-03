@@ -33,9 +33,14 @@ log = get_logger("stats")
 
 # Bounded so a long-running instance cannot turn a status endpoint into a large file read. The
 # rotation handler already caps each file at one day, so this is a second, cheaper bound.
+# Ceiling on log lines parsed per request. A busy day must not turn /api/stats into a slow
+# endpoint or a memory spike -- the numbers stay approximate rather than the request stalling.
 MAX_LINES = 20_000
 
 
+# Load today's interaction records.
+#   out: (rows, unavailable_reason). rows is [] and the reason is set when there is no disk sink
+#        or no file yet. NEVER raises -- a broken stats endpoint must not make the app look down.
 def _read_interactions() -> tuple[list[dict], str | None]:
     """Return (rows, unavailable_reason). Never raises — a broken stats endpoint must not be the
     thing that takes the service down."""
@@ -154,10 +159,18 @@ async def stats() -> dict[str, object]:
     }
 
 
+# Percentage helper.
+#   in : part, whole
+#   out: part/whole as a percentage rounded to 1dp; 0.0 when whole is 0 (no ZeroDivisionError
+#        on a fresh instance with no traffic).
 def _pct(part: int, whole: int) -> float:
     return round(100 * part / whole, 1) if whole else 0.0
 
 
+# The price table(s) actually used by the turns in this window.
+#   in : rows -- today's interaction records
+#   out: {model_id: four rates}. Derived from the models seen in the log, so a day that spanned
+#        a model swap reports both rather than only the currently-configured one.
 def _rates(rows: list[dict]) -> dict[str, object]:
     """Echo the price table actually used, so a cost figure can be checked rather than trusted."""
     models = {r.get("model") for r in rows if r.get("model")}

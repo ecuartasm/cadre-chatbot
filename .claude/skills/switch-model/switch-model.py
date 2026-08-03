@@ -33,6 +33,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
+# The file this script edits. Holds the API key, which is why nothing here ever prints its
+# contents -- only the single line being changed.
 ENV_PATH = ROOT / ".env"
 KEY = "ANTHROPIC_MODEL"
 
@@ -61,6 +63,8 @@ def bad(m: str) -> str:
 # regenerated from parsed values, never printed, and never written non-atomically.
 
 
+# Read the currently configured model from .env.
+#   out: the model id, or None when the key is absent
 def read_env_model() -> str | None:
     if not ENV_PATH.exists():
         return None
@@ -71,6 +75,11 @@ def read_env_model() -> str | None:
     return None
 
 
+# Rewrite the ANTHROPIC_MODEL line in place.
+#   in : new_model -- the model id to set
+#   out: path of the backup written first
+# Line-by-line rewrite, never a regenerate: every other line -- including the key -- is copied
+# through untouched.
 def write_env_model(new_model: str) -> Path:
     """Replace the ANTHROPIC_MODEL line in place. Returns the backup path."""
     original = ENV_PATH.read_text(encoding="utf-8")
@@ -100,6 +109,10 @@ def write_env_model(new_model: str) -> Path:
 # --- verification --------------------------------------------------------------------
 
 
+# Prove the change took effect, through the SAME path a real run uses.
+#   out: what the app resolves -- model, floor, rates, recorded prefix
+# ⚠️ Runs in a SUBPROCESS with the shell variable REMOVED. A shell variable bypasses .env
+# entirely, which is exactly how the "editing .env does nothing" bug stayed hidden for a phase.
 def resolve_via_dotenv() -> dict[str, object]:
     """What the app ACTUALLY resolves, in a fresh interpreter with the shell override removed.
 
@@ -132,6 +145,10 @@ def resolve_via_dotenv() -> dict[str, object]:
     return json.loads(r.stdout.strip())
 
 
+# Count the assembled prefix against the live API.
+#   in : model_id
+#   out: token count, or None when there is no key or a gateway is configured (count_tokens
+#        404s through one), so the check degrades to "unmeasured" rather than to a false pass.
 def live_prefix_tokens(model_id: str) -> int | None:
     """Count the real prefix against the real tokeniser. The recorded number is per-model and the
     two models differ by 38% on identical bytes, so a swap without this is a guess."""
@@ -154,6 +171,10 @@ def live_prefix_tokens(model_id: str) -> int | None:
         return None
 
 
+# Build the human-readable verdict.
+#   in : state -- what the app resolved; live -- measured token count or None
+#   out: lines to print. Flags a margin under THIN_MARGIN, and a drift between the live count
+#        and the recorded one.
 def report(state: dict[str, object], live: int | None) -> list[str]:
     """Print the state and return the list of problems that should block a deploy."""
     from app.llm.models import MODELS
@@ -216,12 +237,20 @@ def report(state: dict[str, object], live: int | None) -> list[str]:
     return problems
 
 
+# Which models have a measured prefix recorded in prompt.py.
+#   out: set of model ids. A model in the registry but missing here cannot be switched to
+#        safely -- its prefix has never been measured against its floor.
 def _recorded_models() -> set[str]:
     from app.llm.prompt import MEASURED_SYSTEM_TOKENS_BY_MODEL
 
     return set(MEASURED_SYSTEM_TOKENS_BY_MODEL)
 
 
+# CLI entry point.
+#   args: <model-id> to switch, or none to report the current state without changing anything
+#   out: exit code -- 0 when the switch is verified, 1 when it is not.
+# Refuses to switch to a model with no spec: an unspecced model has no cache floor and no price
+# table, and would run with another model's numbers.
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("model", nargs="?", help="model id to switch to")

@@ -60,13 +60,20 @@ MAX_TURNS_PER_CONVERSATION = int(os.getenv("MAX_TURNS_PER_CONVERSATION", "0"))
 
 # The refusal marker, as it would appear in an inbound message. Deliberately lenient
 # about whitespace and slug shape — this is stripping hostile input, not parsing ours.
+# Looser than the OUTBOUND pattern in client.py, deliberately -- that one parses our own format.
 _CLIENT_MARKER = re.compile(r"\[\[\s*refusal\s*:[^\]]*\]\]", re.I)
 
 
+# One turn in the conversation, as it arrives from the browser.
+#   role    -- 'user' | 'assistant' (validated; anything else is a 422)
+#   content -- the text, sanitised by the validator below before any handler sees it
 class Message(BaseModel):
     role: str
     content: str
 
+    # Reject unknown roles.
+    #   in : v -- the role string
+    #   out: v unchanged, or ValueError -> HTTP 422
     @field_validator("role")
     @classmethod
     def role_must_be_valid(cls, v: str) -> str:
@@ -74,6 +81,10 @@ class Message(BaseModel):
             raise ValueError("role must be 'user' or 'assistant'")
         return v
 
+    # Sanitise message text. Three controls live here, so no code path can skip them.
+    #   in : v -- raw content from the client
+    #   out: stripped, marker-free, truncated to MAX_MESSAGE_CHARS
+    #   raises: ValueError (-> 422) when empty, before OR after marker removal
     @field_validator("content")
     @classmethod
     def content_must_be_sane(cls, v: str) -> str:
@@ -95,19 +106,35 @@ class Message(BaseModel):
         return v[:MAX_MESSAGE_CHARS]
 
 
+# The POST /api/chat body.
+#   messages -- the whole conversation, browser-supplied and therefore untrusted
 class ChatRequest(BaseModel):
     messages: list[Message] = Field(min_length=1)
 
+    # Bound the history SERVER-side; the array comes from the browser and is not trusted.
+    #   in : v -- the full array as sent
+    #   out: the last MAX_TURNS*2 messages. Truncated, never rejected -- turn 9 works, the model
+    #        just no longer sees turn 1. The *2 keeps whole user/assistant pairs, so the model is
+    #        never handed a reply whose question was dropped.
     @field_validator("messages")
     @classmethod
     def cap_history(cls, v: list[Message]) -> list[Message]:
         return v[-(MAX_TURNS * 2) :]
 
 
+# Format one Server-Sent Events frame.
+#   in : payload -- the object to send
+#   out: 'data: {json}\n\n'. The trailing BLANK LINE is the frame delimiter -- without it the
+#        browser never dispatches the event.
 def _sse(payload: dict) -> str:
     return f"data: {json.dumps(payload, separators=(',', ':'))}\n\n"
 
 
+# Emit a single error frame for a rejected turn, without calling the model.
+#   in : reason -- server-side slug ('rate-limited', 'daily-cap-reached', ...). NOT a corpus
+#                  refusal slug; these never reach REFUSAL_REASONS.
+#        text   -- user-facing prose
+#   out: a one-frame async iterator, delivered at HTTP 200 -- see the docstring for why.
 async def _guard_frame(reason: str, text: str, request_id: str) -> AsyncIterator[str]:
     """A rejection, delivered as a normal SSE error frame.
 
@@ -120,6 +147,13 @@ async def _guard_frame(reason: str, text: str, request_id: str) -> AsyncIterator
     yield _sse({"type": "error", "text": text, "reason": reason, "request_id": request_id})
 
 
+# The turn itself: stream the model's reply and account for it exactly once.
+#   in : messages   -- validated, capped conversation
+#        request_id -- carried explicitly, not read from the ContextVar late (the middleware
+#                      resets it before an SSE body finishes iterating)
+#   out: yields SSE frames -- many `delta`, then one `done`, or an `error`
+#   side effects: records spend and writes one interactions.jsonl line, from `finally`, so an
+#                 abandoned stream is still accounted for rather than being silently free.
 async def _event_stream(messages: list[dict], request_id: str) -> AsyncIterator[str]:
     started = time.monotonic()
     usage = Usage()
@@ -224,6 +258,13 @@ async def _event_stream(messages: list[dict], request_id: str) -> AsyncIterator[
         log.info("interaction", extra={"stream": "interactions", **entry.as_dict()})
 
 
+# POST /api/chat -- the only endpoint that spends money.
+#   in : req     -- validated body (history already capped, markers already stripped)
+#        request -- for client IP and headers
+#   out: StreamingResponse of text/event-stream
+# Three guards run BEFORE the model call, cheapest first: conversation length (a pure count),
+# then the rate limiter, then the spend cap. Each returns an error FRAME at HTTP 200, because a
+# status-code rejection surfaces in the UI as "couldn't reach the server".
 @router.post("/chat")
 async def chat(req: ChatRequest, request: Request) -> StreamingResponse:
     request_id = request_id_var.get()
@@ -288,6 +329,10 @@ async def chat(req: ChatRequest, request: Request) -> StreamingResponse:
     )
 
 
+# GET /api/config -- what this instance is actually configured with. No secrets.
+#   out: model info, limits, corpus fingerprint, and prompt METADATA only (version, token count,
+#        floor margin). Never the prompt text: publishing it would expose the marker syntax and
+#        the wording of every boundary rule.
 @router.get("/config")
 async def config() -> dict[str, object]:
     """What the running instance is actually configured with. No secrets.

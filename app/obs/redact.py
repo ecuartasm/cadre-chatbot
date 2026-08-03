@@ -17,6 +17,9 @@ import re
 
 # Order matters: email before phone, or the digits inside an address-like local part get mangled
 # first.
+# (pattern, placeholder) pairs applied to every logged user message. Deliberately conservative:
+# obvious PII shapes only, not names or addresses -- an over-eager redactor destroys the question
+# itself and the log stops being useful for debugging a bad answer.
 _PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     # Emails
     (re.compile(r"\b[\w.%+-]+@[\w.-]+\.[A-Za-z]{2,}\b"), "[email]"),
@@ -27,6 +30,12 @@ _PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
 )
 
 
+# Replace obvious PII with placeholders and bound the length.
+#   in : text      -- the raw user message
+#        max_chars -- hard ceiling; anything longer is cut with a "[truncated N chars]" marker
+#   out: the redacted string ("" for empty input)
+# Pure function with no I/O, so it is unit-testable in isolation -- which is why it lives here
+# rather than as an inline regex at the logging call site.
 def redact(text: str, *, max_chars: int = 2000) -> str:
     """Return `text` with obvious PII replaced by placeholders, truncated to `max_chars`.
 

@@ -34,9 +34,12 @@ log = get_logger("spend")
 # so the same cap is roughly a third of the traffic. `turns_remaining_estimate()` computes it from
 # the active model rather than leaving a stale "~797 turns" comment to be read as current after a
 # swap. See tests/test_obs.py.
+# Read ONCE at import, so changing it needs a restart, not just an edit.
 DAILY_CAP_USD = float(os.getenv("DAILY_COST_CAP_USD", "5.00"))
 
 # Log as the ceiling is approached, so the first sign of trouble is not the cap already tripped.
+# Log a warning the first time the day's spend crosses each fraction of the cap. Each fires at
+# most once per day (tracked in _State.alerted), so a busy day cannot flood the log.
 _ALERT_FRACTIONS = (0.5, 0.8, 1.0)
 
 _STATE_PATH = Path(SINK.log_dir) / "spend.json" if SINK.mode == "disk" else None
@@ -46,10 +49,18 @@ _STATE_PATH = Path(SINK.log_dir) / "spend.json" if SINK.mode == "disk" else None
 _HISTORY_PATH = Path(SINK.log_dir) / "spend-history.jsonl" if SINK.mode == "disk" else None
 
 
+# Today's date key.
+#   out: 'YYYY-MM-DD' in UTC -- always UTC, never local time, so the rollover is the same
+#        instant everywhere and a deploy in another timezone cannot double-count a day.
 def _today() -> str:
     return datetime.now(tz=UTC).strftime("%Y-%m-%d")
 
 
+# The in-memory ledger for the CURRENT day only. Mirrored to spend.json on every change.
+#   date      -- the UTC day this total belongs to; a mismatch triggers a rollover
+#   total_usd -- cumulative spend today
+#   turns     -- turn count today
+#   alerted   -- which _ALERT_FRACTIONS have already fired
 @dataclass
 class _State:
     date: str
@@ -190,12 +201,20 @@ def _roll_if_new_day() -> None:
         _persist()
 
 
+# The gate. Checked BEFORE the model call, so a blocked turn spends nothing.
+#   out: True -> refuse this turn. Rolls the day over first, so the first request after
+#        midnight is judged against a fresh total rather than yesterday's.
 def would_exceed_cap() -> bool:
     """Called before the model request. True means refuse the turn."""
     _roll_if_new_day()
     return _state.total_usd >= DAILY_CAP_USD
 
 
+# Add one turn's cost to today's total and persist it.
+#   in : cost -- USD for the turn, from cost.py. 0.0 for an abandoned turn is expected.
+#   out: None
+# Async and lock-guarded: concurrent streams finish out of order, and a lost update here is
+# money the cap never sees. The lock is per-process, which is why the app runs --workers 1.
 async def record(cost: float) -> None:
     async with _lock:
         _roll_if_new_day()
@@ -218,6 +237,10 @@ async def record(cost: float) -> None:
         _persist()
 
 
+# The most expensive shape a single turn can take, for the cap's headroom estimate.
+#   out: USD for a cache-WRITE turn on the ACTIVE model, using a measured real turn's shape.
+# Budgeting against the write rate (not the ~6.5x cheaper read) keeps the estimate conservative:
+# on low traffic most turns really are the first of their cache window.
 def worst_case_turn_usd() -> float:
     """A cache-WRITE turn on the active model, using the measured shape of a real turn."""
     from app.llm.client import MODEL
@@ -231,6 +254,10 @@ def worst_case_turn_usd() -> float:
     )
 
 
+# Read the archive of completed days.
+#   in : limit -- how many most-recent days to return
+#   out: list of {date, total_usd, turns}, oldest first. Never raises: a corrupt line is
+#        skipped rather than taking down /api/stats.
 def history(limit: int = 30) -> list[dict[str, object]]:
     """Completed days, oldest first. Today is not in here — it is still in `spend.json`."""
     if not _HISTORY_PATH or not _HISTORY_PATH.exists():
@@ -247,6 +274,9 @@ def history(limit: int = 30) -> list[dict[str, object]]:
     return sorted(rows, key=lambda r: str(r.get("date")))[-limit:]
 
 
+# The full spend picture, for /api/stats and /health.
+#   out: today's date/total/turns/cap/pct, plus `persisted` (is this surviving a restart?),
+#        `worst_case_turn_usd`, `turns_remaining_estimate`, and lifetime totals from the archive.
 def status() -> dict[str, object]:
     _roll_if_new_day()
     past = history()

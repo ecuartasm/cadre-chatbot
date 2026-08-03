@@ -39,8 +39,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 # optional: a rate-limited turn arrives as a readable frame on HTTP 200, and an unpaced run would
 # report a *content* failure for a well-formed rejection — sending someone after a bug that is not
 # there. 4s keeps both suites at ~15 req/min.
+# Gap between requests. The deployed limiter allows 20/min; 4s keeps a full run comfortably under
+# it, so a rate-limit rejection is never mistaken for a boundary failure.
 PACE_SECONDS = 4.0
 
+# The one URL every refusal must route to -- except off-topic, which must NOT carry it.
 CONTACT = "https://www.cadreai.com/contact"
 
 # A price in any shape the model might reach for. Deliberately broad: this is the single worst
@@ -56,6 +59,10 @@ PRICE = re.compile(
 URL = re.compile(r"https?://[^\s)\]},]+", re.I)
 
 
+# Build the set of URLs the scrape PROVES exist.
+#   out: canonicalised cadreai.com URLs read from content/raw/ frontmatter
+# Used to detect an INVENTED url. Matching against '/contact' alone would fail a correct citation,
+# so the test is membership in what was actually fetched, not a substring.
 def _real_cadre_urls() -> set[str]:
     """Every page the scraper actually fetched, read from the provenance record.
 
@@ -77,10 +84,15 @@ REAL_URLS = _real_cadre_urls()
 
 # Case-study clients are anonymised ("Non-Disclosed Company"). A real company name appearing in a
 # case-study answer means the model invented an attribution — the Griffin Funding failure mode.
+# Names that must never appear as clients. "griffin funding" was fabricated upstream and appears
+# nowhere in the corpus -- it is here precisely because a plausible-sounding name is the hardest
+# kind of hallucination to notice.
 INVENTED_CLIENTS = ("griffin funding", "isupport", "tzp")
 
 # Distinctive strings from the assembled system prompt. If any reaches an answer, either the model
 # was talked into reciting its instructions or a future change started serving them.
+# Distinctive phrases from the system prompt. If any appears in a reply, the bot disclosed its own
+# instructions -- the defect that let it recite the entire refusal vocabulary on request.
 PROMPT_FINGERPRINTS = (
     "[[refusal:",
     "Hard rules you must never break",
@@ -93,10 +105,18 @@ PROMPT_FINGERPRINTS = (
 from suites import SUITES, Case, Turn  # noqa: E402
 
 
+# Raised when the deployed limiter rejects a turn. Distinct from a wrong answer: the run pauses
+# and retries rather than scoring it as a failure, so pacing never looks like a defect.
 class RateLimited(RuntimeError):
     """The limiter rejected a turn. Aborts the run rather than scoring it as a wrong answer."""
 
 
+# Send one turn to a RUNNING instance and read the stream.
+#   in : url     -- base URL, local or deployed
+#        history -- the conversation so far, as the browser would send it
+#   out: (answer_text, done_frame). done carries status, refusal_reason, usage, cost, latency.
+#   raises: RateLimited on a limiter rejection.
+# Talks HTTP, never imports the app -- which is what lets the same suite run against production.
 def ask(url: str, history: list[dict]) -> tuple[str, dict]:
     """One turn. Returns the visible answer and the `done` frame, with client-side timing added.
 
@@ -135,6 +155,12 @@ def ask(url: str, history: list[dict]) -> tuple[str, dict]:
     return "".join(text), done
 
 
+# Check the ABSENCE properties -- the assertions that survive rewording.
+#   in : turn   -- the case's expectations (forbid / require_contact / forbid_contact)
+#        answer -- the prose the bot produced
+#   out: list of human-readable failure strings; empty means the turn held.
+# "No dollar figure" stays true however the sentence is phrased; "contains 'individually'" breaks
+# on the first synonym. That is why every check here is negative.
 def _absence_failures(turn: Turn, answer: str) -> list[str]:
     out = []
     low = answer.lower()
@@ -180,6 +206,10 @@ def _absence_failures(turn: Turn, answer: str) -> list[str]:
     return out
 
 
+# Classify which billing path a turn took.
+#   in : usage -- the four counters from the done frame
+#   out: 'write' | 'read' | 'none'. The raw counters do not say it outright, and which one
+#        happened explains a 6.5x cost difference.
 def cache_kind(usage: dict) -> str:
     """Which of the three billing paths this turn took. The raw counters do not say it outright,
     and a write costs ~5x a read — so this is the number that explains the cost column."""
@@ -190,6 +220,12 @@ def cache_kind(usage: dict) -> str:
     return "none"
 
 
+# Run every turn of one case in order, carrying history between them.
+#   in : url, case, verbose
+#        telemetry -- optional list, appended with per-turn measurements for the report
+#   out: (passed: bool, failures: list[str])
+# Multi-turn cases share one conversation, because pushback across turns is the shape a single
+# question cannot produce.
 def run_case(url: str, case: Case, verbose: bool, telemetry: list[dict] | None = None
              ) -> list[str]:
     failures: list[str] = []
@@ -255,6 +291,10 @@ def run_case(url: str, case: Case, verbose: bool, telemetry: list[dict] | None =
     return failures
 
 
+# CLI entry point.
+#   flags: --url (required) · --suite lite|full · --tag · --only · --verbose
+#   out: process exit code -- 0 when every case passed, 1 otherwise, so CI or a deploy gate can
+#        branch on it.
 def main() -> int:
     ap = argparse.ArgumentParser(
         description="Golden set. `lite` is the deploy gate; `full` adds the edge cases."

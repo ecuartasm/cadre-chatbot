@@ -24,6 +24,10 @@ def rates_for(model: str) -> dict[str, float]:
     return spec_for(model).rates
 
 
+# The four token counters the API returns on every response. Frozen: a turn's usage is a fact,
+# not state. All four default to 0 so a turn that errored before `done` still logs a valid record.
+#   cache_creation_input_tokens -> tokens WRITTEN to cache (first turn of a window, 1.25x)
+#   cache_read_input_tokens     -> tokens READ from cache  (every turn after,      0.1x)
 @dataclass(frozen=True)
 class Usage:
     input_tokens: int = 0
@@ -39,6 +43,8 @@ class Usage:
             self.input_tokens + self.cache_creation_input_tokens + self.cache_read_input_tokens
         )
 
+    # Serialise for the JSON log and the `done` SSE frame.
+    #   out: dict of the four counters plus the derived total_prompt_tokens
     def as_dict(self) -> dict[str, int]:
         return {
             "input_tokens": self.input_tokens,
@@ -49,6 +55,13 @@ class Usage:
         }
 
 
+# THE cost function. Nowhere else in the codebase multiplies tokens by a price.
+#   in : usage -- the four counters from this turn
+#        model -- the model id that produced them (rates differ 3x between models)
+#   out: USD as a float, unrounded
+#   raises: UnknownModelError via rates_for -- an unpriced model must not silently cost 0
+# Four terms, never two: dropping the cache terms overstates a cached turn by ~5x, which would
+# make the daily cap throttle on money that was never spent.
 def cost_usd(usage: Usage, model: str) -> float:
     r = rates_for(model)
     return (
@@ -77,6 +90,9 @@ class InteractionLog:
     error: str | None = None
     history_turns_sent: int = 0
 
+    # Flatten to the exact JSON object written as one line of interactions.jsonl.
+    #   out: dict -- all fields plus `cost_usd`, computed HERE so the ledger never stores a number
+    #        that was not derived from this turn's own usage and model.
     def as_dict(self) -> dict[str, object]:
         return {
             # Emitted explicitly rather than left to the formatter's ContextVar fallback. This

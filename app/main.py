@@ -42,6 +42,9 @@ if (_warn := llm_client.base_url_warning()):
 # `font/woff2` locally and `application/octet-stream` in production. Browsers honour the
 # `format('woff2')` hint either way, so nothing was visibly broken, which is exactly why it would
 # have gone unnoticed. Registered explicitly so local and deployed agree.
+# ⚠️ Registered EXPLICITLY because StaticFiles derives Content-Type from the OS mimetype
+# database, which on a slim Linux image does not know .woff2. Found only on deploy: locally the
+# fonts served fine, in the container they came back with no type and the page fell back.
 mimetypes.add_type("font/woff2", ".woff2")
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
@@ -56,6 +59,11 @@ app = FastAPI(
 )
 
 
+# Wraps EVERY request: mints the request id, exposes it downstream, logs the access line.
+#   in : request, call_next -- the ASGI middleware contract
+#   out: the response, with X-Request-Id set
+# ⚠️ The id is read from an inbound X-Request-Id when present, so a proxy's id survives rather
+# than being replaced -- that is what makes one id traceable across hops.
 @app.middleware("http")
 async def request_context(request: Request, call_next):  # noqa: ANN001, ANN201
     """Stamp a request id onto the whole request and echo it back.
@@ -115,6 +123,9 @@ async def request_context(request: Request, call_next):  # noqa: ANN001, ANN201
     return response
 
 
+# Last-resort handler for anything not caught downstream.
+#   out: HTTP 500 with a JSON body carrying the request_id -- never a stack trace, which would
+#        leak internals to the browser. The traceback goes to errors.jsonl instead.
 @app.exception_handler(Exception)
 async def unhandled(request: Request, exc: Exception) -> JSONResponse:
     """Catch-all: log the traceback, return a safe message. Never leak a stack trace to a
@@ -137,6 +148,9 @@ async def unhandled(request: Request, exc: Exception) -> JSONResponse:
     )
 
 
+# GET /health -- the probe Railway polls to decide whether a deploy succeeded.
+#   out: liveness plus model, log sink mode, spend snapshot, and whether the web bundle is
+#        present. Reports key PRESENCE as a boolean, never the key itself.
 @app.get("/health")
 def health() -> dict[str, object]:
     """Liveness probe — Railway's healthcheckPath.
@@ -173,9 +187,17 @@ app.include_router(stats_router)
 if WEB_DIST.is_dir():
     from fastapi.staticfiles import StaticFiles
 
+    # Serve the built React bundle from the SAME origin as the API -- the "one deployable"
+    # decision, which is why no CORS middleware exists anywhere in this app.
+    # ⚠️ Mounted at "/" and therefore LAST: registered before the routers, it would swallow
+    # /api/*. html=True resolves a directory to its own index.html, which is the only reason
+    # the second page is served with no route defined for it.
     app.mount("/", StaticFiles(directory=WEB_DIST, html=True), name="web")
 else:
 
+    # Fallback for "/" when web/dist does not exist (a backend-only local run).
+    #   out: a JSON note naming the built endpoints and how to build the UI, rather than a
+    #        bare 404 that reads as a broken deploy.
     @app.get("/")
     def root() -> dict[str, object]:
         return {

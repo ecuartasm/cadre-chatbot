@@ -39,12 +39,17 @@ from typing import NamedTuple
 # tight:
 # a limit that locks out a curious visitor costs more than it saves on a demo.
 RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "20"))
+# Window length in seconds. SLIDING, not a fixed calendar minute: timestamps older than this are
+# discarded before every count, so "20/min" means 20 in any rolling 60s, never 40 across a boundary.
 WINDOW_S = 60.0
 
 # Bounded so a flood of unique (or spoofed) IPs cannot grow this without limit — the limiter itself
 # must not become the memory-exhaustion vector.
 MAX_TRACKED_CLIENTS = 10_000
 
+# client key -> deque of request timestamps inside the window. PROCESS MEMORY, so buckets are
+# per-worker and are lost on restart; a second replica would have its own. Stated here rather than
+# discovered later -- it is the reason the app runs --workers 1.
 _hits: defaultdict[str, deque[float]] = defaultdict(deque)
 
 
@@ -76,6 +81,12 @@ def client_key(headers: dict[str, str], peer: str | None) -> ClientKey:
     return ClientKey("unknown", "none")
 
 
+# Record a request and decide whether it is allowed.
+#   in : key -- the bucket identifier from client_key()
+#        now -- injectable clock (seconds, monotonic). Tests pass it so they need no sleeps.
+#   out: (allowed: bool, retry_after_seconds: int). retry_after is 0 when allowed, and otherwise
+#        the exact time until the OLDEST request in the bucket expires -- not a guessed backoff.
+#   side effect: appends `now` to the bucket when allowed, and evicts idle buckets past the cap.
 def check(key: str, *, now: float | None = None) -> tuple[bool, int]:
     """Return (allowed, retry_after_seconds). `now` is injectable so tests need no sleeps."""
     if RATE_LIMIT_PER_MINUTE <= 0:
@@ -107,11 +118,16 @@ def check(key: str, *, now: float | None = None) -> tuple[bool, int]:
     return True, 0
 
 
+# Drop buckets with no activity inside the window. Called only on the ALLOWED path, once the dict
+# exceeds MAX_TRACKED_CLIENTS -- so a rejected flood cannot drive eviction work.
+#   in : now -- current monotonic time
+#   out: None (mutates _hits in place)
 def _evict_idle(now: float) -> None:
     for k in [k for k, v in _hits.items() if not v or now - v[-1] >= WINDOW_S]:
         del _hits[k]
 
 
+# Clear every bucket. Test-only -- there is no production path that resets the limiter.
 def reset() -> None:
     """Test helper."""
     _hits.clear()

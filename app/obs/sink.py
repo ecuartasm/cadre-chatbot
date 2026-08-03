@@ -22,7 +22,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 # Set only when the app is expected to persist logs. On Railway this points at the mounted volume.
+# Empty string means "stdout only" -- the normal state in local development.
 LOG_DIR_ENV = os.getenv("LOG_DIR", "").strip()
+# How many daily rotations to keep. This value IS the retention policy: there is no separate
+# deletion job, so changing it changes how long redacted user messages survive on disk.
 RETENTION_DAYS = int(os.getenv("LOG_RETENTION_DAYS", "7"))
 
 # In production an unwritable LOG_DIR is a deploy failure, not a warning. Locally it is normal to
@@ -34,6 +37,12 @@ class LogSinkError(RuntimeError):
     """LOG_DIR was configured but cannot be written. Never downgrade this to a warning."""
 
 
+# The resolved answer to "where do logs actually go?", computed once at import.
+#   mode           -- 'disk' (LOG_DIR set and proven writable) or 'stdout-only'
+#   log_dir        -- the configured path, or None when unset
+#   writable       -- result of a real write probe, not a permissions guess
+#   detail         -- human-readable reason, surfaced by /health so a misconfigured volume is
+#                     visible in the deploy rather than discovered when the logs are needed
 @dataclass(frozen=True)
 class SinkStatus:
     mode: str  # 'disk' | 'stdout-only'
@@ -42,6 +51,8 @@ class SinkStatus:
     retention_days: int
     detail: str
 
+    # Serialise for /health.
+    #   out: dict of all five fields -- safe to expose, contains a path but no credentials
     def as_dict(self) -> dict[str, object]:
         return {
             "mode": self.mode,
@@ -65,6 +76,13 @@ def _probe(path: Path) -> tuple[bool, str]:
         return False, f"{type(e).__name__}: {e}"
 
 
+# Decide the log destination, and refuse to lie about it.
+#   in : nothing -- reads LOG_DIR / ENVIRONMENT at module import
+#   out: SinkStatus
+#   raises: LogSinkError when LOG_DIR is SET but unwritable AND ENVIRONMENT=production.
+# Three outcomes, deliberately asymmetric: unset -> stdout (fine locally); set+writable -> disk;
+# set+broken -> a hard startup failure in prod, because silently degrading to stdout there means
+# the volume is missing and every log line is lost with nothing reporting it.
 def resolve_sink() -> SinkStatus:
     if not LOG_DIR_ENV:
         return SinkStatus(

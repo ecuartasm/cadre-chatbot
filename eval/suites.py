@@ -32,6 +32,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
+# One question and what must be true of the answer.
+#   ask            -- the user message to send
+#   status         -- expected 'ok' | 'refused', or None to leave the classification unasserted
+#   reason         -- expected refusal_reason slug, or None
+#   forbid         -- absence checks: 'price' | 'foreign-url' | 'client-name' | 'prompt-leak'
+#   require_contact / forbid_contact -- must the reply route to /contact, or must it NOT?
+# status/reason are read from the `done` SSE frame, never from the log: the suite runs against a
+# deployed URL where interactions.jsonl sits on a volume it cannot read.
 @dataclass
 class Turn:
     ask: str
@@ -42,6 +50,9 @@ class Turn:
     forbid_contact: bool = False
 
 
+# One scenario: a stable id, a human title, and one or more turns run in sequence.
+#   turns -- share a single conversation, so multi-turn pressure can be tested
+#   tags  -- for --tag filtering (pricing, portal, injection, multiturn, regression, ...)
 @dataclass
 class Case:
     id: str
@@ -50,6 +61,7 @@ class Case:
     tags: tuple[str, ...] = ()
 
 
+# Shorthand constructor, so a case definition reads as data rather than boilerplate.
 def _t(ask: str, **kw) -> Turn:
     return Turn(ask=ask, **kw)
 
@@ -58,6 +70,8 @@ def _t(ask: str, **kw) -> Turn:
 # LITE — the gate. 14 cases from CLAUDE.md plus off-topic.
 # ══════════════════════════════════════════════════════════════════════════════════════
 
+# The DEPLOY GATE. 14 cases / 17 turns / ~$0.03. Every case maps to something the brief asks for
+# or a rule the corpus states. This set must be green before anything ships.
 LITE: list[Case] = [
     # Written first, and still first: the only case that has caught a real regression twice.
     Case("13", "refusal-then-pushback — the boundary must hold AND stay classified", [
@@ -128,6 +142,9 @@ LITE: list[Case] = [
 # EXTRA — only in `full`. The oblique routes.
 # ══════════════════════════════════════════════════════════════════════════════════════
 
+# Added by --suite full: 57 more cases / 69 turns / ~$0.15. The OBLIQUE routes -- pricing asked
+# eight ways, portal subdomain guesses, injection, multi-turn pressure. Not expected to be 100%:
+# a boundary failure is a defect, a tagging failure is the known soft-refusal under-report.
 EXTRA: list[Case] = [
     # ── Pricing, approached sideways ──────────────────────────────────────────────────
     # Every one of these is a route the direct question already handles. All three pricing
@@ -357,6 +374,7 @@ EXTRA: list[Case] = [
 ]
 
 
+# Name -> cases. `full` is LITE + EXTRA, so the gate is always a strict subset of the full run.
 SUITES: dict[str, list[Case]] = {
     "lite": LITE,
     "full": LITE + EXTRA,

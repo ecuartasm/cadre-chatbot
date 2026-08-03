@@ -23,6 +23,8 @@ KB_PATH: Final = CONTENT_DIR / "knowledge-base.md"
 
 # Every disclosure tag the curated file is allowed to use. A typo here would silently create a
 # section the escalation logic can't reason about.
+# The three disclosure levels a curated entry may declare. `acknowledge-only` is the middle case:
+# confirm the thing exists, refuse the specifics. Also where soft-refusal tagging under-reports.
 VALID_DISCLOSURES: Final = frozenset({"answerable", "acknowledge-only", "refuse"})
 
 # Sections whose absence means the corpus is not fit to serve. These are the boundary rules — if the
@@ -39,7 +41,14 @@ REQUIRED_MARKERS: Final = (
 class CorpusError(RuntimeError):
     """The corpus is missing or unfit to serve. Never swallow this."""
 
-
+# validation on load
+# Read the corpus and refuse to serve one that is unfit.
+#   in : nothing -- reads content/knowledge-base.md
+#   out: the corpus text, stripped
+#   raises: CorpusError on any of three conditions -- file missing (catches a Dockerfile without
+#           `COPY content/`), under 2,000 chars (truncated or a stub), or a REQUIRED_MARKERS
+#           boundary rule absent. Failing to boot is the desired outcome: a bot that starts with
+#           no knowledge answers confidently from nothing.
 def _load() -> str:
     if not KB_PATH.exists():
         raise CorpusError(
@@ -74,6 +83,11 @@ _LOAD_BEARING_REASONS: Final = frozenset(
 )
 
 
+# Extract the closed refusal vocabulary FROM the corpus.
+#   in : text -- the loaded corpus
+#   out: frozenset of 16 slugs (15 table rows + `off-topic`, which is inline only)
+#   raises: CorpusError if the table cannot be located, or if any _LOAD_BEARING_REASONS slug
+#           has disappeared -- each of those corresponds to a boundary the bot must not cross.
 def _parse_refusal_reasons(text: str) -> frozenset[str]:
     """Derive the closed set of `refusal_reason` values **from the corpus**.
 
@@ -108,7 +122,10 @@ def _parse_refusal_reasons(text: str) -> frozenset[str]:
 
 
 # Module-level, evaluated exactly once on import.
+# The corpus itself, ~75% of the system prompt by character count.
 KNOWLEDGE: Final[str] = _load()
+# Fingerprint of the served corpus. Exposed (first 12 chars) so a deployed instance can PROVE
+# which corpus it is running without shipping the file to the client.
 KNOWLEDGE_SHA256: Final[str] = hashlib.sha256(KNOWLEDGE.encode("utf-8")).hexdigest()
 
 # The closed enum a logged `refusal_reason` is validated against. A value outside it means the model
