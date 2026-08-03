@@ -113,9 +113,9 @@ Every per-model fact — cache floor, four price rates, `thinking` support, cont
 `app/llm/models.py`. The script edits `.env` and then **proves the change took effect**, in a
 subprocess with the shell variable removed, because that is the only path matching what a user gets.
 
-Both models were run head-to-head over the full 71-case suite; the comparison with per-request
-telemetry is in [`reports/models-test.md`](reports/models-test.md). Haiku wins on cost and
-first-token latency with no boundary difference, so it is the default.
+Both models were run head-to-head over the full 71-case suite, with per-request telemetry. Haiku
+wins on cost and first-token latency with no boundary difference, so it is the default; Sonnet 5
+stays the escalation path, one `.env` line away.
 
 ---
 
@@ -179,7 +179,6 @@ content/
 web/src/               React: chat, playground, widget, mockup, shared hooks
 eval/                  golden.py (runner) · suites.py (14 lite + 71 full)
 mcp_server/            Read-only MCP tools over /api/stats. Not in the runtime image
-reports/               Per-phase reports · TECHNICAL-REPORT.md · models-test.md
 ```
 
 ---
@@ -207,13 +206,9 @@ for a permanently-public deployment.
 
 ## Documentation
 
-| | |
-|---|---|
-| [`CLAUDE.md`](CLAUDE.md) | The working contract — conventions, hard rules, the things that fail silently |
-| [`plan.md`](plan.md) | Phase-by-phase plan with exit criteria and recorded decisions |
-| [`reports/TECHNICAL-REPORT.md`](reports/TECHNICAL-REPORT.md) | The full technical account, including §16 on post-phase work |
-| [`reports/models-test.md`](reports/models-test.md) | Haiku 4.5 vs Sonnet 5, measured over 172 requests |
-| [`docs/ai-workflow-log.md`](docs/ai-workflow-log.md) | Terse per-phase record of how the work was done |
+[**`SPECIFICATION.md`**](SPECIFICATION.md) — the technical specification of what is actually built.
+Every seam, endpoint, constant and boundary rule, with the file and line each one lives at, and
+anything unverified marked as such rather than asserted.
 
 ---
 
@@ -223,7 +218,7 @@ RAG or a vector database (~4k stable tokens — prompt-stuffing with a cached pr
 simpler) · auth and real portal access · live CRM or booking · cross-session persistence · an admin
 CMS for the corpus · i18n · voice · OTel/Prometheus/Grafana · MCP on the request path.
 
-Each has a recorded trigger in `plan.md` that would reverse it.
+Each is a recorded decision with a stated trigger that would reverse it — not an oversight.
 
 **And never:** invent pricing, invent a portal URL, summarise podcast content, or name a case-study
 client.
@@ -239,7 +234,7 @@ logged. An eval reporting "zero boundary failures" while having no check for the
 the bot was producing. A link-audit harness that copied the regex it was meant to test, and reported
 a fixed bug as still broken.
 
-The through-line is in [`reports/TECHNICAL-REPORT.md`](reports/TECHNICAL-REPORT.md) §16.9: **a guard
-pinned to one filename stops covering what it was for, and reports green while doing it.** Nine times
+The through-line: **a guard pinned to one filename stops covering what it was for, and reports green
+while doing it.** Nine times
 in this build a test asserted something narrower than the property it stood for. The habit that
 catches them is naming the property first, in words, before writing the assertion.

@@ -50,3 +50,9 @@ content/backups/*
 
 # Local-only run artifacts (per-model log dirs from eval runs)
 .localdata/
+
+# Per-phase narrative reports, the technical report, the model comparison and the review prep.
+# Working notes for the author, not part of the deliverable. SPECIFICATION.md is the one document
+# the README points at. Untracked with `git rm -r --cached reports/` — note that the versions
+# committed before this line remain reachable in history.
+reports/
