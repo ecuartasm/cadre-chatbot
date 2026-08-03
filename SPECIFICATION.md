@@ -4,7 +4,7 @@ Technical specification of the system as built, derived by reading the code in t
 Every non-obvious claim cites a file path. Statements I could not verify from source are collected
 in [§13 Assumptions / unverified](#13-assumptions--unverified) rather than asserted here.
 
-**Commit at time of writing:** `3588a36` · **System prompt:** v1.9 · **Corpus SHA-256 (12):**
+**Commit at time of writing:** `b7c7753` · **System prompt:** v1.9 · **Corpus SHA-256 (12):**
 `b76e58eff516`
 
 ---

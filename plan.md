@@ -98,7 +98,7 @@ rewrite what it generates, commit `.claude/settings.json`, create `docs/ai-workf
 **Exit:** the public Railway URL returns 200, and the exit checklist above passes.
 
 ### Phase 0b — `CLAUDE.md` + `plan.md` · 60 min, protected
-✅ **Done** — both written and pushed (commit `d86f9f6`). **Deliberately separated from the deploy** so a
+✅ **Done** — both written and pushed (commit `b01a94d`). **Deliberately separated from the deploy** so a
 Railway snag couldn't eat the time for the two documents the brief asks for by name.
 Revisit at the end of Phase 6 to tighten, not to rewrite.
 
