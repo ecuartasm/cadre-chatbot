@@ -5,7 +5,7 @@ Execution plan. Phases run in order and every phase ends with the same checklist
 Conventions and non-negotiable rules live in `CLAUDE.md`. This file holds **sequence, scope decisions,
 and the open items**.
 
-**Repo:** `https://github.com/ecuartasm/cadre-chatbot` (private) · remote `origin` · branch `main`.
+**Repo:** `https://github.com/ecuartasm/cadre-chatbot` (public) · remote `origin` · branch `main`.
 
 ---
 

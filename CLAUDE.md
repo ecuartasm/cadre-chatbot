@@ -226,7 +226,7 @@ that), invent a portal URL, summarize podcast content, or name a case-study clie
 
 ## Working agreement
 
-**Repo:** `https://github.com/ecuartasm/cadre-chatbot` (private) · `origin` · `main`.
+**Repo:** `https://github.com/ecuartasm/cadre-chatbot` (public) · `origin` · `main`.
 
 **Follow `plan.md` phase by phase, and run its eight-step exit checklist every time:** tests green →
 exit criterion met → workflow log → phase report → **review the next phase against what this one
