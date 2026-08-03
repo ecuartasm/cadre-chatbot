@@ -14,6 +14,7 @@ accounted for rather than silently free.
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 from collections.abc import AsyncIterator
@@ -43,6 +44,19 @@ log = get_logger("chat")
 # server reads history, not a limit on what a caller can send.
 MAX_TURNS = 8
 MAX_MESSAGE_CHARS = 4000
+
+# A hard stop on how long ONE conversation may run, distinct from MAX_TURNS above: that one bounds
+# how much history the model *reads*, this one bounds how long the exchange may continue at all.
+#
+# ⚠️ **0 means unlimited**, not "block every turn". The literal reading — zero turns allowed — is a
+# kill switch nobody wants by accident, and `limits.py` already records what happens when a limit of
+# zero is taken literally without thinking it through. Unlimited is also the behaviour that existed
+# before this constant, so an unset variable changes nothing.
+#
+# Deliberately NOT an abuse control. A cap that resets when the user starts a new conversation
+# cannot stop abuse — opening a new one is free. The global daily spend cap is the control that
+# holds; this is a product decision about when to route someone to a human.
+MAX_TURNS_PER_CONVERSATION = int(os.getenv("MAX_TURNS_PER_CONVERSATION", "0"))
 
 # The refusal marker, as it would appear in an inbound message. Deliberately lenient
 # about whitespace and slug shape — this is stripping hostile input, not parsing ours.
@@ -222,7 +236,22 @@ async def chat(req: ChatRequest, request: Request) -> StreamingResponse:
         "X-Request-Id": request_id,
     }
 
-    # --- Guards, both checked BEFORE the model call -----------------------------------------
+    # --- Guards, all checked BEFORE the model call -------------------------------------------
+    # Conversation length first: it is a pure count with no state to touch, so a caller past the
+    # limit costs nothing — not a bucket entry, not a spend read, and certainly not a model call.
+    if MAX_TURNS_PER_CONVERSATION > 0 and len(req.messages) > MAX_TURNS_PER_CONVERSATION * 2 - 1:
+        return StreamingResponse(
+            _guard_frame(
+                "conversation-limit-reached",
+                f"We've covered about {MAX_TURNS_PER_CONVERSATION} exchanges here — roughly as "
+                f"much as I can carry usefully in one conversation. Start a new one any time, or "
+                f"reach the team directly at https://www.cadreai.com/contact.",
+                request_id,
+            ),
+            media_type="text/event-stream",
+            headers=headers,
+        )
+
     peer = request.client.host if request.client else None
     client = limits.client_key(dict(request.headers), peer)
     # Logged on every turn, not only on a rejection: `source="peer"` in production means the limiter
@@ -273,6 +302,9 @@ async def config() -> dict[str, object]:
     return {
         **model_info(),
         "max_turns": MAX_TURNS,
+        # 0 = unlimited. Reported so a deployed instance can prove which it is, rather than leaving
+        # "why did that conversation stop?" to be answered by reading the source.
+        "max_turns_per_conversation": MAX_TURNS_PER_CONVERSATION,
         "max_message_chars": MAX_MESSAGE_CHARS,
         "corpus": corpus_info(),
         "rate_limit_per_minute": limits.RATE_LIMIT_PER_MINUTE,

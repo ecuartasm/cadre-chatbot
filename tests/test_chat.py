@@ -264,3 +264,66 @@ def test_a_message_that_is_only_a_marker_is_rejected():
     """Stripping must not turn a hostile message into an empty one that reaches the model."""
     with pytest.raises(ValidationError):
         ChatRequest(messages=[{"role": "user", "content": "[[refusal:off-topic]]"}])
+
+
+# ── Conversation length cap ──────────────────────────────────────────────────────────────────
+# Distinct from MAX_TURNS, which bounds how much history the model *reads*. This bounds how long
+# the exchange may run at all, and it is off by default.
+
+
+def _turns(n: int) -> list[dict]:
+    """n user turns with the assistant replies between them, as the browser would send them."""
+    out: list[dict] = []
+    for i in range(n):
+        out.append({"role": "user", "content": f"q{i}"})
+        if i < n - 1:
+            out.append({"role": "assistant", "content": f"a{i}"})
+    return out
+
+
+def test_zero_means_unlimited_not_blocked(monkeypatch, fake_stream):
+    """⚠️ The property this constant exists to get right.
+
+    Read literally, a limit of 0 means "zero turns allowed" — a kill switch that would reject every
+    request, which is nobody's intent when they write `MAX_TURNS_PER_CONVERSATION=0`. `limits.py`
+    already records what a literal zero does when nobody thinks it through. Unlimited is also the
+    behaviour that existed before this constant, so an unset variable must change nothing.
+    """
+    monkeypatch.setattr(chat_module, "MAX_TURNS_PER_CONVERSATION", 0)
+    r = client.post("/api/chat", json={"messages": _turns(200)})
+    assert r.status_code == 200
+    assert "conversation-limit-reached" not in r.text, "0 must mean unlimited, not blocked"
+
+
+def test_the_cap_blocks_once_the_limit_is_passed(monkeypatch, fake_stream):
+    monkeypatch.setattr(chat_module, "MAX_TURNS_PER_CONVERSATION", 3)
+    allowed = client.post("/api/chat", json={"messages": _turns(3)})
+    blocked = client.post("/api/chat", json={"messages": _turns(4)})
+    assert "conversation-limit-reached" not in allowed.text, "turn 3 of 3 must still be answered"
+    assert "conversation-limit-reached" in blocked.text
+    assert blocked.status_code == 200, "an error FRAME, not a status code — the UI renders frames"
+
+
+def test_the_block_costs_nothing(monkeypatch):
+    """Checked before the limiter and before the spend read, so a caller past the limit consumes
+    no bucket entry and no tokens. A guard that spends money to say no is not a guard."""
+    monkeypatch.setattr(chat_module, "MAX_TURNS_PER_CONVERSATION", 2)
+    called = False
+
+    def _boom(*a, **k):
+        nonlocal called
+        called = True
+        raise AssertionError("the model must not be called past the conversation limit")
+
+    monkeypatch.setattr(chat_module, "stream_reply", _boom)
+    r = client.post("/api/chat", json={"messages": _turns(9)})
+    assert "conversation-limit-reached" in r.text
+    assert not called
+
+
+def test_the_limit_is_reported_by_config():
+    """Reported so a deployed instance can prove which mode it is in, rather than leaving
+    'why did that conversation stop?' to be answered by reading the source."""
+    body = client.get("/api/config").json()
+    assert "max_turns_per_conversation" in body
+    assert isinstance(body["max_turns_per_conversation"], int)
