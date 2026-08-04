@@ -85,12 +85,20 @@ class Chunk:
 # marker exists, rather than in the API layer or the UI — a leak would be the one Phase 3 failure a
 # user sees directly.
 
+# Two patterns, for two different jobs.
+#   _MARKER_OPEN     -- the literal prefix. Used to ask "could this tail still BECOME a marker?"
+#                       while the stream is mid-flight, when no regex can match yet.
+#   _MARKER_ANYWHERE -- matches a COMPLETE tag and captures the slug. Strict about slug shape
+#                       ([a-z0-9-], 1-40) because this parses OUR format. The inbound pattern in
+#                       chat.py is deliberately looser: that one sanitises hostile input.
+# ⚠️ "ANYWHERE", not "at the start". The prompt tells the model to put the tag first and Haiku
+# does -- but Sonnet uses it as a mid-answer section separator, and leading-only stripping
+# printed it into the chat in 2 of 4 runs while 171 unit tests stayed green.
 _MARKER_OPEN: Final = "[[refusal:"
 _MARKER_ANYWHERE: Final = re.compile(r"\[\[refusal:([a-z0-9-]{1,40})\]\]")
 # Longest real slug is 29 chars, so a well-formed marker is ~42. Past this the model is writing
-# prose that merely began like a marker; stop holding it back.
-# How many trailing characters the scanner holds back while deciding whether they are the start
-# of a marker. Bounded: an unterminated '[[refusal:' must not buffer the whole reply forever.
+# prose that merely began like a marker; stop holding it back. Bounded on purpose: an unterminated
+# '[[refusal:' must not buffer the whole reply forever.
 _MARKER_MAX: Final = 64
 
 
@@ -170,10 +178,25 @@ class MarkerScanner:
         return held
 
 
+# Remove every complete refusal tag from a block of text, and report the first slug found.
+#   in : text -- any text that may contain one or more `[[refusal:<slug>]]` markers
+#   out: (cleaned_text, first_slug_or_None)
+# Pure and stateless -- MarkerScanner owns the streaming problem (holding back a partial tag across
+# deltas); this handles only text already known to be complete. Splitting them keeps the tricky
+# part in one place and makes this half exhaustively testable with no stream to simulate.
+#
+# The newline collapse at the end is not cosmetic: a tag on its own line leaves a blank gap where
+# it was, and an answer that opens with a hole is a visible artifact of something the user is never
+# supposed to know exists.
 def _strip_markers(text: str) -> tuple[str, str | None]:
     """Remove every complete marker from `text`; return the remainder and the first slug found."""
     first: str | None = None
 
+    # re.sub replacement callback: records the FIRST slug seen, replaces every match with "".
+    #   in : m -- the regex match for one complete marker
+    #   out: "" -- the tag is deleted, never rendered
+    # `nonlocal first` keeps only the first: a reply with two tags is malformed, and the first is
+    # the one the model meant.
     def take(m: re.Match[str]) -> str:
         nonlocal first
         if first is None:
